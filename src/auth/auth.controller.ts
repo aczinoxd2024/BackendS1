@@ -1,6 +1,8 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto'; // Asegúrate de que LoginDto está importado
+import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto'; // NUEVO
+import { ResetPasswordDto } from './dto/reset-password.dto'; // NUEVO
 
 @Controller('auth')
 export class AuthController {
@@ -8,6 +10,17 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    return await this.authService.login(loginDto); // Usamos await para esperar la respuesta
+    return await this.authService.login(loginDto);
+  }
+
+  // NUEVO: Solicitar recuperación de contraseña
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return await this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return await this.authService.resetPassword(resetPasswordDto);
   }
 }
