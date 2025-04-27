@@ -9,22 +9,24 @@ import { AuthModule } from './auth/auth.module';
 import { MembresiasModule } from './membresias/membresias.module';
 import { ClasesModule } from './clases/clases.module';
 import { ReservasModule } from './reservas/reservas.module';
+import { APP_GUARD } from '@nestjs/core';
+// 🔥 Corrige la ruta si es necesario
+import { JwtService } from '@nestjs/jwt'; // 🔥 El RolesGuard necesita JwtService
+import { RolesGuard } from './auth/roles/roles.guard';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
-    // Configuración de la conexión a la base de datos con TypeORM
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
       port: 3306,
-      username: 'root', // Cambia aquí tu usuario
-      password: 'root', // Cambia aquí tu contraseña
-      database: 'BaseGym', // Nombre de la base de datos
-      autoLoadEntities: true, // Carga automática de todas las entidades
-      synchronize: false, // Establecer en 'true' solo en desarrollo para que se sincronice automáticamente
+      username: 'root',
+      password: 'root',
+      database: 'BaseGym',
+      autoLoadEntities: true,
+      synchronize: false,
     }),
-
-    // Módulos de la aplicación
     UsuariosModule,
     ClientesModule,
     PersonasModule,
@@ -33,7 +35,15 @@ import { ReservasModule } from './reservas/reservas.module';
     AuthModule,
     MembresiasModule,
     ClasesModule,
+    DashboardModule,
     ReservasModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+    JwtService, // Necesario para el guard
   ],
 })
 export class AppModule {}

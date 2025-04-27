@@ -11,10 +11,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
-// 🔥 Cambiamos a string porque usas UUID
 interface JwtPayload {
   id: string;
-  correo?: string; // opcional
+  correo: string;
+  rol: string; // El token llevará también el rol
 }
 
 @Injectable()
@@ -24,9 +24,9 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  // Método para validar las credenciales del usuario
   async validateUser(correo: string, password: string): Promise<Usuario> {
-    const usuario: Usuario | null =
-      await this.usuariosService.findOneByCorreo(correo);
+    const usuario = await this.usuariosService.findOneByCorreo(correo);
     if (!usuario) {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
@@ -50,24 +50,12 @@ export class AuthService {
       );
     }
 
-    if (!password) {
-      throw new UnauthorizedException('Contraseña no proporcionada');
-    }
-
-    if (usuario.contrasena.startsWith('$2')) {
-      return await bcrypt.compare(password, usuario.contrasena);
-    } else {
-      const hashedPassword = await bcrypt.hash(usuario.contrasena, 10);
-      usuario.contrasena = hashedPassword;
-      await this.usuariosService.update(usuario);
-      return await bcrypt.compare(password, usuario.contrasena);
-    }
+    // Verificamos la contraseña directamente
+    return bcrypt.compare(password, usuario.contrasena);
   }
 
   async login(loginDto: LoginDto): Promise<{ access_token: string }> {
-    const usuario: Usuario | null = await this.usuariosService.findOneByCorreo(
-      loginDto.correo,
-    );
+    const usuario = await this.usuariosService.findOneByCorreo(loginDto.correo);
     if (!usuario) {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
@@ -80,43 +68,58 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    const payload: JwtPayload = { id: usuario.id, correo: usuario.correo }; // 🔥 id es string
+    // Asignar el rol de usuario desde la base de datos
+    const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil || 'SinRol';
+
+    const payload: JwtPayload = {
+      id: usuario.id,
+      correo: usuario.correo,
+      rol: rol, // Asegurándonos de que el rol es el correcto
+    };
+
     const accessToken = this.jwtService.sign(payload);
 
     return { access_token: accessToken };
   }
 
+  // Método para recuperar la contraseña
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,
   ): Promise<{ message: string; token: string }> {
     const { email } = forgotPasswordDto;
 
-    const usuario: Usuario | null =
-      await this.usuariosService.findOneByCorreo(email);
+    const usuario = await this.usuariosService.findOneByCorreo(email);
     if (!usuario) {
       throw new NotFoundException('Correo no registrado.');
     }
 
-    const payload: JwtPayload = { id: usuario.id }; // 🔥 id es string
+    const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil || 'SinRol'; // Asignamos el rol
+
+    const payload: JwtPayload = {
+      id: usuario.id,
+      correo: usuario.correo,
+      rol: rol,
+    };
+
     const token = this.jwtService.sign(payload, { expiresIn: '15m' });
 
     return { message: 'Instrucciones enviadas.', token };
   }
 
+  // Método para resetear la contraseña
   async resetPassword(
     resetPasswordDto: ResetPasswordDto,
   ): Promise<{ message: string }> {
     const { token, newPassword } = resetPasswordDto;
 
-    const payload = this.jwtService.verify<JwtPayload>(token); // 🔥 payload tipado correcto
+    const payload = this.jwtService.verify<JwtPayload>(token);
 
-    const usuario: Usuario | null = await this.usuariosService.findOneById(
-      payload.id, // 🔥 id es string
-    );
+    const usuario = await this.usuariosService.findOneById(payload.id);
     if (!usuario) {
       throw new NotFoundException('Usuario no encontrado.');
     }
 
+    // Hasheamos la nueva contraseña
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     usuario.contrasena = hashedPassword;

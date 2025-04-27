@@ -36,10 +36,11 @@ export class UsuariosService {
     return 'Contraseñas de los usuarios existentes han sido actualizadas';
   }
 
+  // ✅ Aquí corregimos para incluir las relaciones necesarias
   async findOneByCorreo(correo: string): Promise<Usuario | null> {
     return await this.usuarioRepository.findOne({
       where: { correo },
-      relations: ['idPersona'],
+      relations: ['idPersona', 'usuarioPerfil', 'usuarioPerfil.perfil'], // 🔥 Importante traer perfil
     });
   }
 
@@ -47,10 +48,11 @@ export class UsuariosService {
     return await this.usuarioRepository.save(usuario);
   }
 
+  // ✅ También corregimos findOneById para el resetPassword
   async findOneById(id: string): Promise<Usuario | null> {
     return await this.usuarioRepository.findOne({
       where: { id },
-      relations: ['idPersona'],
+      relations: ['idPersona', 'usuarioPerfil', 'usuarioPerfil.perfil'],
     });
   }
 }
