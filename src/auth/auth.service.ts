@@ -34,18 +34,26 @@ export class AuthService {
     usuario: Usuario,
     password: string,
   ): Promise<boolean> {
-    // Si la contraseña en la base de datos empieza con "$2", significa que ya está hasheada
+    console.log('DEBUG usuario.contrasena:', usuario.contrasena);
+    console.log('DEBUG password ingresada:', password);
+
+    if (!usuario.contrasena) {
+      throw new UnauthorizedException(
+        'El usuario no tiene contraseña configurada',
+      );
+    }
+
+    if (!password) {
+      throw new UnauthorizedException('Contraseña no proporcionada');
+    }
+
     if (usuario.contrasena.startsWith('$2')) {
-      // Si ya está encriptada, comparamos directamente
       return await bcrypt.compare(password, usuario.contrasena);
     } else {
-      // Si la contraseña está en texto plano, la encriptamos y la actualizamos en la base de datos
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(usuario.contrasena, 10);
       usuario.contrasena = hashedPassword;
-
-      // Asegúrate de tener el método 'update' en tu servicio de UsuariosService
-      await this.usuariosService.update(usuario); // Actualiza la contraseña en la base de datos
-      return true;
+      await this.usuariosService.update(usuario);
+      return await bcrypt.compare(password, usuario.contrasena);
     }
   }
 
