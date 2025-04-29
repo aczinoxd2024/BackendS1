@@ -54,7 +54,9 @@ export class AuthService {
     return bcrypt.compare(password, usuario.contrasena);
   }
 
-  async login(loginDto: LoginDto): Promise<{ access_token: string }> {
+  async login(
+    loginDto: LoginDto,
+  ): Promise<{ access_token: string; user: any }> {
     const usuario = await this.usuariosService.findOneByCorreo(loginDto.correo);
     if (!usuario) {
       throw new UnauthorizedException('Credenciales incorrectas');
@@ -68,18 +70,28 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    // Asignar el rol de usuario desde la base de datos
-    const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil || 'SinRol';
+    const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil;
+
+    if (!rol) {
+      throw new UnauthorizedException('El usuario no tiene un rol asignado.');
+    }
 
     const payload: JwtPayload = {
       id: usuario.id,
       correo: usuario.correo,
-      rol: rol, // Asegurándonos de que el rol es el correcto
+      rol: rol,
     };
 
     const accessToken = this.jwtService.sign(payload);
 
-    return { access_token: accessToken };
+    return {
+      access_token: accessToken,
+      user: {
+        id: usuario.id,
+        correo: usuario.correo,
+        rol: rol,
+      },
+    };
   }
 
   // Método para recuperar la contraseña
@@ -93,7 +105,11 @@ export class AuthService {
       throw new NotFoundException('Correo no registrado.');
     }
 
-    const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil || 'SinRol'; // Asignamos el rol
+    const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil;
+
+    if (!rol) {
+      throw new UnauthorizedException('El usuario no tiene un rol asignado.');
+    }
 
     const payload: JwtPayload = {
       id: usuario.id,

@@ -3,17 +3,26 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsuariosModule } from '../usuarios/usuarios.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RolesGuard } from 'src/auth/roles/roles.guard';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // ✅ que sea global para que esté disponible en todo el proyecto
+    }),
     UsuariosModule,
-    JwtModule.register({
-      secret: 'your_secret_key', // 👈 si quieres definirlo más explícito
-      signOptions: { expiresIn: '1h' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
+      }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
-  exports: [JwtModule], // 🔥 exporta JwtModule
+  providers: [AuthService, RolesGuard],
+  exports: [JwtModule],
 })
 export class AuthModule {}

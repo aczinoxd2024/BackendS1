@@ -5,8 +5,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import * as jwt from 'jsonwebtoken'; // 🔥 Importamos jsonwebtoken
+import { ConfigService } from '@nestjs/config'; // 🔥 Para leer el secret del .env
 
 interface JwtPayload {
   rol: string;
@@ -15,52 +16,62 @@ interface JwtPayload {
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(
-    private reflector: Reflector,
-    private jwtService: JwtService,
+    private readonly reflector: Reflector,
+    private readonly configService: ConfigService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Obtén los roles requeridos desde el reflector
     const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
       context.getHandler(),
       context.getClass(),
     ]);
 
+    console.log('🔵 Roles requeridos para esta ruta:', requiredRoles);
+
     if (!requiredRoles) {
-      console.log('No se requieren roles, acceso permitido.');
+      console.log('🟡 No se requieren roles, acceso permitido.');
       return true;
     }
 
     const request = context.switchToHttp().getRequest<Request>();
     const authorizationHeader = request.headers.authorization;
 
-    // Si no se recibe un token en los headers
     if (!authorizationHeader) {
-      console.log('No token provided');
+      console.log('🔴 No token provided');
       throw new ForbiddenException('No token provided');
     }
 
-    // Extrae el token del header
     const token = authorizationHeader.split(' ')[1];
-    console.log(`Token recibido: ${token}`);
+    console.log('🟠 Token recibido:', token);
 
     let payload: JwtPayload;
     try {
-      // Intenta verificar y decodificar el token
-      payload = await this.jwtService.verifyAsync<JwtPayload>(token);
-      console.log(`Token verificado, payload: ${JSON.stringify(payload)}`);
+      const secret = this.configService.get<string>('JWT_SECRET');
+      if (!secret) {
+        console.error('❌ JWT_SECRET no está definido en .env');
+        throw new ForbiddenException('Problema interno de autenticación');
+      }
+
+      const decoded = jwt.verify(token, secret) as unknown as JwtPayload;
+      payload = decoded;
+
+      console.log('🟢 Token verificado correctamente, payload:', payload);
     } catch (e) {
-      console.error('Error al verificar el token:', e);
+      console.error('🔴 Error al verificar el token:', e.message);
       throw new ForbiddenException('Token inválido o expirado');
     }
 
-    // Verifica si el rol del payload es uno de los roles requeridos
+    console.log(
+      '🟣 Verificando si el rol del usuario está permitido:',
+      payload.rol,
+    );
+
     if (!requiredRoles.includes(payload.rol)) {
-      console.log(`Rol '${payload.rol}' no autorizado para esta ruta.`);
+      console.log(`🔴 Rol '${payload.rol}' no autorizado para esta ruta.`);
       throw new ForbiddenException('Acceso denegado por rol insuficiente');
     }
 
-    console.log(`Acceso permitido para el rol '${payload.rol}'`);
+    console.log(`✅ Acceso permitido para el rol '${payload.rol}'`);
     return true;
   }
 }
