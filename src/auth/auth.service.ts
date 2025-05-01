@@ -51,44 +51,68 @@ export class AuthService {
     return bcrypt.compare(password, usuario.contrasena);
   }
 
+
+  
+
   // 🚪 Iniciar sesión y registrar en bitácora
   async login(
     loginDto: LoginDto,
     req: Request,
   ): Promise<{ access_token: string; user: any }> {
     const { correo, contrasena, rolSeleccionado } = loginDto;
-    const usuario = await this.usuariosService.findOneByCorreo(correo);
-
-    if (!usuario || !(await this.verifyPassword(usuario, contrasena))) {
+  
+    // 🔧 Quitamos .toLowerCase() para respetar el formato del correo tal como está en la base
+    const correoLimpio = correo.trim();
+  
+    const usuario = await this.usuariosService.findOneByCorreo(correoLimpio);
+  
+    if (!usuario) {
+      console.log('❌ Usuario no encontrado con correo:', correoLimpio);
       throw new UnauthorizedException('Credenciales incorrectas');
     }
-
-    const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil;
-    if (!rol)
+  
+    const contrasenaValida = await this.verifyPassword(usuario, contrasena);
+    if (!contrasenaValida) {
+      console.log('❌ Contraseña inválida para usuario:', correoLimpio);
+      throw new UnauthorizedException('Credenciales incorrectas');
+    }
+  
+    const perfiles = usuario.usuarioPerfil.map(up => up.perfil?.nombrePerfil);
+  
+    console.log('✅ Usuario encontrado:', correoLimpio);
+    console.log('🎭 Perfiles asignados:', perfiles);
+    console.log('🎯 Rol seleccionado:', rolSeleccionado);
+  
+    if (!perfiles || perfiles.length === 0) {
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
-    if (rol !== rolSeleccionado)
+    }
+  
+    if (!perfiles.includes(rolSeleccionado)) {
       throw new UnauthorizedException('Rol no coincide con el usuario');
-
+    }
+  
+    const rol = rolSeleccionado;
+  
     const payload: JwtPayload = {
       id: usuario.id,
       correo: usuario.correo,
       rol,
     };
-
+  
     const accessToken = this.jwtService.sign(payload);
-
+  
     const ip =
       req.headers['x-forwarded-for']?.toString() ||
       req.socket.remoteAddress ||
       'IP no detectada';
-
+  
     await this.bitacoraService.registrar(
       usuario.id,
       'Inicio de sesión exitoso',
       'usuario',
       ip,
     );
-
+  
     return {
       access_token: accessToken,
       user: {
@@ -98,6 +122,10 @@ export class AuthService {
       },
     };
   }
+  
+
+
+  
 
   async logout(req: Request): Promise<{ message: string }> {
     const authHeader = req.headers.authorization;
