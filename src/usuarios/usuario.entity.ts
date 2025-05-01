@@ -8,31 +8,30 @@ import {
 } from 'typeorm';
 import { Persona } from '../personas/persona.entity';
 import { UsuarioPerfil } from './usuario-perfil.entity';
-import { Bitacora } from '../bitacora/bitacora.entity'; // ✅
+import { Bitacora } from '../bitacora/bitacora.entity';
 
 @Entity()
 export class Usuario {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ name: 'Correo', unique: true }) // 🔧 Mapeo correcto al campo en la base
   correo: string;
 
-  @Column()
+  @Column({ name: 'Contrasena' }) // 🔧 Corrige mapeo de contraseña
   contrasena: string;
 
   @ManyToOne(() => Persona)
-  @JoinColumn({ name: 'IDPersona' })
+  @JoinColumn({ name: 'IDPersona' }) // 🔧 Nombre exacto del campo FK
   idPersona: Persona;
 
-  @Column()
+  @Column({ name: 'IDEstadoU' }) // 🔧 Corrige nombre exacto del campo
   idEstadoU: number;
 
-  // 🔥 Relación con perfiles
   @OneToMany(() => UsuarioPerfil, (usuarioPerfil) => usuarioPerfil.usuario)
   usuarioPerfil: UsuarioPerfil[];
 
-  // ✅ Relación con bitácora (nuevo)
   @OneToMany(() => Bitacora, (bitacora) => bitacora.usuario)
   bitacoras: Bitacora[];
 }
+

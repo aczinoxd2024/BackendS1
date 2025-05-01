@@ -8,6 +8,6 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
-  await app.listen(3000); // o el puerto que estés usando
+  await app.listen(3010); // o el puerto que estés usando
 }
 bootstrap();

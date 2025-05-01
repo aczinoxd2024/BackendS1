@@ -23,7 +23,7 @@ import { BitacoraModule } from './bitacora/bitacora.module';
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: 'root',
+      password: '10121698hr',
       database: 'BaseGym',
       autoLoadEntities: true,
       synchronize: false,
