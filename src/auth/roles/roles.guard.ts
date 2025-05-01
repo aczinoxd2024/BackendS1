@@ -66,7 +66,10 @@ export class RolesGuard implements CanActivate {
       payload.rol,
     );
 
-    if (!requiredRoles.includes(payload.rol)) {
+    const rolesNormalizados = requiredRoles.map((r) => r.toLowerCase());
+    const rolUsuario = payload.rol.toLowerCase();
+
+    if (!rolesNormalizados.includes(rolUsuario)) {
       console.log(`🔴 Rol '${payload.rol}' no autorizado para esta ruta.`);
       throw new ForbiddenException('Acceso denegado por rol insuficiente');
     }

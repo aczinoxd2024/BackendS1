@@ -1,4 +1,5 @@
 export class LoginDto {
   correo: string;
-  contrasena: string; // Asegúrate de que este campo sea correcto
+  contrasena: string; // contraseña ingresada
+  rolSeleccionado: string; // nuevo campo para validar el rol
 }

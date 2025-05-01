@@ -1,3 +1,4 @@
+import { Bitacora } from '../bitacora/bitacora.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsuariosService } from '../usuarios/usuarios.service';
@@ -5,16 +6,19 @@ import { Usuario } from '../usuarios/usuario.entity';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Request } from 'express';
+
 import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { BitacoraService } from 'src/bitacora/bitacora.service';
 
 interface JwtPayload {
   id: string;
   correo: string;
-  rol: string; // El token llevará también el rol
+  rol: string;
 }
 
 @Injectable()
@@ -22,24 +26,19 @@ export class AuthService {
   constructor(
     private usuariosService: UsuariosService,
     private jwtService: JwtService,
+    private bitacoraService: BitacoraService,
   ) {}
 
-  // Método para validar las credenciales del usuario
+  // ✅ Validar usuario y contraseña
   async validateUser(correo: string, password: string): Promise<Usuario> {
     const usuario = await this.usuariosService.findOneByCorreo(correo);
-    if (!usuario) {
+    if (!usuario || !(await this.verifyPassword(usuario, password))) {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
-
-    const isPasswordValid = await this.verifyPassword(usuario, password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales incorrectas');
-    }
-
     return usuario;
   }
 
+  // 🔐 Comparar contraseña hasheada
   private async verifyPassword(
     usuario: Usuario,
     password: string,
@@ -49,72 +48,98 @@ export class AuthService {
         'El usuario no tiene contraseña configurada',
       );
     }
-
-    // Verificamos la contraseña directamente
     return bcrypt.compare(password, usuario.contrasena);
   }
 
+  // 🚪 Iniciar sesión y registrar en bitácora
   async login(
     loginDto: LoginDto,
+    req: Request,
   ): Promise<{ access_token: string; user: any }> {
-    const usuario = await this.usuariosService.findOneByCorreo(loginDto.correo);
-    if (!usuario) {
-      throw new UnauthorizedException('Credenciales incorrectas');
-    }
+    const { correo, contrasena, rolSeleccionado } = loginDto;
+    const usuario = await this.usuariosService.findOneByCorreo(correo);
 
-    const isPasswordValid = await this.verifyPassword(
-      usuario,
-      loginDto.contrasena,
-    );
-    if (!isPasswordValid) {
+    if (!usuario || !(await this.verifyPassword(usuario, contrasena))) {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
     const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil;
-
-    if (!rol) {
+    if (!rol)
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
-    }
+    if (rol !== rolSeleccionado)
+      throw new UnauthorizedException('Rol no coincide con el usuario');
 
     const payload: JwtPayload = {
       id: usuario.id,
       correo: usuario.correo,
-      rol: rol,
+      rol,
     };
 
     const accessToken = this.jwtService.sign(payload);
+
+    const ip =
+      req.headers['x-forwarded-for']?.toString() ||
+      req.socket.remoteAddress ||
+      'IP no detectada';
+
+    await this.bitacoraService.registrar(
+      usuario.id,
+      'Inicio de sesión exitoso',
+      'usuario',
+      ip,
+    );
 
     return {
       access_token: accessToken,
       user: {
         id: usuario.id,
         correo: usuario.correo,
-        rol: rol,
+        rol,
       },
     };
   }
 
-  // Método para recuperar la contraseña
+  async logout(req: Request): Promise<{ message: string }> {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Token no proporcionado.');
+    }
+
+    const token = authHeader.split(' ')[1];
+    const payload = this.jwtService.verify<JwtPayload>(token);
+
+    const ip =
+      req.headers['x-forwarded-for']?.toString() ||
+      req.socket.remoteAddress ||
+      'IP no detectada';
+
+    await this.bitacoraService.registrar(
+      payload.id,
+      'Cierre de sesión',
+      'usuario',
+      ip,
+    );
+
+    return { message: 'Cierre de sesión registrado correctamente.' };
+  }
+
+  // 📧 Solicitud para recuperación de contraseña
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,
   ): Promise<{ message: string; token: string }> {
     const { email } = forgotPasswordDto;
-
     const usuario = await this.usuariosService.findOneByCorreo(email);
-    if (!usuario) {
-      throw new NotFoundException('Correo no registrado.');
-    }
+    if (!usuario) throw new NotFoundException('Correo no registrado.');
 
     const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil;
-
-    if (!rol) {
+    if (!rol)
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
-    }
 
     const payload: JwtPayload = {
       id: usuario.id,
       correo: usuario.correo,
-      rol: rol,
+      rol,
     };
 
     const token = this.jwtService.sign(payload, { expiresIn: '15m' });
@@ -122,23 +147,17 @@ export class AuthService {
     return { message: 'Instrucciones enviadas.', token };
   }
 
-  // Método para resetear la contraseña
+  // 🔁 Restablecimiento de contraseña
   async resetPassword(
     resetPasswordDto: ResetPasswordDto,
   ): Promise<{ message: string }> {
     const { token, newPassword } = resetPasswordDto;
-
     const payload = this.jwtService.verify<JwtPayload>(token);
 
     const usuario = await this.usuariosService.findOneById(payload.id);
-    if (!usuario) {
-      throw new NotFoundException('Usuario no encontrado.');
-    }
+    if (!usuario) throw new NotFoundException('Usuario no encontrado.');
 
-    // Hasheamos la nueva contraseña
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    usuario.contrasena = hashedPassword;
+    usuario.contrasena = await bcrypt.hash(newPassword, 10);
     await this.usuariosService.update(usuario);
 
     return { message: 'Contraseña actualizada correctamente.' };

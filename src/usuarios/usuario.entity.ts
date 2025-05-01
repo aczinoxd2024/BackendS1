@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Persona } from '../personas/persona.entity';
 import { UsuarioPerfil } from './usuario-perfil.entity';
+import { Bitacora } from '../bitacora/bitacora.entity'; // ✅
 
 @Entity()
 export class Usuario {
@@ -27,7 +28,11 @@ export class Usuario {
   @Column()
   idEstadoU: number;
 
-  // 🔥 Relación nueva: un usuario puede tener uno o varios perfiles (normalmente 1)
+  // 🔥 Relación con perfiles
   @OneToMany(() => UsuarioPerfil, (usuarioPerfil) => usuarioPerfil.usuario)
   usuarioPerfil: UsuarioPerfil[];
+
+  // ✅ Relación con bitácora (nuevo)
+  @OneToMany(() => Bitacora, (bitacora) => bitacora.usuario)
+  bitacoras: Bitacora[];
 }

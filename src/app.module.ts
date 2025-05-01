@@ -14,6 +14,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt'; // 🔥 El RolesGuard necesita JwtService
 import { RolesGuard } from './auth/roles/roles.guard';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { BitacoraModule } from './bitacora/bitacora.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ClasesModule,
     DashboardModule,
     ReservasModule,
+    BitacoraModule,
   ],
   providers: [
     {
