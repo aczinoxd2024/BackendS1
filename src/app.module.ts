@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
+// Módulos de la aplicación
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { PersonasModule } from './personas/personas.module';
@@ -9,25 +11,29 @@ import { AuthModule } from './auth/auth.module';
 import { MembresiasModule } from './membresias/membresias.module';
 import { ClasesModule } from './clases/clases.module';
 import { ReservasModule } from './reservas/reservas.module';
-import { APP_GUARD } from '@nestjs/core';
-// 🔥 Corrige la ruta si es necesario
-import { JwtService } from '@nestjs/jwt'; // 🔥 El RolesGuard necesita JwtService
-import { RolesGuard } from './auth/roles/roles.guard';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { BitacoraModule } from './bitacora/bitacora.module';
 
+// Seguridad global con RolesGuard
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from './auth/roles/roles.guard';
+import { TipoMembresiaModule } from './membresias/Tipos/tipo-menbresia.module';
+
 @Module({
   imports: [
+    // Configuración de la base de datos
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: '10121698hr',
+      password: 'root',
       database: 'BaseGym',
       autoLoadEntities: true,
-      synchronize: false,
+      synchronize: false, // Producción recomendado en false
     }),
+
+    // Módulos funcionales
     UsuariosModule,
     ClientesModule,
     PersonasModule,
@@ -39,13 +45,13 @@ import { BitacoraModule } from './bitacora/bitacora.module';
     DashboardModule,
     ReservasModule,
     BitacoraModule,
+    TipoMembresiaModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
-    JwtService, // Necesario para el guard
   ],
 })
 export class AppModule {}

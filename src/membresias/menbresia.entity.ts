@@ -1,15 +1,15 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity()
+@Entity('membresia')
 export class Membresia {
   @PrimaryGeneratedColumn()
   IDMembresia: number;
 
   @Column({ type: 'date' })
-  FechaInicio: string;
+  FechaInicio: Date;
 
   @Column({ type: 'date' })
-  FechaFin: string;
+  FechaFin: Date;
 
   @Column({ length: 50 })
   PlataformaWeb: string;

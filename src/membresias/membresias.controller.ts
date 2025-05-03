@@ -18,6 +18,7 @@ export class MembresiasController {
   async create(@Body() membresia: Membresia): Promise<Membresia> {
     return this.membresiasService.create(membresia);
   }
+
   @Get()
   async findAll(): Promise<Membresia[]> {
     return this.membresiasService.findAll();
@@ -39,5 +40,18 @@ export class MembresiasController {
   @Delete(':id')
   async remove(@Param('id') id: number): Promise<void> {
     return this.membresiasService.remove(id);
+  }
+
+  // ✅ NUEVA RUTA: Asignar membresía a cliente (Recepcionista)
+  @Post('asignar')
+  async asignarMembresia(
+    @Body()
+    data: {
+      clienteCi: string;
+      tipoMembresiaId: number;
+      fechaInicio: Date;
+    },
+  ) {
+    return await this.membresiasService.asignarMembresia(data);
   }
 }

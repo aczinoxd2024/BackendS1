@@ -6,10 +6,12 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import * as jwt from 'jsonwebtoken'; // 🔥 Importamos jsonwebtoken
-import { ConfigService } from '@nestjs/config'; // 🔥 Para leer el secret del .env
+import * as jwt from 'jsonwebtoken';
+import { ConfigService } from '@nestjs/config';
 
 interface JwtPayload {
+  id: string;
+  correo: string;
   rol: string;
 }
 
@@ -26,10 +28,7 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    console.log('🔵 Roles requeridos para esta ruta:', requiredRoles);
-
     if (!requiredRoles) {
-      console.log('🟡 No se requieren roles, acceso permitido.');
       return true;
     }
 
@@ -37,44 +36,41 @@ export class RolesGuard implements CanActivate {
     const authorizationHeader = request.headers.authorization;
 
     if (!authorizationHeader) {
-      console.log('🔴 No token provided');
       throw new ForbiddenException('No token provided');
     }
 
     const token = authorizationHeader.split(' ')[1];
-    console.log('🟠 Token recibido:', token);
 
     let payload: JwtPayload;
+
     try {
       const secret = this.configService.get<string>('JWT_SECRET');
       if (!secret) {
-        console.error('❌ JWT_SECRET no está definido en .env');
         throw new ForbiddenException('Problema interno de autenticación');
       }
 
-      const decoded = jwt.verify(token, secret) as unknown as JwtPayload;
-      payload = decoded;
+      // ✅ Ahora usamos async (promesa) para verificar el token → versión profesional
+      payload = await new Promise<JwtPayload>((resolve, reject) => {
+        jwt.verify(token, secret, (err, decoded) => {
+          if (err || !decoded) {
+            return reject(err || new Error('Token inválido'));
+          }
+          resolve(decoded as JwtPayload);
+        });
+      });
 
-      console.log('🟢 Token verificado correctamente, payload:', payload);
-    } catch (e) {
-      console.error('🔴 Error al verificar el token:', e.message);
+      request.user = payload;
+    } catch {
       throw new ForbiddenException('Token inválido o expirado');
     }
-
-    console.log(
-      '🟣 Verificando si el rol del usuario está permitido:',
-      payload.rol,
-    );
 
     const rolesNormalizados = requiredRoles.map((r) => r.toLowerCase());
     const rolUsuario = payload.rol.toLowerCase();
 
     if (!rolesNormalizados.includes(rolUsuario)) {
-      console.log(`🔴 Rol '${payload.rol}' no autorizado para esta ruta.`);
       throw new ForbiddenException('Acceso denegado por rol insuficiente');
     }
 
-    console.log(`✅ Acceso permitido para el rol '${payload.rol}'`);
     return true;
   }
 }

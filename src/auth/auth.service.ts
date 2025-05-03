@@ -1,19 +1,21 @@
-import { Bitacora } from '../bitacora/bitacora.entity';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
-import { UsuariosService } from '../usuarios/usuarios.service';
-import { Usuario } from '../usuarios/usuario.entity';
-import { LoginDto } from './dto/login.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { Request } from 'express';
-
 import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UsuariosService } from '../usuarios/usuarios.service';
+import { Usuario } from '../usuarios/usuario.entity';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
 import { BitacoraService } from 'src/bitacora/bitacora.service';
+import { Bitacora } from '../bitacora/bitacora.entity';
+import { Request } from 'express';
+import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
+
+import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 interface JwtPayload {
   id: string;
@@ -29,7 +31,7 @@ export class AuthService {
     private bitacoraService: BitacoraService,
   ) {}
 
-  // ✅ Validar usuario y contraseña
+  // Validar usuario y contraseña
   async validateUser(correo: string, password: string): Promise<Usuario> {
     const usuario = await this.usuariosService.findOneByCorreo(correo);
     if (!usuario || !(await this.verifyPassword(usuario, password))) {
@@ -38,7 +40,7 @@ export class AuthService {
     return usuario;
   }
 
-  // 🔐 Comparar contraseña hasheada
+  // Comparar contraseña hasheada
   private async verifyPassword(
     usuario: Usuario,
     password: string,
@@ -51,100 +53,97 @@ export class AuthService {
     return bcrypt.compare(password, usuario.contrasena);
   }
 
+  // Obtener la IP real del cliente
+  private getClientIp(req: Request): string {
+    const ip =
+      req.headers['x-forwarded-for'] ||
+      req.socket.remoteAddress ||
+      'IP no detectada';
+    return Array.isArray(ip) ? ip[0] : ip.toString();
+  }
 
-  
-
-  // 🚪 Iniciar sesión y registrar en bitácora
+  // Iniciar sesión y registrar en bitácora
   async login(
     loginDto: LoginDto,
     req: Request,
   ): Promise<{ access_token: string; user: any }> {
     const { correo, contrasena, rolSeleccionado } = loginDto;
-  
-    // 🔧 Quitamos .toLowerCase() para respetar el formato del correo tal como está en la base
     const correoLimpio = correo.trim();
-  
+
     const usuario = await this.usuariosService.findOneByCorreo(correoLimpio);
-  
+
     if (!usuario) {
       console.log('❌ Usuario no encontrado con correo:', correoLimpio);
       throw new UnauthorizedException('Credenciales incorrectas');
     }
-  
+
     const contrasenaValida = await this.verifyPassword(usuario, contrasena);
     if (!contrasenaValida) {
       console.log('❌ Contraseña inválida para usuario:', correoLimpio);
       throw new UnauthorizedException('Credenciales incorrectas');
     }
-  
-    const perfiles = usuario.usuarioPerfil.map(up => up.perfil?.nombrePerfil);
-  
+
+    const perfiles = usuario.usuarioPerfil.map((up) => up.perfil?.nombrePerfil);
+
     console.log('✅ Usuario encontrado:', correoLimpio);
     console.log('🎭 Perfiles asignados:', perfiles);
     console.log('🎯 Rol seleccionado:', rolSeleccionado);
-  
+
     if (!perfiles || perfiles.length === 0) {
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
     }
-  
+
     if (!perfiles.includes(rolSeleccionado)) {
       throw new UnauthorizedException('Rol no coincide con el usuario');
     }
-  
+
     const rol = rolSeleccionado;
-  
+
     const payload: JwtPayload = {
       id: usuario.id,
       correo: usuario.correo,
       rol,
     };
-  
+
     const accessToken = this.jwtService.sign(payload);
-  
-    const ip =
-      req.headers['x-forwarded-for']?.toString() ||
-      req.socket.remoteAddress ||
-      'IP no detectada';
-  
+
+    const ip = this.getClientIp(req);
+
     await this.bitacoraService.registrar(
       usuario.id,
-      'Inicio de sesión exitoso',
+      AccionBitacora.LOGIN,
       'usuario',
       ip,
     );
-  
+
     return {
       access_token: accessToken,
       user: {
         id: usuario.id,
         correo: usuario.correo,
+        nombre: usuario.idPersona?.Nombre ?? 'Sin nombre', // ✅ Nombre agregado
         rol,
       },
     };
   }
-  
 
-
-  
-
+  // Cerrar sesión y registrar en bitácora
   async logout(req: Request): Promise<{ message: string }> {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Token no proporcionado.');
+      // 🚨 Aquí podemos evitar registrar cuando NO hay token
+      return { message: 'No había token para cerrar sesión.' };
     }
 
     const token = authHeader.split(' ')[1];
     const payload = this.jwtService.verify<JwtPayload>(token);
 
-    const ip =
-      req.headers['x-forwarded-for']?.toString() ||
-      req.socket.remoteAddress ||
-      'IP no detectada';
+    const ip = this.getClientIp(req);
 
     await this.bitacoraService.registrar(
       payload.id,
-      'Cierre de sesión',
+      AccionBitacora.LOGOUT,
       'usuario',
       ip,
     );
@@ -152,7 +151,7 @@ export class AuthService {
     return { message: 'Cierre de sesión registrado correctamente.' };
   }
 
-  // 📧 Solicitud para recuperación de contraseña
+  // Solicitud para recuperación de contraseña
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,
   ): Promise<{ message: string; token: string }> {
@@ -175,7 +174,7 @@ export class AuthService {
     return { message: 'Instrucciones enviadas.', token };
   }
 
-  // 🔁 Restablecimiento de contraseña
+  // Restablecimiento de contraseña
   async resetPassword(
     resetPasswordDto: ResetPasswordDto,
   ): Promise<{ message: string }> {

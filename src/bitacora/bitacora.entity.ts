@@ -1,4 +1,3 @@
-// src/bitacora/bitacora.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -15,7 +14,7 @@ export class Bitacora {
   id: number;
 
   @Column()
-  idUsuario: string;
+  idUsuario: string; // Este es el FK que apunta al usuario.id
 
   @Column('text')
   accion: string;
@@ -29,10 +28,10 @@ export class Bitacora {
   @CreateDateColumn({ type: 'timestamp' })
   fechaHora: Date;
 
-  // ✅ Relación con usuario
+  // ✅ Relación con usuario (importante que coincida con idUsuario)
   @ManyToOne(() => Usuario, (usuario) => usuario.bitacoras, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'idUsuario' })
+  @JoinColumn({ name: 'idUsuario' }) // este nombre debe ser EXACTO al de la columna
   usuario: Usuario;
 }
