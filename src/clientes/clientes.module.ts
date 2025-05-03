@@ -6,13 +6,15 @@ import { ClientesController } from './clientes.controller';
 
 // 🔥 IMPORTAR módulos necesarios
 import { PersonasModule } from '../personas/personas.module';
-// 👈 ✅ ESTE FALTABA
 import { Usuario } from '../usuarios/usuario.entity';
 import { UsuarioPerfil } from '../usuarios/usuario-perfil.entity';
 import { Perfil } from '../usuarios/perfil.entity';
 import { Bitacora } from '../bitacora/bitacora.entity';
 import { Membresia } from '../membresias/menbresia.entity';
 import { TipoMembresiaModule } from 'src/membresias/Tipos/tipo-menbresia.module';
+import { MetodoPagoModule } from 'src/pagos/metodo-pago/metodo-pago.module';
+import { PagoModule } from 'src/pagos/pagos.module';
+// ✅ AÑADIDO ESTE
 
 @Module({
   imports: [
@@ -24,8 +26,10 @@ import { TipoMembresiaModule } from 'src/membresias/Tipos/tipo-menbresia.module'
       Bitacora,
       Membresia,
     ]),
-    PersonasModule, // ✅ Ya estaba
-    TipoMembresiaModule, // ✅ 🔥🔥🔥 ESTE ES EL QUE FALTABA
+    PersonasModule,
+    TipoMembresiaModule,
+    MetodoPagoModule, // ✅ Correcto
+    PagoModule, // ✅ AÑADIDO → Esto es lo único que faltaba
   ],
   controllers: [ClientesController],
   providers: [ClientesService],

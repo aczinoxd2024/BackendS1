@@ -18,6 +18,7 @@ import { BitacoraModule } from './bitacora/bitacora.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './auth/roles/roles.guard';
 import { TipoMembresiaModule } from './membresias/Tipos/tipo-menbresia.module';
+import { MetodoPagoModule } from './pagos/metodo-pago/metodo-pago.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { TipoMembresiaModule } from './membresias/Tipos/tipo-menbresia.module';
     DashboardModule,
     ReservasModule,
     BitacoraModule,
+    MetodoPagoModule,
     TipoMembresiaModule,
   ],
   providers: [
