@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 // Módulos de la aplicación
 import { UsuariosModule } from './usuarios/usuarios.module';
@@ -13,25 +14,34 @@ import { ClasesModule } from './clases/clases.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { BitacoraModule } from './bitacora/bitacora.module';
+import { TipoMembresiaModule } from './membresias/Tipos/tipo-menbresia.module';
+import { MetodoPagoModule } from './pagos/metodo-pago/metodo-pago.module';
 
 // Seguridad global con RolesGuard
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './auth/roles/roles.guard';
-import { TipoMembresiaModule } from './membresias/Tipos/tipo-menbresia.module';
-import { MetodoPagoModule } from './pagos/metodo-pago/metodo-pago.module';
 
 @Module({
   imports: [
-    // Configuración de la base de datos
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'centerbeam.proxy.rlwy.net',
-      port: 41437,
-      username: 'root',
-      password: 'eFtVsqohJVjCqNGzPhDyTYGYjgdoeoRL',
-      database: 'railway',
-      autoLoadEntities: true,
-      synchronize: false, // Producción recomendado en false
+    // Configuración global de variables de entorno
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+
+    // Configuración dinámica de la base de datos usando las variables de entorno
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get<string>('DB_HOST'),
+        port: parseInt(configService.get<string>('DB_PORT', '3306')),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        autoLoadEntities: true,
+        synchronize: false, // 🚨 IMPORTANTE: NUNCA true en producción
+      }),
     }),
 
     // Módulos funcionales
