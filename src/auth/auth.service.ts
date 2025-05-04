@@ -3,16 +3,13 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { Usuario } from '../usuarios/usuario.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { BitacoraService } from 'src/bitacora/bitacora.service';
-import { Bitacora } from '../bitacora/bitacora.entity';
 import { Request } from 'express';
 import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
-
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -67,7 +64,7 @@ export class AuthService {
     loginDto: LoginDto,
     req: Request,
   ): Promise<{ access_token: string; user: any }> {
-    const { correo, contrasena, rolSeleccionado } = loginDto;
+    const { correo, password, rol } = loginDto;
     const correoLimpio = correo.trim();
 
     const usuario = await this.usuariosService.findOneByCorreo(correoLimpio);
@@ -77,7 +74,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    const contrasenaValida = await this.verifyPassword(usuario, contrasena);
+    const contrasenaValida = await this.verifyPassword(usuario, password);
     if (!contrasenaValida) {
       console.log('❌ Contraseña inválida para usuario:', correoLimpio);
       throw new UnauthorizedException('Credenciales incorrectas');
@@ -87,17 +84,15 @@ export class AuthService {
 
     console.log('✅ Usuario encontrado:', correoLimpio);
     console.log('🎭 Perfiles asignados:', perfiles);
-    console.log('🎯 Rol seleccionado:', rolSeleccionado);
+    console.log('🎯 Rol seleccionado:', rol);
 
     if (!perfiles || perfiles.length === 0) {
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
     }
 
-    if (!perfiles.includes(rolSeleccionado)) {
+    if (!perfiles.includes(rol)) {
       throw new UnauthorizedException('Rol no coincide con el usuario');
     }
-
-    const rol = rolSeleccionado;
 
     const payload: JwtPayload = {
       id: usuario.id,
@@ -121,7 +116,7 @@ export class AuthService {
       user: {
         id: usuario.id,
         correo: usuario.correo,
-        nombre: usuario.idPersona?.Nombre ?? 'Sin nombre', // ✅ Nombre agregado
+        nombre: usuario.idPersona?.Nombre ?? 'Sin nombre',
         rol,
       },
     };
@@ -132,7 +127,6 @@ export class AuthService {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // 🚨 Aquí podemos evitar registrar cuando NO hay token
       return { message: 'No había token para cerrar sesión.' };
     }
 
