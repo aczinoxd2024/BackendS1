@@ -1,5 +1,15 @@
+import { IsString, IsNotEmpty } from 'class-validator';
+
 export class LoginDto {
+  @IsString()
+  @IsNotEmpty()
   correo: string;
-  contrasena: string; // contraseña ingresada
-  rolSeleccionado: string; // nuevo campo para validar el rol
+
+  @IsString()
+  @IsNotEmpty()
+  password: string; // ✅ Cambiado a password
+
+  @IsString()
+  @IsNotEmpty()
+  rol: string; // ✅ Cambiado a rol
 }
