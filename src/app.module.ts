@@ -25,11 +25,11 @@ import { MetodoPagoModule } from './pagos/metodo-pago/metodo-pago.module';
     // Configuración de la base de datos
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
-      port: 3306,
+      host: 'centerbeam.proxy.rlwy.net',
+      port: 41437,
       username: 'root',
-      password: 'root',
-      database: 'BaseGym',
+      password: 'eFtVsqohJVjCqNGzPhDyTYGYjgdoeoRL',
+      database: 'railway',
       autoLoadEntities: true,
       synchronize: false, // Producción recomendado en false
     }),
