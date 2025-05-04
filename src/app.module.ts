@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-// Módulos de la aplicación
+// Módulos funcionales de la aplicación
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { PersonasModule } from './personas/personas.module';
@@ -23,28 +23,28 @@ import { RolesGuard } from './auth/roles/roles.guard';
 
 @Module({
   imports: [
-    // Configuración global de variables de entorno
+    // Configuración global de variables de entorno (.env o Railway variables)
     ConfigModule.forRoot({
       isGlobal: true,
     }),
 
-    // Configuración dinámica de la base de datos usando las variables de entorno
+    // Configuración dinámica de TypeORM con soporte para producción y desarrollo
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'mysql',
         host: configService.get<string>('DB_HOST'),
-        port: parseInt(configService.get<string>('DB_PORT', '3306')),
+        port: Number(configService.get<string>('DB_PORT')),
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: false, // 🚨 IMPORTANTE: NUNCA true en producción
+        synchronize: false, // 🚨 IMPORTANTE: nunca usar true en producción para no perder datos
       }),
     }),
 
-    // Módulos funcionales
+    // Registro de todos los módulos funcionales de la aplicación
     UsuariosModule,
     ClientesModule,
     PersonasModule,
@@ -60,6 +60,7 @@ import { RolesGuard } from './auth/roles/roles.guard';
     TipoMembresiaModule,
   ],
   providers: [
+    // Aplicar RolesGuard globalmente para manejar permisos en rutas protegidas
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
