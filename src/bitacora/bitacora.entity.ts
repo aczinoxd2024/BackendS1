@@ -18,7 +18,6 @@ export class Bitacora {
 
   @Column('text')
   accion: string;
-
   @Column({ length: 50 })
   tablaAfectada: string;
 

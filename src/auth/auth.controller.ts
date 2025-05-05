@@ -27,7 +27,10 @@ export class AuthController {
 
   // 🔐 Cambiar la contraseña con token
   @Post('reset-password')
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    return this.authService.resetPassword(resetPasswordDto);
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+    @Req() req: Request,
+  ) {
+    return this.authService.resetPassword(resetPasswordDto, req); // ✅ Este "req" (minúscula)
   }
 }

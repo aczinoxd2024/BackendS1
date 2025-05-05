@@ -17,6 +17,8 @@ import { Membresia } from '../membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
 import { MetodoPago } from 'src/pagos/metodo-pago/metodo-pago.entity';
 import { Pago } from 'src/pagos/pagos.entity';
+import { ClienteListadoDto } from 'src/auth/dto/listadoCliente.dto';
+import { ClienteActualizarDto } from 'src/auth/dto/clienteActualizar.dto';
 
 @Injectable()
 export class ClientesService {
@@ -298,11 +300,113 @@ export class ClientesService {
       usuario: { correo: usuario.correo, passwordTemporal: tempPassword },
     };
   }
+  async actualizarCliente(
+    ci: string,
+    data: ClienteActualizarDto,
+    idUsuario: string,
+    ip: string,
+  ) {
+    // Buscar la persona vinculada al cliente
+    const persona = await this.personasRepository.findOneBy({ CI: ci });
+
+    if (!persona) {
+      throw new BadRequestException(
+        `No se encontró ningún cliente con el CI: ${ci}`,
+      );
+    }
+    // Actualizar los datos permitidos SOLO si vienen en el DTO
+    if (data.nombre !== undefined) persona.Nombre = data.nombre;
+    if (data.apellido !== undefined) persona.Apellido = data.apellido;
+    if (data.telefono !== undefined) persona.Telefono = data.telefono;
+    if (data.direccion !== undefined) persona.Direccion = data.direccion;
+
+    await this.personasRepository.save(persona);
+
+    // Registrar en la bitácora la modificación
+    await this.bitacoraRepository.save({
+      idUsuario,
+      accion: `Actualizó los datos del cliente CI ${ci} → Nombre, Apellido, Teléfono o Dirección.`,
+      tablaAfectada: 'persona',
+      ipMaquina: ip,
+    });
+
+    return {
+      message: 'Cliente actualizado correctamente.',
+    };
+  }
 
   // --------------------------------------------
   // OBTENER TODOS LOS CLIENTES
   // --------------------------------------------
-  findAll(): Promise<Cliente[]> {
-    return this.clientesRepository.find();
+  async obtenerClientePorCI(ci: string) {
+    const cliente = await this.clientesRepository.findOneBy({ CI: ci });
+    if (!cliente) {
+      throw new BadRequestException(`No se encontró el cliente CI: ${ci}`);
+    }
+
+    const persona = await this.personasRepository.findOneBy({ CI: ci });
+    if (!persona) {
+      throw new BadRequestException(
+        `No se encontró datos personales para el cliente CI: ${ci}`,
+      );
+    }
+
+    return {
+      ci: cliente.CI,
+      nombre: persona.Nombre,
+      apellido: persona.Apellido,
+      telefono: persona.Telefono,
+      direccion: persona.Direccion,
+      observacion: cliente.Observacion,
+      estado: cliente.IDEstado,
+    };
+  }
+
+  async eliminarCliente(ci: string, idUsuario: string, ip: string) {
+    const cliente = await this.clientesRepository.findOneBy({ CI: ci });
+
+    if (!cliente) {
+      throw new BadRequestException(
+        `No se encontró ningún cliente con CI: ${ci}`,
+      );
+    }
+
+    // Cambiar estado a Inactivo (ID 2)
+    cliente.IDEstado = 2;
+    await this.clientesRepository.save(cliente);
+
+    // Bitácora
+    await this.bitacoraRepository.save({
+      idUsuario,
+      accion: `Eliminó (desactivó) al cliente CI ${ci}.`,
+      tablaAfectada: 'cliente',
+      ipMaquina: ip,
+    });
+
+    return { message: 'Cliente eliminado (desactivado) correctamente.' };
+  }
+
+  async desactivarCliente(ci: string, idUsuario: string, ip: string) {
+    const cliente = await this.clientesRepository.findOneBy({ CI: ci });
+
+    if (!cliente) {
+      throw new BadRequestException(
+        `No se encontró ningún cliente con CI: ${ci}`,
+      );
+    }
+
+    // Cambiar estado a Inactivo (ID 2)
+    cliente.IDEstado = 2;
+    await this.clientesRepository.save(cliente);
+
+    // Bitácora
+    await this.bitacoraRepository.save({
+      idUsuario,
+      accion: `Desactivó al cliente CI ${ci} (marcado como inactivo)`,
+      tablaAfectada: 'cliente',
+      ipMaquina: ip,
+    });
+
+    return { message: 'Cliente desactivado correctamente.' };
   }
 }

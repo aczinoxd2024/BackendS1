@@ -14,7 +14,7 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '@nestjs/config';
-import { MailerService } from '@nestjs-modules/mailer'; // ✅
+import { MailerService } from '@nestjs-modules/mailer';
 
 interface JwtPayload {
   id: string;
@@ -29,9 +29,10 @@ export class AuthService {
     private jwtService: JwtService,
     private bitacoraService: BitacoraService,
     private configService: ConfigService,
-    private mailerService: MailerService, // ✅
+    private mailerService: MailerService,
   ) {}
 
+  // ✅ Verifica credenciales
   async validateUser(correo: string, password: string): Promise<Usuario> {
     const usuario = await this.usuariosService.findOneByCorreo(correo);
     if (!usuario || !(await this.verifyPassword(usuario, password))) {
@@ -40,21 +41,30 @@ export class AuthService {
     return usuario;
   }
 
-  private async verifyPassword(usuario: Usuario, password: string): Promise<boolean> {
+  // ✅ Verifica contraseña
+  private async verifyPassword(
+    usuario: Usuario,
+    password: string,
+  ): Promise<boolean> {
     if (!usuario.contrasena) {
-      throw new UnauthorizedException('El usuario no tiene contraseña configurada');
+      throw new UnauthorizedException(
+        'El usuario no tiene contraseña configurada',
+      );
     }
     return bcrypt.compare(password, usuario.contrasena);
   }
 
+  // ✅ Obtener IP de la petición
   private getClientIp(req: Request): string {
     const ip =
       req.headers['x-forwarded-for'] ||
       req.socket.remoteAddress ||
       'IP no detectada';
+
     return Array.isArray(ip) ? ip[0] : ip.toString();
   }
 
+  // ✅ LOGIN
   async login(
     loginDto: LoginDto,
     req: Request,
@@ -74,7 +84,6 @@ export class AuthService {
     }
 
     const perfiles = usuario.usuarioPerfil.map((up) => up.perfil?.nombrePerfil);
-
     if (!perfiles || perfiles.length === 0) {
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
     }
@@ -110,6 +119,7 @@ export class AuthService {
     };
   }
 
+  // ✅ LOGOUT
   async logout(req: Request): Promise<{ message: string }> {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -139,7 +149,9 @@ export class AuthService {
     if (!usuario) throw new NotFoundException('Correo no registrado.');
 
     const rol = usuario.usuarioPerfil[0]?.perfil?.nombrePerfil;
-    if (!rol) throw new UnauthorizedException('El usuario no tiene un rol asignado.');
+    if (!rol) {
+      throw new UnauthorizedException('El usuario no tiene un rol asignado.');
+    }
 
     const payload: JwtPayload = {
       id: usuario.id,
@@ -148,7 +160,6 @@ export class AuthService {
     };
 
     const token = this.jwtService.sign(payload, { expiresIn: '15m' });
-
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
@@ -163,18 +174,22 @@ export class AuthService {
       `,
     });
 
-    return { message: 'Correo enviado con instrucciones para recuperar la contraseña.' };
+    return {
+      message: 'Correo enviado con instrucciones para recuperar la contraseña.',
+    };
   }
 
+  // ✅ RESET PASSWORD + BITÁCORA
   async resetPassword(
     resetPasswordDto: ResetPasswordDto,
+    req: Request, // ✅ Para obtener IP
   ): Promise<{ message: string }> {
     const { token, newPassword } = resetPasswordDto;
 
     let payload: JwtPayload;
     try {
       payload = this.jwtService.verify<JwtPayload>(token);
-    } catch (err) {
+    } catch {
       throw new UnauthorizedException('Token inválido o expirado.');
     }
 
@@ -183,6 +198,15 @@ export class AuthService {
 
     usuario.contrasena = await bcrypt.hash(newPassword, 10);
     await this.usuariosService.update(usuario);
+
+    const ip = this.getClientIp(req);
+
+    await this.bitacoraService.registrar(
+      usuario.id,
+      AccionBitacora.RECUPERACION_CONTRASENA,
+      'usuario',
+      ip,
+    );
 
     return { message: 'Contraseña actualizada correctamente.' };
   }
