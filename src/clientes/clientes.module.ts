@@ -14,6 +14,7 @@ import { Membresia } from '../membresias/menbresia.entity';
 import { TipoMembresiaModule } from 'src/membresias/Tipos/tipo-menbresia.module';
 import { MetodoPagoModule } from 'src/pagos/metodo-pago/metodo-pago.module';
 import { PagoModule } from 'src/pagos/pagos.module';
+import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
 // ✅ AÑADIDO ESTE
 
 @Module({
@@ -25,6 +26,7 @@ import { PagoModule } from 'src/pagos/pagos.module';
       Perfil,
       Bitacora,
       Membresia,
+      EstadoCliente,
     ]),
     PersonasModule,
     TipoMembresiaModule,
