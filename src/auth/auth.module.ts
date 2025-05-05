@@ -3,18 +3,18 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsuariosModule } from '../usuarios/usuarios.module';
+import { BitacoraModule } from 'src/bitacora/bitacora.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
-import { BitacoraModule } from 'src/bitacora/bitacora.module';
-// ✅ NUEVO
+
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
     UsuariosModule,
-    BitacoraModule, // ✅ IMPORTADO
+    BitacoraModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -23,9 +23,38 @@ import { BitacoraModule } from 'src/bitacora/bitacora.module';
         signOptions: { expiresIn: '1h' },
       }),
     }),
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        transport: {
+          host: configService.get('MAIL_HOST'),
+          port: configService.get<number>('MAIL_PORT'),
+          secure: false,
+          auth: {
+            user: configService.get('MAIL_USER'),
+            pass: configService.get('MAIL_PASS'),
+          },
+        },
+        defaults: {
+          from: `"Soporte Gym" <${configService.get('MAIL_FROM')}>`,
+        },
+        template: {
+          dir: __dirname + '/templates',
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+    }),
   ],
   controllers: [AuthController],
   providers: [AuthService, RolesGuard],
   exports: [JwtModule],
 })
 export class AuthModule {}
+
+
+
+

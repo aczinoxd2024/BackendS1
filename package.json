@@ -19,10 +19,11 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
-"engines": {
-  "node": ">=20"
-},
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
+    "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -36,6 +37,7 @@
     "class-validator": "^0.14.2",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.0",
+    "nodemailer": "^7.0.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
