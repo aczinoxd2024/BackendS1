@@ -19,6 +19,7 @@ import { MetodoPago } from 'src/pagos/metodo-pago/metodo-pago.entity';
 import { Pago } from 'src/pagos/pagos.entity';
 import { ClienteActualizarDto } from 'src/auth/dto/clienteActualizar.dto';
 import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
+import { ClienteCrearDto } from 'src/auth/dto/clienteCrear.dto';
 
 @Injectable()
 export class ClientesService {
@@ -46,18 +47,7 @@ export class ClientesService {
   // CREAR CLIENTE (Administrador / Recepcionista)
   // ------------------------------
   async create(
-    clienteData: {
-      ci: string;
-      nombre: string;
-      apellido: string;
-      fechaNacimiento: Date;
-      telefono: string;
-      direccion: string;
-      observacion?: string;
-      correo: string;
-      tipoMembresiaId: number;
-      metodoPagoId: number;
-    },
+    data: ClienteCrearDto,
     rolCreador: string,
     idUsuario: string,
     ip: string,
@@ -70,28 +60,22 @@ export class ClientesService {
       );
     }
 
+    // ✅ Convertir fechaNacimiento a Date
+    const clienteData = {
+      ...data,
+      fechaNacimiento: new Date(data.fechaNacimiento),
+    };
+
     return this.registrarCliente(clienteData, idUsuario, ip, 'Presencial');
   }
 
-  // ------------------------------
-  // ADQUIRIR MEMBRESÍA (Web)
-  // ------------------------------
-  async adquirirMembresia(
-    clienteData: {
-      ci: string;
-      nombre: string;
-      apellido: string;
-      fechaNacimiento: Date;
-      telefono: string;
-      direccion: string;
-      observacion?: string;
-      correo: string;
-      tipoMembresiaId: number;
-      metodoPagoId: number;
-    },
-    ip: string,
-  ) {
-    return this.registrarCliente(clienteData, clienteData.ci, ip, 'Web');
+  async adquirirMembresia(data: ClienteCrearDto, ip: string) {
+    const clienteData = {
+      ...data,
+      fechaNacimiento: new Date(data.fechaNacimiento),
+    };
+
+    return this.registrarCliente(clienteData, 'clienteWeb', ip, 'Web');
   }
 
   // ------------------------------
@@ -205,7 +189,7 @@ export class ClientesService {
     await this.pagoRepository.save(pago);
 
     await this.bitacoraRepository.save({
-      idUsuario,
+      idUsuario: persona.CI,
       accion: `Se registró cliente CI ${cliente.CI}, membresía "${tipoMembresia.NombreTipo}" con pago "${metodoPago.metodoPago}"`,
       tablaAfectada: 'cliente / membresia / pago',
       ipMaquina: ip,

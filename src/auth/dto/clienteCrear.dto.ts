@@ -11,7 +11,7 @@ export class ClienteCrearDto {
   apellido: string;
 
   @IsDateString()
-  fechaNacimiento: Date;
+  fechaNacimiento: string;
 
   @IsString()
   telefono: string;

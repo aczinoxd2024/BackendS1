@@ -54,7 +54,3 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
   exports: [JwtModule],
 })
 export class AuthModule {}
-
-
-
-
