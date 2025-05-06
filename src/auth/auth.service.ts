@@ -15,6 +15,9 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
+import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 interface JwtPayload {
   id: string;
@@ -30,6 +33,8 @@ export class AuthService {
     private bitacoraService: BitacoraService,
     private configService: ConfigService,
     private mailerService: MailerService,
+    @InjectRepository(EstadoCliente)
+    private estadoClienteRepository: Repository<EstadoCliente>,
   ) {}
 
   // ✅ Verifica credenciales
@@ -83,15 +88,20 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    // 🚨 🚨 🚨 🚨 🚨 🚨 🚨 🚨 🚨
-    // ✅ VERIFICAR ESTADO DEL USUARIO
-    if (usuario.idEstadoU === 0) {
+    // 🚨 ✅ VERIFICAR ESTADO DEL USUARIO (bloquear si está inactivo)
+    const estadoInactivo: EstadoCliente | null =
+      await this.estadoClienteRepository.findOneBy({
+        Estado: 'Inactivo',
+      });
+
+    if (estadoInactivo && usuario.idEstadoU === estadoInactivo.ID) {
+      console.log('🚨 Usuario inactivo intentando ingresar:', usuario);
       throw new UnauthorizedException(
         'Este usuario está inactivo. Contacte al administrador.',
       );
     }
-    // 🚨 🚨 🚨 🚨 🚨 🚨 🚨 🚨 🚨
 
+    // ✅ Verificar perfiles (roles)
     const perfiles = usuario.usuarioPerfil.map((up) => up.perfil?.nombrePerfil);
     if (!perfiles || perfiles.length === 0) {
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
@@ -101,6 +111,7 @@ export class AuthService {
       throw new UnauthorizedException('Rol no coincide con el usuario');
     }
 
+    // ✅ Preparar JWT
     const payload: JwtPayload = {
       id: usuario.id,
       correo: usuario.correo,
@@ -110,6 +121,7 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
     const ip = this.getClientIp(req);
 
+    // ✅ Registrar en bitácora
     await this.bitacoraService.registrar(
       usuario.id,
       AccionBitacora.LOGIN,

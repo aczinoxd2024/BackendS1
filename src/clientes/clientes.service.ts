@@ -305,7 +305,10 @@ export class ClientesService {
 
   // Eliminar (desactivar) Cliente + Usuario relacionado
   async eliminarCliente(ci: string, idUsuario: string, ip: string) {
+    console.log('➡️ Iniciando eliminación de cliente:', ci);
+
     const cliente = await this.clientesRepository.findOneBy({ CI: ci });
+    console.log('🧐 Cliente encontrado:', cliente);
 
     if (!cliente)
       throw new BadRequestException(`No se encontró el cliente CI: ${ci}`);
@@ -314,30 +317,35 @@ export class ClientesService {
     const estadoInactivo = await this.estadoClienteRepository.findOneBy({
       Estado: 'Inactivo',
     });
+    console.log('🟡 Estado inactivo encontrado:', estadoInactivo);
 
     if (!estadoInactivo)
       throw new BadRequestException('No se encontró el estado Inactivo.');
 
     cliente.IDEstado = estadoInactivo.ID;
     await this.clientesRepository.save(cliente);
+    console.log('✅ Cliente desactivado y guardado:', cliente);
 
-    // ✅ Buscar el usuario relacionado con este CI (IDPersona en Usuario)
+    // Buscar el usuario relacionado con este CI (IDPersona en Usuario)
     const usuario = await this.usuariosRepository.findOne({
-      where: { idPersona: { CI: ci } }, // 👈 IMPORTANTE: acceder por la relación idPersona
+      where: { idPersona: { CI: ci } },
     });
+    console.log('👤 Usuario relacionado encontrado:', usuario);
 
     if (usuario) {
-      usuario.idEstadoU = 0; // Inactivo / Bloqueado
+      usuario.idEstadoU = estadoInactivo.ID; // ✅ ✅ CAMBIADO - Bloquear con ID correcto
       await this.usuariosRepository.save(usuario);
+      console.log('🚫 Usuario bloqueado:', usuario);
     }
 
-    // ✅ Registrar en Bitácora
+    // Registrar en Bitácora
     await this.bitacoraRepository.save({
       idUsuario,
       accion: `Eliminó (desactivó) al cliente CI ${ci} (cliente y usuario bloqueado).`,
       tablaAfectada: 'cliente',
       ipMaquina: ip,
     });
+    console.log('📒 Bitácora registrada.');
 
     return {
       message:

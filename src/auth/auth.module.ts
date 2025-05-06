@@ -10,11 +10,19 @@ import { RolesGuard } from 'src/auth/roles/roles.guard';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 
+// 👇 IMPORTANTE: Importar la entidad EstadoCliente
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     UsuariosModule,
     BitacoraModule,
+
+    // 👇 IMPORTANTE: Aquí se registra EstadoCliente para que esté disponible en AuthService
+    TypeOrmModule.forFeature([EstadoCliente]),
+
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -23,6 +31,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handleba
         signOptions: { expiresIn: '1h' },
       }),
     }),
+
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
