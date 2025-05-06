@@ -187,16 +187,29 @@ export class ClientesService {
       CIPersona: persona.CI,
     });
     await this.pagoRepository.save(pago);
+
     let accionBitacora = '';
+    let idUsuarioBitacora = '';
 
     if (plataforma === 'Presencial') {
-      accionBitacora = `La recepcionista (Usuario ID: ${idUsuario}) registró al cliente CI ${cliente.CI}, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPago.metodoPago}".`;
+      // Buscar nombre del usuario (Recepcionista o Administrador)
+      const usuarioQuienRegistra = await this.usuariosRepository.findOne({
+        where: { id: idUsuario },
+        relations: ['idPersona'],
+      });
+
+      const nombreUsuario =
+        usuarioQuienRegistra?.idPersona?.Nombre ?? 'Desconocido';
+
+      accionBitacora = `La recepcionista (Usuario ID: ${idUsuario} - ${nombreUsuario}) registró al cliente CI ${cliente.CI}, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPago.metodoPago}".`;
+      idUsuarioBitacora = idUsuario; // 👈 ID de la recepcionista
     } else {
       accionBitacora = `Se registró cliente CI ${cliente.CI} desde la Web, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPago.metodoPago}".`;
+      idUsuarioBitacora = usuario.id; // 👈 CI del cliente que se acaba de registrar
     }
 
     await this.bitacoraRepository.save({
-      idUsuario: usuario.id,
+      idUsuario: idUsuarioBitacora,
       accion: accionBitacora,
       tablaAfectada: 'cliente / membresia / pago',
       ipMaquina: ip === '::1' ? 'localhost' : ip,
