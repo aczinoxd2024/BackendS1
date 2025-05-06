@@ -326,13 +326,25 @@ export class ClientesService {
     if (!estadoInactivo)
       throw new BadRequestException('No se encontró el estado Inactivo.');
 
+    // 👉 Cambiar el estado del cliente
     cliente.IDEstado = estadoInactivo.ID;
     await this.clientesRepository.save(cliente);
 
+    // 🚨 NUEVO PASO → Cambiar el estado del usuario a inactivo (idEstadoU = 0)
+    const usuario = await this.usuariosRepository.findOne({
+      where: { id: ci },
+    });
+
+    if (usuario) {
+      usuario.idEstadoU = 0; // 0 = Inactivo → no podrá iniciar sesión
+      await this.usuariosRepository.save(usuario);
+    }
+
+    // 👉 Registrar en la bitácora
     await this.bitacoraRepository.save({
       idUsuario,
       accion: eliminado
-        ? `Eliminó (desactivó) al cliente CI ${ci}.`
+        ? `Eliminó (desactivó) al cliente CI ${ci} y se inactivó su cuenta de usuario.`
         : `Desactivó al cliente CI ${ci} (marcado como inactivo).`,
       tablaAfectada: 'cliente',
       ipMaquina: ip,
@@ -340,7 +352,7 @@ export class ClientesService {
 
     return {
       message: eliminado
-        ? 'Cliente eliminado correctamente.'
+        ? 'Cliente eliminado correctamente (y usuario inactivado).'
         : 'Cliente desactivado correctamente.',
     };
   }

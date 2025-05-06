@@ -83,6 +83,15 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
+    // 🚨 🚨 🚨 🚨 🚨 🚨 🚨 🚨 🚨
+    // ✅ VERIFICAR ESTADO DEL USUARIO
+    if (usuario.idEstadoU === 0) {
+      throw new UnauthorizedException(
+        'Este usuario está inactivo. Contacte al administrador.',
+      );
+    }
+    // 🚨 🚨 🚨 🚨 🚨 🚨 🚨 🚨 🚨
+
     const perfiles = usuario.usuarioPerfil.map((up) => up.perfil?.nombrePerfil);
     if (!perfiles || perfiles.length === 0) {
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
