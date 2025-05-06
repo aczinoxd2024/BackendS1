@@ -16,8 +16,4 @@ export class ClienteActualizarDto {
   @IsOptional()
   @IsString()
   direccion?: string;
-
-  @IsOptional()
-  @IsDateString()
-  fechaNacimiento?: string; // 👈 agregado para fecha de nacimiento (en formato string ISO)
 }

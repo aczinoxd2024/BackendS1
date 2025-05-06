@@ -242,8 +242,6 @@ export class ClientesService {
     if (data.apellido !== undefined) persona.Apellido = data.apellido;
     if (data.telefono !== undefined) persona.Telefono = data.telefono;
     if (data.direccion !== undefined) persona.Direccion = data.direccion;
-    if (data.fechaNacimiento !== undefined)
-      persona.FechaNacimiento = new Date(data.fechaNacimiento);
 
     await this.personasRepository.save(persona);
 
