@@ -58,16 +58,6 @@ export class ClientesController {
     return this.clientesService.actualizarCliente(ci, data, idUsuario, ip);
   }
 
-  // ✅ Desactivar cliente (SOLO Recepcionista / Administrador)
-  @Roles('recepcionista', 'administrador')
-  @Put(':ci/desactivar')
-  async desactivarCliente(@Param('ci') ci: string, @Req() req: UserRequest) {
-    const idUsuario = req.user?.id ?? 'desconocido';
-    const ip = req.ip ?? 'desconocido';
-
-    return this.clientesService.desactivarCliente(ci, idUsuario, ip);
-  }
-
   // ✅ Eliminar cliente definitivo (SOLO Administrador)
   @Roles('administrador')
   @Delete(':ci')
