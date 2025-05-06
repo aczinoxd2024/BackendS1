@@ -187,12 +187,19 @@ export class ClientesService {
       CIPersona: persona.CI,
     });
     await this.pagoRepository.save(pago);
+    let accionBitacora = '';
+
+    if (plataforma === 'Presencial') {
+      accionBitacora = `La recepcionista (Usuario ID: ${idUsuario}) registró al cliente CI ${cliente.CI}, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPago.metodoPago}".`;
+    } else {
+      accionBitacora = `Se registró cliente CI ${cliente.CI} desde la Web, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPago.metodoPago}".`;
+    }
 
     await this.bitacoraRepository.save({
-      idUsuario: persona.CI,
-      accion: `Se registró cliente CI ${cliente.CI}, membresía "${tipoMembresia.NombreTipo}" con pago "${metodoPago.metodoPago}"`,
+      idUsuario: usuario.id,
+      accion: accionBitacora,
       tablaAfectada: 'cliente / membresia / pago',
-      ipMaquina: ip,
+      ipMaquina: ip === '::1' ? 'localhost' : ip,
     });
 
     return {
