@@ -299,7 +299,7 @@ export class ClientesService {
       telefono: persona.Telefono ?? '',
       direccion: persona.Direccion ?? '',
       observacion: cliente.Observacion ?? '',
-      estado: cliente.IDEstado ?? '',
+      estado: cliente.IDEstado ?? 'Desconocido',
     };
   }
 
