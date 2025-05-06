@@ -225,7 +225,7 @@ export class ClientesService {
   }
 
   // ------------------------------
-  // ACTUALIZAR CLIENTE
+  // ACTUALIZAR CLIENTE (Recepcionista / Administrador)
   // ------------------------------
   async actualizarCliente(
     ci: string,
@@ -237,18 +237,30 @@ export class ClientesService {
     if (!persona)
       throw new BadRequestException(`No se encontró el cliente CI: ${ci}`);
 
+    // Actualizar solo si vienen los datos
     if (data.nombre !== undefined) persona.Nombre = data.nombre;
     if (data.apellido !== undefined) persona.Apellido = data.apellido;
     if (data.telefono !== undefined) persona.Telefono = data.telefono;
     if (data.direccion !== undefined) persona.Direccion = data.direccion;
+    if (data.fechaNacimiento !== undefined)
+      persona.FechaNacimiento = new Date(data.fechaNacimiento);
 
     await this.personasRepository.save(persona);
 
+    // Buscar usuario que está actualizando (Recepcionista o Administrador)
+    const usuarioQuienActualiza = await this.usuariosRepository.findOne({
+      where: { id: idUsuario },
+      relations: ['idPersona'],
+    });
+
+    const nombreUsuario =
+      usuarioQuienActualiza?.idPersona?.Nombre ?? 'Desconocido';
+
     await this.bitacoraRepository.save({
       idUsuario,
-      accion: `Actualizó datos del cliente CI ${ci}`,
+      accion: `La recepcionista (Usuario ID: ${idUsuario} - ${nombreUsuario}) actualizó los datos del cliente CI ${ci}.`,
       tablaAfectada: 'persona',
-      ipMaquina: ip,
+      ipMaquina: ip === '::1' ? 'localhost' : ip,
     });
 
     return { message: 'Cliente actualizado correctamente.' };

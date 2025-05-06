@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsDateString } from 'class-validator';
 
 export class ClienteActualizarDto {
   @IsOptional()
@@ -16,4 +16,8 @@ export class ClienteActualizarDto {
   @IsOptional()
   @IsString()
   direccion?: string;
+
+  @IsOptional()
+  @IsDateString()
+  fechaNacimiento?: string; // 👈 agregado para fecha de nacimiento (en formato string ISO)
 }
