@@ -303,57 +303,45 @@ export class ClientesService {
     };
   }
 
-  // ------------------------------
-  // ELIMINAR / DESACTIVAR CLIENTE
-  // ------------------------------
+  // Eliminar (desactivar) Cliente + Usuario relacionado
   async eliminarCliente(ci: string, idUsuario: string, ip: string) {
-    return this.desactivarCliente(ci, idUsuario, ip, true);
-  }
-
-  async desactivarCliente(
-    ci: string,
-    idUsuario: string,
-    ip: string,
-    eliminado = false,
-  ) {
     const cliente = await this.clientesRepository.findOneBy({ CI: ci });
+
     if (!cliente)
       throw new BadRequestException(`No se encontró el cliente CI: ${ci}`);
 
+    // Cambiar estado del Cliente a Inactivo
     const estadoInactivo = await this.estadoClienteRepository.findOneBy({
       Estado: 'Inactivo',
     });
+
     if (!estadoInactivo)
       throw new BadRequestException('No se encontró el estado Inactivo.');
 
-    // 👉 Cambiar el estado del cliente
     cliente.IDEstado = estadoInactivo.ID;
     await this.clientesRepository.save(cliente);
 
-    // 🚨 NUEVO PASO → Cambiar el estado del usuario a inactivo (idEstadoU = 0)
+    // ✅ Buscar el usuario relacionado con este CI (IDPersona en Usuario)
     const usuario = await this.usuariosRepository.findOne({
-      where: { id: ci },
+      where: { idPersona: { CI: ci } }, // 👈 IMPORTANTE: acceder por la relación idPersona
     });
 
     if (usuario) {
-      usuario.idEstadoU = 0; // 0 = Inactivo → no podrá iniciar sesión
+      usuario.idEstadoU = 0; // Inactivo / Bloqueado
       await this.usuariosRepository.save(usuario);
     }
 
-    // 👉 Registrar en la bitácora
+    // ✅ Registrar en Bitácora
     await this.bitacoraRepository.save({
       idUsuario,
-      accion: eliminado
-        ? `Eliminó (desactivó) al cliente CI ${ci} y se inactivó su cuenta de usuario.`
-        : `Desactivó al cliente CI ${ci} (marcado como inactivo).`,
+      accion: `Eliminó (desactivó) al cliente CI ${ci} (cliente y usuario bloqueado).`,
       tablaAfectada: 'cliente',
       ipMaquina: ip,
     });
 
     return {
-      message: eliminado
-        ? 'Cliente eliminado correctamente (y usuario inactivado).'
-        : 'Cliente desactivado correctamente.',
+      message:
+        'Cliente eliminado correctamente (desactivado junto con su usuario).',
     };
   }
 }
