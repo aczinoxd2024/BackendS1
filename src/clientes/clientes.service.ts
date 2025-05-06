@@ -285,19 +285,21 @@ export class ClientesService {
   // ------------------------------
   async obtenerClientePorCI(ci: string) {
     const cliente = await this.clientesRepository.findOneBy({ CI: ci });
-    const persona = await this.personasRepository.findOneBy({ CI: ci });
+    const persona = await this.personasRepository.findOne({
+      where: { CI: ci },
+    });
 
     if (!cliente || !persona)
       throw new BadRequestException(`No se encontró el cliente CI: ${ci}`);
 
     return {
       ci: cliente.CI,
-      nombre: persona.Nombre,
-      apellido: persona.Apellido,
-      telefono: persona.Telefono,
-      direccion: persona.Direccion,
-      observacion: cliente.Observacion,
-      estado: cliente.IDEstado,
+      nombre: persona.Nombre ?? '', // 👈 Forzar que al menos sea string vacío
+      apellido: persona.Apellido ?? '',
+      telefono: persona.Telefono ?? '',
+      direccion: persona.Direccion ?? '',
+      observacion: cliente.Observacion ?? '',
+      estado: cliente.IDEstado ?? '',
     };
   }
 
