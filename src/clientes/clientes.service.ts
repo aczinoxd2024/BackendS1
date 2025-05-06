@@ -225,19 +225,19 @@ export class ClientesService {
   }
 
   // ------------------------------
-  // ACTUALIZAR CLIENTE (Recepcionista / Administrador)
-  // ------------------------------
   async actualizarCliente(
     ci: string,
     data: ClienteActualizarDto,
     idUsuario: string,
     ip: string,
   ) {
+    // Buscar persona por CI
     const persona = await this.personasRepository.findOneBy({ CI: ci });
-    if (!persona)
+    if (!persona) {
       throw new BadRequestException(`No se encontró el cliente CI: ${ci}`);
+    }
 
-    // Actualizar solo si vienen los datos
+    // 👉 Actualizar datos de la persona si se enviaron
     if (data.nombre !== undefined) persona.Nombre = data.nombre;
     if (data.apellido !== undefined) persona.Apellido = data.apellido;
     if (data.telefono !== undefined) persona.Telefono = data.telefono;
@@ -247,7 +247,22 @@ export class ClientesService {
 
     await this.personasRepository.save(persona);
 
-    // Buscar usuario que está actualizando (Recepcionista o Administrador)
+    // 👉 Buscar el usuario relacionado (ID = CI del cliente)
+    const usuario = await this.usuariosRepository.findOne({
+      where: { id: ci },
+      relations: ['idPersona'], // Muy importante para poder modificar idPersona
+    });
+
+    if (usuario) {
+      // ✅ Actualizar en usuario.idPersona (es decir, la tabla persona desde el usuario)
+      if (data.nombre !== undefined) usuario.idPersona.Nombre = data.nombre;
+      if (data.apellido !== undefined)
+        usuario.idPersona.Apellido = data.apellido;
+
+      await this.usuariosRepository.save(usuario);
+    }
+
+    // 👉 Buscar quién está actualizando (Recepcionista o Administrador)
     const usuarioQuienActualiza = await this.usuariosRepository.findOne({
       where: { id: idUsuario },
       relations: ['idPersona'],
@@ -256,6 +271,7 @@ export class ClientesService {
     const nombreUsuario =
       usuarioQuienActualiza?.idPersona?.Nombre ?? 'Desconocido';
 
+    // 👉 Registrar en bitácora
     await this.bitacoraRepository.save({
       idUsuario,
       accion: `La recepcionista (Usuario ID: ${idUsuario} - ${nombreUsuario}) actualizó los datos del cliente CI ${ci}.`,
