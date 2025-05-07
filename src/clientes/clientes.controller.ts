@@ -83,4 +83,9 @@ export class ClientesController {
 
     return this.clientesService.actualizarCliente(ci, data, ci, ip);
   }
+  @Roles('recepcionista', 'administrador')
+  @Get()
+  async listarClientes() {
+    return this.clientesService.listarClientes();
+  }
 }

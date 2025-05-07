@@ -361,6 +361,10 @@ export class ClientesService {
           CI: cliente.CI,
         });
 
+        const estadoCliente = await this.estadoClienteRepository.findOneBy({
+          ID: cliente.IDEstado,
+        });
+
         return {
           ci: cliente.CI,
           nombre: persona?.Nombre ?? '',
@@ -368,7 +372,7 @@ export class ClientesService {
           telefono: persona?.Telefono ?? '',
           direccion: persona?.Direccion ?? '',
           observacion: cliente.Observacion ?? '',
-          estado: cliente.IDEstado ?? 'Desconocido',
+          estado: estadoCliente?.Estado ?? 'Desconocido', // ✅ Aquí ahora devuelve Activo, Inactivo, etc
         };
       }),
     );
