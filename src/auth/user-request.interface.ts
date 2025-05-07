@@ -5,5 +5,6 @@ export interface UserRequest extends Request {
     id: string;
     correo: string;
     rol: string;
+    ci: string;
   };
 }

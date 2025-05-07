@@ -24,6 +24,7 @@ interface JwtPayload {
   id: string;
   correo: string;
   rol: string;
+  ci?: string;
 }
 
 @Injectable()
@@ -179,6 +180,7 @@ export class AuthService {
       id: usuario.id,
       correo: usuario.correo,
       rol,
+      ci: usuario.idPersona?.CI,
     };
 
     const token = this.jwtService.sign(payload, { expiresIn: '15m' });
