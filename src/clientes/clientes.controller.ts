@@ -7,6 +7,7 @@ import {
   Param,
   Req,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { ClientesService } from './clientes.service';
 import { UserRequest } from '../auth/user-request.interface';
@@ -14,6 +15,7 @@ import { Roles } from 'src/auth/roles/roles.decorator';
 import { Request } from 'express';
 import { ClienteCrearDto } from 'src/auth/dto/clienteCrear.dto';
 import { ClienteActualizarDto } from 'src/auth/dto/clienteActualizar.dto';
+import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
 
 @Controller('clientes')
 export class ClientesController {
@@ -44,7 +46,7 @@ export class ClientesController {
     return this.clientesService.adquirirMembresia(data, ip);
   }
 
-  // ✅ Actualizar cliente (SOLO Recepcionista / Administrador)
+  // ✅ Actualizar cliente (SOLO Recepcionista)
   @Roles('recepcionista', 'administrador')
   @Put(':ci')
   async actualizarCliente(
@@ -72,5 +74,17 @@ export class ClientesController {
   @Get()
   async listarClientes() {
     return this.clientesService.listarClientes();
+  }
+  @UseGuards(JwtAuthGuard)
+  @Roles('cliente')
+  @Put('perfil/actualizar')
+  async actualizarMiPerfil(
+    @Body() data: ClienteActualizarDto,
+    @Req() req: UserRequest,
+  ) {
+    const ci = req.user?.id ?? 'desconocido';
+    const ip = req.ip ?? 'desconocido';
+
+    return this.clientesService.actualizarCliente(ci, data, ci, ip);
   }
 }
