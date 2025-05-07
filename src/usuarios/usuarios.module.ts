@@ -4,15 +4,13 @@ import { UsuariosService } from './usuarios.service';
 import { UsuariosController } from './usuarios.controller';
 import { Usuario } from './usuario.entity';
 import { Perfil } from './perfil.entity';
-import { UsuarioPerfil } from './usuario-perfil.entity'; // 🔥 Importar
+import { UsuarioPerfil } from './usuario-perfil.entity';
+import { BitacoraModule } from 'src/bitacora/bitacora.module'; // ✅ Importar BitacoraModule
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Usuario,
-      Perfil,
-      UsuarioPerfil, // 🔥 Aquí agregas UsuarioPerfil
-    ]),
+    TypeOrmModule.forFeature([Usuario, Perfil, UsuarioPerfil]),
+    BitacoraModule, // ✅ Agregar BitacoraModule aquí para poder inyectar BitacoraService
   ],
   controllers: [UsuariosController],
   providers: [UsuariosService],

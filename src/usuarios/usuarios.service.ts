@@ -3,12 +3,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from './usuario.entity';
 import * as bcrypt from 'bcryptjs';
+import { BitacoraService } from 'src/bitacora/bitacora.service';
+import { AccionBitacora } from 'src/bitacora/bitacora-actions.enum';
+import { UserRequest } from 'src/auth/user-request.interface';
 
 @Injectable()
 export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private usuarioRepository: Repository<Usuario>,
+
+    private bitacoraService: BitacoraService,
   ) {}
 
   async create(usuario: Usuario): Promise<Usuario> {
@@ -36,19 +41,38 @@ export class UsuariosService {
     return 'Contraseñas de los usuarios existentes han sido actualizadas';
   }
 
-  // ✅ Aquí corregimos para incluir las relaciones necesarias
   async findOneByCorreo(correo: string): Promise<Usuario | null> {
     return await this.usuarioRepository.findOne({
       where: { correo },
-      relations: ['idPersona', 'usuarioPerfil', 'usuarioPerfil.perfil'], // 🔥 Importante traer perfil
+      relations: ['idPersona', 'usuarioPerfil', 'usuarioPerfil.perfil'],
     });
   }
 
+  // ✅ update normal (sin bitácora) → para mantener compatibilidad con el sistema
   async update(usuario: Usuario): Promise<Usuario> {
     return await this.usuarioRepository.save(usuario);
   }
 
-  // ✅ También corregimos findOneById para el resetPassword
+  // ✅ updateConBitacora → para actualizar y registrar en bitácora
+  async updateConBitacora(
+    usuario: Usuario,
+    request: UserRequest,
+  ): Promise<Usuario> {
+    const usuarioActualizado = await this.usuarioRepository.save(usuario);
+
+    const idUsuarioAccion = request.user?.id || 'desconocido';
+    const ip = this.bitacoraService.getClientIp(request);
+
+    await this.bitacoraService.registrar(
+      idUsuarioAccion,
+      AccionBitacora.MODIFICACION_USUARIO,
+      'usuario',
+      ip,
+    );
+
+    return usuarioActualizado;
+  }
+
   async findOneById(id: string): Promise<Usuario | null> {
     return await this.usuarioRepository.findOne({
       where: { id },
