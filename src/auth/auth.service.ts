@@ -18,6 +18,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CambiarPasswordDto } from './dto/cambiar-password.dto';
 
 interface JwtPayload {
   id: string;
@@ -229,6 +230,67 @@ export class AuthService {
       ip,
     );
 
+    return { message: 'Contraseña actualizada correctamente.' };
+  }
+  async cambiarPasswordCliente(
+    idUsuario: string,
+    nuevaPassword: string,
+  ): Promise<{ message: string }> {
+    const usuario = await this.usuariosService.findOneById(idUsuario);
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+
+    usuario.contrasena = await bcrypt.hash(nuevaPassword, 10);
+    await this.usuariosService.update(usuario);
+
+    return { message: 'Contraseña actualizada correctamente.' };
+  }
+
+  async cambiarPasswordDesdePerfil(
+    body: CambiarPasswordDto,
+    req: Request,
+  ): Promise<{ message: string }> {
+    const { passwordActual, nuevaContrasena, confirmarContrasena } = body;
+
+    // Validar que la nueva y la confirmación coincidan
+    if (nuevaContrasena !== confirmarContrasena) {
+      throw new UnauthorizedException('Las nuevas contraseñas no coinciden.');
+    }
+
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedException('Token no proporcionado.');
+    }
+
+    let payload: JwtPayload;
+    try {
+      payload = this.jwtService.verify<JwtPayload>(token);
+    } catch {
+      throw new UnauthorizedException('Token inválido o expirado.');
+    }
+
+    const usuario = await this.usuariosService.findOneById(payload.id);
+    if (!usuario) throw new NotFoundException('Usuario no encontrado.');
+
+    // Verificar que la contraseña actual sea correcta
+    const passwordValida = await bcrypt.compare(
+      passwordActual,
+      usuario.contrasena,
+    );
+    if (!passwordValida) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta.');
+    }
+
+    // Cambiar la contraseña
+    usuario.contrasena = await bcrypt.hash(nuevaContrasena, 10);
+    await this.usuariosService.update(usuario);
+
+    const ip = this.getClientIp(req);
+    await this.bitacoraService.registrar(
+      usuario.id,
+      AccionBitacora.RECUPERACION_CONTRASENA, // o ACTUALIZACION_CONTRASENA si defines esa acción
+      'usuario',
+      ip,
+    );
     return { message: 'Contraseña actualizada correctamente.' };
   }
 }

@@ -1,28 +1,27 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport'; // ✅ Añadido
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { BitacoraModule } from 'src/bitacora/bitacora.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
-
+import { JwtStrategy } from './jwt.strategy'; // ✅ Añadido
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 
-// 👇 IMPORTANTE: Importar la entidad EstadoCliente
+// ✅ Se mantiene porque tú lo usas
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PassportModule.register({ defaultStrategy: 'jwt' }), // ✅ Añadido
     UsuariosModule,
     BitacoraModule,
-
-    // 👇 IMPORTANTE: Aquí se registra EstadoCliente para que esté disponible en AuthService
-    TypeOrmModule.forFeature([EstadoCliente]),
-
+    TypeOrmModule.forFeature([EstadoCliente]), // ✅ Se mantiene
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -31,7 +30,6 @@ import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity
         signOptions: { expiresIn: '1h' },
       }),
     }),
-
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -46,7 +44,7 @@ import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity
           },
         },
         defaults: {
-          from: `"Soporte Gym" <${configService.get('MAIL_FROM')}>`,
+          from: `"Soporte Gym" <${configService.get('MAIL_FROM')}>`, // ✅ Corregido
         },
         template: {
           dir: __dirname + '/templates',
@@ -59,7 +57,7 @@ import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, RolesGuard],
+  providers: [AuthService, RolesGuard, JwtStrategy], // ✅ Añadido JwtStrategy
   exports: [JwtModule],
 })
 export class AuthModule {}
