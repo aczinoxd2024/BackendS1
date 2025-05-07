@@ -352,4 +352,27 @@ export class ClientesService {
         'Cliente eliminado correctamente (desactivado junto con su usuario).',
     };
   }
+  async listarClientes() {
+    const clientes = await this.clientesRepository.find();
+
+    const resultado = await Promise.all(
+      clientes.map(async (cliente) => {
+        const persona = await this.personasRepository.findOneBy({
+          CI: cliente.CI,
+        });
+
+        return {
+          ci: cliente.CI,
+          nombre: persona?.Nombre ?? '',
+          apellido: persona?.Apellido ?? '',
+          telefono: persona?.Telefono ?? '',
+          direccion: persona?.Direccion ?? '',
+          observacion: cliente.Observacion ?? '',
+          estado: cliente.IDEstado ?? 'Desconocido',
+        };
+      }),
+    );
+
+    return resultado;
+  }
 }
