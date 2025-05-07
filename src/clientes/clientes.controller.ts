@@ -70,19 +70,17 @@ export class ClientesController {
     return this.clientesService.eliminarCliente(ci, idUsuario, ip);
   }
 
-
   //-----------nuevo
-@UseGuards(JwtAuthGuard)
-@Roles('cliente')
-@Put('perfil/actualizar')
-async actualizarMiPerfil(
-  @Body() data: ClienteActualizarDto,
-  @Req() req: UserRequest,
-) {
-  const ci = req.user?.id ?? 'desconocido';
-  const ip = req.ip ?? 'desconocido';
+  @UseGuards(JwtAuthGuard)
+  @Roles('cliente')
+  @Put('perfil/actualizar')
+  async actualizarMiPerfil(
+    @Body() data: ClienteActualizarDto,
+    @Req() req: UserRequest,
+  ) {
+    const ci = req.user?.id ?? 'desconocido';
+    const ip = req.ip ?? 'desconocido';
 
-  return this.clientesService.actualizarCliente(ci, data, ci, ip);
-}
-
+    return this.clientesService.actualizarCliente(ci, data, ci, ip);
+  }
 }
