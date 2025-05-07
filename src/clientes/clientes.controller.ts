@@ -12,8 +12,10 @@ import { ClientesService } from './clientes.service';
 import { UserRequest } from '../auth/user-request.interface';
 import { Roles } from 'src/auth/roles/roles.decorator';
 import { Request } from 'express';
+import { UseGuards } from '@nestjs/common';
 import { ClienteCrearDto } from 'src/auth/dto/clienteCrear.dto';
 import { ClienteActualizarDto } from 'src/auth/dto/clienteActualizar.dto';
+import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
 
 @Controller('clientes')
 export class ClientesController {
@@ -67,4 +69,20 @@ export class ClientesController {
 
     return this.clientesService.eliminarCliente(ci, idUsuario, ip);
   }
+
+
+  //-----------nuevo
+@UseGuards(JwtAuthGuard)
+@Roles('cliente')
+@Put('perfil/actualizar')
+async actualizarMiPerfil(
+  @Body() data: ClienteActualizarDto,
+  @Req() req: UserRequest,
+) {
+  const ci = req.user?.id ?? 'desconocido';
+  const ip = req.ip ?? 'desconocido';
+
+  return this.clientesService.actualizarCliente(ci, data, ci, ip);
+}
+
 }
