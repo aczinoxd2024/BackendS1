@@ -136,7 +136,10 @@ export class AuthService {
       user: {
         id: usuario.id,
         correo: usuario.correo,
-        nombre: usuario.idPersona?.Nombre ?? 'Sin nombre',
+        nombre: usuario.idPersona?.Nombre ?? '',
+        apellido: usuario.idPersona?.Apellido ?? '',
+        telefono: usuario.idPersona?.Telefono ?? '',
+        direccion: usuario.idPersona?.Direccion ?? '',
         rol,
       },
     };

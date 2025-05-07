@@ -69,12 +69,8 @@ export class ClientesController {
 
     return this.clientesService.eliminarCliente(ci, idUsuario, ip);
   }
-  // ✅ Listar todos los clientes (SOLO Recepcionista / Administrador)
-  @Roles('recepcionista', 'administrador')
-  @Get()
-  async listarClientes() {
-    return this.clientesService.listarClientes();
-  }
+
+  //-----------nuevo
   @UseGuards(JwtAuthGuard)
   @Roles('cliente')
   @Put('perfil/actualizar')
