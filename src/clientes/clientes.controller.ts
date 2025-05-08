@@ -23,7 +23,7 @@ export class ClientesController {
 
   // 🚨 Nuevo endpoint para que el cliente logueado obtenga su perfil
   @UseGuards(JwtAuthGuard)
-  @Roles('cliente', 'recepcionista', 'administrador')
+  @Roles('cliente', 'recepcionista', 'administrador', 'instructor')
   @Get('perfil')
   async obtenerMiPerfil(@Req() req: UserRequest) {
     const ci = req.user?.id ?? 'desconocido';
@@ -33,7 +33,7 @@ export class ClientesController {
 
   // 🚨 Actualizar perfil cliente
   @UseGuards(JwtAuthGuard)
-  @Roles('cliente', 'recepcionista', 'administrador', 'entrenador')
+  @Roles('cliente', 'recepcionista', 'administrador', 'instructor')
   @Put('perfil/actualizar')
   async actualizarMiPerfil(
     @Body() data: ClienteActualizarDto,
