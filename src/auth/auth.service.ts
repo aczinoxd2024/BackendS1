@@ -115,7 +115,7 @@ export class AuthService {
 
     // ✅ Preparar JWT
     const payload: JwtPayload = {
-      id: usuario.id,
+      id: usuario.idPersona?.CI,
       correo: usuario.correo,
       rol: rol.toLocaleLowerCase(),
     };
