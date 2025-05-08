@@ -115,9 +115,10 @@ export class AuthService {
 
     // ✅ Preparar JWT
     const payload: JwtPayload = {
-      id: usuario.idPersona?.CI,
+      id: usuario.id, // <-- Este es el ID real del usuario -> para bitácora (y logout)
       correo: usuario.correo,
       rol: rol.toLocaleLowerCase(),
+      ci: usuario.idPersona?.CI, // <-- Este solo para vista en frontend si quieres
     };
 
     const accessToken = this.jwtService.sign(payload);
