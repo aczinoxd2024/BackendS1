@@ -386,18 +386,19 @@ export class ClientesService {
     });
 
     if (!usuario) {
-      throw new BadRequestException(`No se encontró el usuario CI: ${ci}`);
+      throw new BadRequestException(`No se encontró el usuario con CI: ${ci}`);
     }
 
     const persona = usuario.idPersona;
 
     return {
       ci: usuario.id,
-      nombre: persona?.Nombre ?? '',
-      apellido: persona?.Apellido ?? '',
-      correo: usuario.correo,
-      telefono: persona?.Telefono ?? '',
-      direccion: persona?.Direccion ?? '',
+      nombre: persona?.Nombre || 'Sin datos',
+      apellido: persona?.Apellido || 'Sin datos',
+      correo: usuario.correo || 'Sin datos',
+      telefono: persona?.Telefono || 'Sin datos',
+      direccion: persona?.Direccion || 'Sin datos',
+      estado: usuario.idEstadoU ?? 'Desconocido', // (opcional pero útil si deseas mostrar estado)
     };
   }
 }

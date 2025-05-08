@@ -88,6 +88,7 @@ export class ClientesController {
   async listarClientes() {
     return this.clientesService.listarClientes();
   }
+  // 🚨 Nuevo endpoint para que el cliente logueado obtenga su perfil
   @UseGuards(JwtAuthGuard)
   @Roles('cliente')
   @Get('perfil')
