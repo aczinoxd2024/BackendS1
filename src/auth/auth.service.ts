@@ -140,7 +140,7 @@ export class AuthService {
         apellido: usuario.idPersona?.Apellido ?? '',
         telefono: usuario.idPersona?.Telefono ?? '',
         direccion: usuario.idPersona?.Direccion ?? '',
-        rol,
+        rol: rol.toLocaleLowerCase(),
       },
     };
   }
