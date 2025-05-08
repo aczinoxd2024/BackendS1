@@ -33,7 +33,7 @@ export class ClientesController {
 
   // 🚨 Actualizar perfil cliente
   @UseGuards(JwtAuthGuard)
-  @Roles('cliente')
+  @Roles('cliente', 'recepcionista', 'administrador', 'entrenador')
   @Put('perfil/actualizar')
   async actualizarMiPerfil(
     @Body() data: ClienteActualizarDto,
