@@ -88,4 +88,11 @@ export class ClientesController {
   async listarClientes() {
     return this.clientesService.listarClientes();
   }
+  @UseGuards(JwtAuthGuard)
+  @Roles('cliente')
+  @Get('perfil')
+  async obtenerMiPerfil(@Req() req: UserRequest) {
+    const ci = req.user?.id ?? 'desconocido';
+    return this.clientesService.obtenerMiPerfil(ci);
+  }
 }

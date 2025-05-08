@@ -379,4 +379,25 @@ export class ClientesService {
 
     return resultado;
   }
+  async obtenerMiPerfil(ci: string) {
+    const usuario = await this.usuariosRepository.findOne({
+      where: { id: ci },
+      relations: ['idPersona'],
+    });
+
+    if (!usuario) {
+      throw new BadRequestException(`No se encontró el usuario CI: ${ci}`);
+    }
+
+    const persona = usuario.idPersona;
+
+    return {
+      ci: usuario.id,
+      nombre: persona?.Nombre ?? '',
+      apellido: persona?.Apellido ?? '',
+      correo: usuario.correo,
+      telefono: persona?.Telefono ?? '',
+      direccion: persona?.Direccion ?? '',
+    };
+  }
 }
