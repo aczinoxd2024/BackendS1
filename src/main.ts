@@ -23,7 +23,7 @@ async function bootstrap() {
       'http://localhost:4200', // Frontend local
       'https://backends1-production.up.railway.app', // Backend en producción (HTTPS)
       'http://backends1-production.up.railway.app', // Backend en producción (HTTP)
-      'https://tudominio.com', // Futuro dominio real (opcional)
+      'https://proyectosis12025.netlify.app', // Futuro dominio real (opcional)
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
