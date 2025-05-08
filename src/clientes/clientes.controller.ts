@@ -90,7 +90,7 @@ export class ClientesController {
   }
   // 🚨 Nuevo endpoint para que el cliente logueado obtenga su perfil
   @UseGuards(JwtAuthGuard)
-  @Roles('cliente')
+  @Roles('cliente', 'recepcionista', 'administrador')
   @Get('perfil')
   async obtenerMiPerfil(@Req() req: UserRequest) {
     const ci = req.user?.id ?? 'desconocido';
