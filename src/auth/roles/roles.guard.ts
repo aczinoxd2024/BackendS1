@@ -23,12 +23,14 @@ export class RolesGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
+    // ✅ Cambiado a solo obtener del handler (NO de la clase)
+    const requiredRoles = this.reflector.get<string[]>(
+      'roles',
       context.getHandler(),
-      context.getClass(),
-    ]);
+    );
 
     if (!requiredRoles) {
+      // No se definieron roles, acceso permitido (puede ser ruta pública o no protegida por roles)
       return true;
     }
 
@@ -49,7 +51,6 @@ export class RolesGuard implements CanActivate {
         throw new ForbiddenException('Problema interno de autenticación');
       }
 
-      // ✅ Ahora usamos async (promesa) para verificar el token → versión profesional
       payload = await new Promise<JwtPayload>((resolve, reject) => {
         jwt.verify(token, secret, (err, decoded) => {
           if (err || !decoded) {
@@ -64,13 +65,20 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Token inválido o expirado');
     }
 
-    const rolesNormalizados = requiredRoles.map((r) => r.toLowerCase());
-    const rolUsuario = payload.rol.toLowerCase();
+    const rolesNormalizados = requiredRoles
+      .filter((r) => r)
+      .map((r) => r.toString().trim().toLowerCase());
+
+    const rolUsuario = (payload.rol ?? '').toString().trim().toLowerCase();
+
+    console.log('Roles permitidos:', rolesNormalizados);
+    console.log('Rol del usuario:', rolUsuario);
 
     if (!rolesNormalizados.includes(rolUsuario)) {
       throw new ForbiddenException('Acceso denegado por rol insuficiente');
     }
 
+    console.log('Acceso permitido');
     return true;
   }
 }
