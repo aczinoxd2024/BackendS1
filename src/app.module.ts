@@ -16,10 +16,13 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { BitacoraModule } from './bitacora/bitacora.module';
 import { TipoMembresiaModule } from './membresias/Tipos/tipo-menbresia.module';
 import { MetodoPagoModule } from './pagos/metodo-pago/metodo-pago.module';
+import { PersonalModule } from './personal/personal.module';
+import { DiaSemanaModule } from './dia-semana/dia-semana.module';
 
 // Seguridad global con RolesGuard
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './auth/roles/roles.guard';
+import { HorariosModule } from './horarios/horarios.module';
 
 @Module({
   imports: [
@@ -58,6 +61,9 @@ import { RolesGuard } from './auth/roles/roles.guard';
     BitacoraModule,
     MetodoPagoModule,
     TipoMembresiaModule,
+    HorariosModule,
+    PersonalModule,
+    DiaSemanaModule,
   ],
   providers: [
     // Aplicar RolesGuard globalmente para manejar permisos en rutas protegidas

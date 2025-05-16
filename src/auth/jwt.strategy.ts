@@ -16,15 +16,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   // Método 'validate' con tipo de retorno 'Usuario' o 'null'
-  async validate(payload: { correo: string }): Promise<Usuario> {
-    // Busca al usuario por correo
-    const usuario = await this.usuariosService.findOneByCorreo(payload.correo);
+  async validate(payload: any) {
+  return {
+    sub: payload.sub || payload.id,      // ID del usuario
+    correo: payload.correo,
+    rol: payload.rol,
+    ci: payload.ci                        // Este es el campo CLAVE
+  };
+}
 
-    // Si no se encuentra un usuario, lanzamos una excepción
-    if (!usuario) {
-      throw new UnauthorizedException('Usuario no autorizado');
-    }
-
-    return usuario; // Retorna el usuario encontrado
-  }
 }
