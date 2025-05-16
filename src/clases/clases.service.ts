@@ -14,7 +14,7 @@ export class ClasesService {
   constructor(
     @InjectRepository(Clase)
     private clasesRepository: Repository<Clase>,
-    private readonly dataSource: DataSource
+    private readonly dataSource: DataSource,
   ) {}
 
   create(clase: Clase): Promise<Clase> {
@@ -55,36 +55,37 @@ export class ClasesService {
       ],
     });
 
-    return clases.map(clase => ({
+    return clases.map((clase) => ({
       IDClase: clase.IDClase,
       Nombre: clase.Nombre,
       Estado: clase.Estado,
       NumInscritos: clase.NumInscritos,
       Sala: clase.sala?.Descripcion || null,
-      HorariosPorDia: clase.horarios.map(h => `${h.diaSemana?.Dia}: ${h.HoraIni} a ${h.HoraFin}`),
+      HorariosPorDia: clase.horarios.map(
+        (h) => `${h.diaSemana?.Dia}: ${h.HoraIni} a ${h.HoraFin}`,
+      ),
     }));
   }
 
   // ✅ Obtener instructores de una clase
- async obtenerInstructoresPorClase(id: number) {
-  const clase = await this.clasesRepository.findOne({
-    where: { IDClase: id },
-    relations: [
-      'claseInstructores',
-      'claseInstructores.instructor',
-      'claseInstructores.instructor.persona'
-    ],
-  });
+  async obtenerInstructoresPorClase(id: number) {
+    const clase = await this.clasesRepository.findOne({
+      where: { IDClase: id },
+      relations: [
+        'claseInstructores',
+        'claseInstructores.instructor',
+        'claseInstructores.instructor.persona',
+      ],
+    });
 
-  if (!clase) throw new NotFoundException('Clase no encontrada');
+    if (!clase) throw new NotFoundException('Clase no encontrada');
 
-  return clase.claseInstructores.map((r) => ({
-    CI: r.instructor.CI,
-    Nombre: r.instructor.persona?.Nombre || 'Sin nombre',
-    Apellido: r.instructor.persona?.Apellido || 'Sin apellido'
-  }));
-}
-
+    return clase.claseInstructores.map((r) => ({
+      CI: r.instructor.CI,
+      Nombre: r.instructor.persona?.Nombre || 'Sin nombre',
+      Apellido: r.instructor.persona?.Apellido || 'Sin apellido',
+    }));
+  }
 
   // ✅ Asignar instructor con validación de horario
   async asignarInstructor(idClase: number, ci: string) {
@@ -94,7 +95,9 @@ export class ClasesService {
     });
     if (!clase) throw new NotFoundException('Clase no encontrada');
 
-    const instructor = await this.dataSource.getRepository(Personal).findOneBy({ CI: ci });
+    const instructor = await this.dataSource
+      .getRepository(Personal)
+      .findOneBy({ CI: ci });
     if (!instructor) throw new NotFoundException('Instructor no encontrado');
 
     const repo = this.dataSource.getRepository(ClaseInstructor);
@@ -105,7 +108,8 @@ export class ClasesService {
       },
       relations: ['clase', 'instructor'],
     });
-    if (yaExiste) throw new ConflictException('Instructor ya asignado a esta clase');
+    if (yaExiste)
+      throw new ConflictException('Instructor ya asignado a esta clase');
 
     // 🚨 Validar conflictos de horario con otras clases del instructor
     const clasesDelInstructor = await this.clasesRepository
@@ -120,14 +124,12 @@ export class ClasesService {
         for (const h2 of clase.horarios) {
           if (
             h1.diaSemana?.Dia === h2.diaSemana?.Dia &&
-            (
-              (h2.HoraIni >= h1.HoraIni && h2.HoraIni < h1.HoraFin) ||
+            ((h2.HoraIni >= h1.HoraIni && h2.HoraIni < h1.HoraFin) ||
               (h2.HoraFin > h1.HoraIni && h2.HoraFin <= h1.HoraFin) ||
-              (h2.HoraIni <= h1.HoraIni && h2.HoraFin >= h1.HoraFin)
-            )
+              (h2.HoraIni <= h1.HoraIni && h2.HoraFin >= h1.HoraFin))
           ) {
             throw new ConflictException(
-              `Conflicto de horario: ya tiene clase ese día entre ${h1.HoraIni} y ${h1.HoraFin}`
+              `Conflicto de horario: ya tiene clase ese día entre ${h1.HoraIni} y ${h1.HoraFin}`,
             );
           }
         }
@@ -139,26 +141,25 @@ export class ClasesService {
   }
 
   // ✅ Clases filtradas por instructor logueado
-async obtenerClasesPorInstructor(ci: string) {
-  const clases = await this.clasesRepository
-    .createQueryBuilder('clase')
-    .leftJoinAndSelect('clase.claseInstructores', 'ci_rel')
-    .leftJoinAndSelect('ci_rel.instructor', 'instructor')
-    .leftJoinAndSelect('clase.horarios', 'horario')
-    .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
-    .where('instructor.CI = :ci', { ci })
-    .getMany();
+  async obtenerClasesPorInstructor(ci: string) {
+    const clases = await this.clasesRepository
+      .createQueryBuilder('clase')
+      .leftJoinAndSelect('clase.claseInstructores', 'ci_rel')
+      .leftJoinAndSelect('ci_rel.instructor', 'instructor')
+      .leftJoinAndSelect('clase.horarios', 'horario')
+      .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
+      .where('instructor.CI = :ci', { ci })
+      .getMany();
 
-  return clases.map(clase => ({
-    IDClase: clase.IDClase,
-    Nombre: clase.Nombre,
-    Estado: clase.Estado,
-    Horarios: clase.horarios.map(h => `${h.diaSemana?.Dia}: ${h.HoraIni} a ${h.HoraFin}`),
-  }));
-}
-
-
-
+    return clases.map((clase) => ({
+      IDClase: clase.IDClase,
+      Nombre: clase.Nombre,
+      Estado: clase.Estado,
+      Horarios: clase.horarios.map(
+        (h) => `${h.diaSemana?.Dia}: ${h.HoraIni} a ${h.HoraFin}`,
+      ),
+    }));
+  }
 
   // ✅ Clases disponibles para cliente (vista reducida)
   async obtenerClasesParaCliente() {
@@ -167,11 +168,13 @@ async obtenerClasesPorInstructor(ci: string) {
       relations: ['horarios', 'horarios.diaSemana'],
     });
 
-    return clases.map(clase => ({
+    return clases.map((clase) => ({
       IDClase: clase.IDClase,
       Nombre: clase.Nombre,
       NumInscritos: clase.NumInscritos,
-      Horarios: clase.horarios.map(h => `${h.diaSemana?.Dia}: ${h.HoraIni} a ${h.HoraFin}`),
+      Horarios: clase.horarios.map(
+        (h) => `${h.diaSemana?.Dia}: ${h.HoraIni} a ${h.HoraFin}`,
+      ),
     }));
   }
 }

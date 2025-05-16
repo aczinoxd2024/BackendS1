@@ -14,4 +14,3 @@ export class DiaSemanaService {
     return this.diaRepo.find();
   }
 }
-

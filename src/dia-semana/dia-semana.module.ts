@@ -11,4 +11,3 @@ import { DiaSemanaController } from './dia-semana.controller';
   exports: [TypeOrmModule],
 })
 export class DiaSemanaModule {}
-

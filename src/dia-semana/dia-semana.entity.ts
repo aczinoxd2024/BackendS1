@@ -9,6 +9,6 @@ export class DiaSemana {
   @Column({ length: 20 })
   Dia: string;
 
-  @OneToMany(() => Horario, horario => horario.diaSemana)
+  @OneToMany(() => Horario, (horario) => horario.diaSemana)
   horarios: Horario[];
 }
