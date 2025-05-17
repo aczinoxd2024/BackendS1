@@ -113,15 +113,14 @@ export class AuthService {
       throw new UnauthorizedException('Rol no coincide con el usuario');
     }
     // ✅ Agrega esto justo antes de crear el payload
-const rolesInternos: Record<string, string> = {
-  'Administrador': 'admin',
-  'Instructor': 'instructor',
-  'Recepcionista': 'recepcionista',
-  'Cliente': 'cliente',
-};
+    const rolesInternos: Record<string, string> = {
+      Administrador: 'admin',
+      Instructor: 'instructor',
+      Recepcionista: 'recepcionista',
+      Cliente: 'cliente',
+    };
 
-const rolNormalizado = rolesInternos[rol.trim()] ?? rol.toLowerCase();
-
+    const rolNormalizado = rolesInternos[rol.trim()] ?? rol.toLowerCase();
 
     // ✅ Preparar JWT
     const payload: JwtPayload = {
@@ -151,7 +150,7 @@ const rolNormalizado = rolesInternos[rol.trim()] ?? rol.toLowerCase();
         apellido: usuario.idPersona?.Apellido ?? '',
         telefono: usuario.idPersona?.Telefono ?? '',
         direccion: usuario.idPersona?.Direccion ?? '',
-        rol: rolNormalizado
+        rol: rolNormalizado,
       },
     };
   }

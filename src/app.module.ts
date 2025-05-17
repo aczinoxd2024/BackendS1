@@ -19,16 +19,52 @@ import { MetodoPagoModule } from './pagos/metodo-pago/metodo-pago.module';
 import { PersonalModule } from './personal/personal.module';
 import { DiaSemanaModule } from './dia-semana/dia-semana.module';
 
+//CAMBIOS PARA PAGOS STRIPE---------------------------------------------------
+
+import { StripeModule } from './stripe/stripe.module';
+
 // Seguridad global con RolesGuard
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './auth/roles/roles.guard';
 import { HorariosModule } from './horarios/horarios.module';
+
+//para generar comprobantes por correo
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { join } from 'path';
 
 @Module({
   imports: [
     // Configuración global de variables de entorno (.env o Railway variables)
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    StripeModule,
+
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        transport: {
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: {
+            user: configService.get<string>('EMAIL_USER'),
+            pass: configService.get<string>('EMAIL_PASS'),
+          },
+        },
+        defaults: {
+          from: '"GoFit GYM" <' + configService.get<string>('EMAIL_USER') + '>',
+        },
+        template: {
+          dir: join(__dirname, 'templates'),
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
     }),
 
     // Configuración dinámica de TypeORM con soporte para producción y desarrollo

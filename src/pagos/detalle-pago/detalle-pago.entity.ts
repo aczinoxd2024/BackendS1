@@ -13,7 +13,7 @@ export class DetallePago {
   @Column('decimal', { precision: 10, scale: 2 })
   MontoTotal: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'int', nullable: true })
   IDPromo: number | null;
 
   @ManyToOne(() => Pago)

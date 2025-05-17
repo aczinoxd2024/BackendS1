@@ -12,7 +12,7 @@ export class CreateClaseDto {
 
   @IsInt()
   IDSalaa: number;
-  
+
   @IsString()
   Horario: string;
 }
