@@ -1,29 +1,41 @@
 import {
   Entity,
-  Column,
   PrimaryGeneratedColumn,
+  Column,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Persona } from '../personas/persona.entity'; // Importa la entidad Persona
 import { Clase } from '../clases/clase.entity';
+import { Cliente } from '../clientes/cliente.entity';
+import { EstadoReserva } from '../estado-reserva/estado-reserva.entity';
+import { Horario } from '../horarios/horario.entity';
 
-@Entity()
+
+@Entity('reserva')
 export class Reserva {
-  @PrimaryGeneratedColumn()
-  ID: number;
+  @PrimaryGeneratedColumn({ name: 'ID' })
+  IDReserva: number;
 
-  @Column()
+  @Column({ name: 'FechaReserva', type: 'date' })
   FechaReserva: Date;
+
+  @Column({ name: 'IDHorario', nullable: true })
+  IDHorario: number;
 
   @ManyToOne(() => Clase)
   @JoinColumn({ name: 'IDClase' })
-  Clase: Clase;
+  clase: Clase;
 
-  @ManyToOne(() => Persona) // Relacionamos con la entidad Persona (Cliente)
+  @ManyToOne(() => Cliente)
   @JoinColumn({ name: 'CICliente' })
-  Cliente: Persona; // Cliente que realiza la reserva
+  cliente: Cliente;
 
-  @Column()
-  IDEstado: number; // Estado de la reserva
+  @ManyToOne(() => EstadoReserva)
+  @JoinColumn({ name: 'IDEstado' })
+  estado: EstadoReserva;
+
+@ManyToOne(() => Horario, { eager: true }) // eager opcional, si quieres que siempre se cargue
+@JoinColumn({ name: 'IDHorario' })
+horario: Horario;
+
 }
