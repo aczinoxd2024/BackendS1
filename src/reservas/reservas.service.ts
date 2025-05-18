@@ -136,15 +136,69 @@ export class ReservasService {
 
   return query.getMany();
 }
+async cancelarReserva(id: number) {
+  const reserva = await this.reservasRepository.findOne({
+    where: { IDReserva: id },
+    relations: ['estado']
+  });
 
-async cancelarReserva(id: number): Promise<void> {
-  const reserva = await this.findOne(id);
+  if (!reserva) {
+    throw new NotFoundException('Reserva no encontrada');
+  }
+
   const estadoCancelado = await this.estadoReservaRepository.findOneBy({ Estado: 'Cancelada' });
 
-  if (!estadoCancelado) throw new NotFoundException('Estado "Cancelada" no encontrado');
+  if (!estadoCancelado) {
+    throw new NotFoundException('Estado "Cancelada" no existe');
+  }
 
   reserva.estado = estadoCancelado;
-  await this.reservasRepository.save(reserva);
+  return this.reservasRepository.save(reserva);
+}
+
+async getReservasPasadas(ciCliente: string, fechaInicio?: string, fechaFin?: string) {
+  const query = this.reservasRepository
+    .createQueryBuilder('reserva')
+    .leftJoinAndSelect('reserva.clase', 'clase')
+    .leftJoinAndSelect('reserva.horario', 'horario')
+    .leftJoinAndSelect('reserva.estado', 'estadoReserva')
+    .leftJoinAndSelect('reserva.cliente', 'cliente')
+    .where('cliente.CI = :ci', { ci: ciCliente })
+    .andWhere('reserva.FechaReserva < CURDATE()');
+
+  if (fechaInicio) {
+    query.andWhere('reserva.FechaReserva >= :fechaInicio', { fechaInicio });
+  }
+
+  if (fechaFin) {
+    query.andWhere('reserva.FechaReserva <= :fechaFin', { fechaFin });
+  }
+
+  query.orderBy('reserva.FechaReserva', 'DESC');
+
+  const reservas = await query.getMany();
+
+  // Para cada reserva, buscar si existe asistencia relacionada
+  const connection = this.reservasRepository.manager.connection;
+  for (const reserva of reservas) {
+    const result = await connection.query(
+      `
+      SELECT ea.Estado
+      FROM asistencia_clases ac
+      JOIN estado_asistencia ea ON ea.ID = ac.IDEstadoAsis
+      JOIN asistencia_general ag ON ag.IDAsistencia = ac.IDAsistenciaGeneral
+      WHERE ac.IDClase = ?
+        AND ag.CIPerso = ?
+        AND ag.Fecha = ?
+      LIMIT 1
+      `,
+      [reserva.clase.IDClase, reserva.cliente.CI, reserva.FechaReserva]
+    );
+
+    reserva['estadoAsistencia'] = result.length > 0 ? result[0].Estado : 'Sin registro';
+  }
+
+  return reservas;
 }
 
 
