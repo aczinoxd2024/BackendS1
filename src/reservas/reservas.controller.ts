@@ -15,6 +15,8 @@ import { CreateReservaDto } from './dto/create-reserva.dto';
 import { Request } from 'express';
 import { Roles } from 'src/auth/roles/roles.decorator';
 import { Query } from '@nestjs/common';
+import { Patch } from '@nestjs/common';
+
 
 @Controller('reservas')
 export class ReservasController {
@@ -38,11 +40,13 @@ export class ReservasController {
 
   @Get('cliente/:ci')
 @Roles('recepcionista', 'administrador')
-getReservasPorCliente(
+async getReservasPorCliente(
   @Param('ci') ci: string,
-  @Query('estado') estado?: string
+  @Query('estado') estado?: string,
+  @Query('fechaInicio') fechaInicio?: string,
+  @Query('fechaFin') fechaFin?: string,
 ) {
-  return this.reservasService.buscarPorCICliente(ci, estado);
+  return this.reservasService.buscarPorCICliente(ci, estado, fechaInicio, fechaFin);
 }
 
   @Get()
@@ -63,4 +67,11 @@ getReservasPorCliente(
     await this.reservasService.remove(id);
     return { message: `Reserva con ID ${id} eliminada correctamente` };
   }
+  @Patch(':id/cancelar')
+@Roles('recepcionista', 'administrador')
+async cancelar(@Param('id') id: number): Promise<{ message: string }> {
+  await this.reservasService.cancelarReserva(id);
+  return { message: 'Reserva cancelada correctamente' };
+}
+
 }

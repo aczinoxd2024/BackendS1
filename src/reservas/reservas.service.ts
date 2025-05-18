@@ -106,19 +106,46 @@ export class ReservasService {
     const reserva = await this.findOne(id);
     await this.reservasRepository.remove(reserva);
   }
-  async buscarPorCICliente(ci: string, estado?: string) {
+ async buscarPorCICliente(ci: string, estado?: string, fechaInicio?: string, fechaFin?: string) {
   const where: any = {
-    cliente: { CI: ci },
+    cliente: { CI: ci }
   };
 
   if (estado) {
     where.estado = { Estado: estado };
   }
 
-  return this.reservasRepository.find({
-    where,
-    relations: ['clase', 'estado', 'horario', 'cliente'],
-  });
+  const query = this.reservasRepository.createQueryBuilder('reserva')
+    .leftJoinAndSelect('reserva.cliente', 'cliente')
+    .leftJoinAndSelect('reserva.clase', 'clase')
+    .leftJoinAndSelect('reserva.estado', 'estado')
+    .leftJoinAndSelect('reserva.horario', 'horario')
+    .where('cliente.CI = :ci', { ci });
+
+  if (estado) {
+    query.andWhere('estado.Estado = :estado', { estado });
+  }
+
+  if (fechaInicio) {
+    query.andWhere('reserva.FechaReserva >= :fechaInicio', { fechaInicio });
+  }
+
+  if (fechaFin) {
+    query.andWhere('reserva.FechaReserva <= :fechaFin', { fechaFin });
+  }
+
+  return query.getMany();
 }
+
+async cancelarReserva(id: number): Promise<void> {
+  const reserva = await this.findOne(id);
+  const estadoCancelado = await this.estadoReservaRepository.findOneBy({ Estado: 'Cancelada' });
+
+  if (!estadoCancelado) throw new NotFoundException('Estado "Cancelada" no encontrado');
+
+  reserva.estado = estadoCancelado;
+  await this.reservasRepository.save(reserva);
+}
+
 
 }
