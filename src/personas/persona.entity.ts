@@ -1,7 +1,13 @@
-import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  OneToOne,
+  JoinColumn
+} from 'typeorm';
 import { Usuario } from '../usuarios/usuario.entity';
 
-@Entity()
+@Entity('persona')
 export class Persona {
   @PrimaryColumn()
   CI: string;
@@ -21,7 +27,7 @@ export class Persona {
   @Column()
   Direccion: string;
 
-  @OneToOne(() => Usuario, (usuario) => usuario.idPersona) // Relación inversa con Usuario
-  @JoinColumn({ name: 'CI' }) // La columna de Persona que se relaciona con Usuario
+  @OneToOne(() => Usuario, usuario => usuario.idPersona)
+  @JoinColumn({ name: 'CI' })
   usuario: Usuario;
 }

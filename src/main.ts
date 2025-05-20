@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import * as bodyParser from 'body-parser';
+import { rawBodyMiddleware } from './common/middleware/raw-body.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,6 +18,13 @@ async function bootstrap() {
       transform: true, // Transforma datos automáticamente al tipo esperado
     }),
   );
+
+  // logica para el stripe con bodyParser
+  app.use('/api/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
+  app.use(rawBodyMiddleware);
+  app.use(bodyParser.json()); // para las otras rutas
+
+  /////////////////////////////////////////////////////////////
 
   // Habilitar CORS para permitir acceso desde frontend en local, producción y futuros dominios
   app.enableCors({

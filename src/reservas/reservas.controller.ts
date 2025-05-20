@@ -6,37 +6,87 @@ import {
   Delete,
   Param,
   Body,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+  Query,
+  Patch,
 } from '@nestjs/common';
 import { ReservasService } from './reservas.service';
 import { Reserva } from './reserva.entity';
+import { CreateReservaDto } from './dto/create-reserva.dto';
+import { Request } from 'express';
+import { Roles } from 'src/auth/roles/roles.decorator';
+import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
+import { RolesGuard } from 'src/auth/roles/roles.guard';
 
 @Controller('reservas')
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
   @Post()
-  create(@Body() reserva: Reserva): Promise<Reserva> {
-    return this.reservasService.create(reserva);
+  @Roles('cliente')
+  async crearReserva(@Req() req: Request, @Body() dto: CreateReservaDto) {
+    const ci = (req.user as any)?.ci;
+    if (!ci) throw new UnauthorizedException('Cliente no identificado');
+    return this.reservasService.crearReserva(dto.IDClase, ci);
+  }
+
+  @Get('mis-reservas')
+  @Roles('cliente')
+  async getMisReservas(@Req() req: Request) {
+    const ci = (req.user as any)?.ci;
+    if (!ci) throw new UnauthorizedException('Cliente no identificado');
+    return this.reservasService.buscarPorCliente(ci);
+  }
+
+  @Get('mis-reservas-pasadas')
+  @Roles('cliente')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getReservasPasadas(
+    @Req() req: Request,
+    @Query('fechaInicio') fechaInicio?: string,
+    @Query('fechaFin') fechaFin?: string
+  ) {
+    const ci = (req.user as any)?.ci;
+    if (!ci) throw new UnauthorizedException('Cliente no identificado');
+    return this.reservasService.getReservasPasadas(ci, fechaInicio, fechaFin);
+  }
+
+  @Get('cliente/:ci')
+  @Roles('recepcionista', 'administrador')
+  async getReservasPorCliente(
+    @Param('ci') ci: string,
+    @Query('estado') estado?: string,
+    @Query('fechaInicio') fechaInicio?: string,
+    @Query('fechaFin') fechaFin?: string,
+  ) {
+    return this.reservasService.buscarPorCICliente(ci, estado, fechaInicio, fechaFin);
   }
 
   @Get()
+  @Roles('administrador', 'recepcionista')
   findAll(): Promise<Reserva[]> {
     return this.reservasService.findAll();
   }
 
   @Get(':id')
+  @Roles('administrador', 'recepcionista')
   findOne(@Param('id') id: number): Promise<Reserva> {
     return this.reservasService.findOne(id);
   }
 
-  @Put(':id')
-  update(@Param('id') id: number, @Body() reserva: Reserva): Promise<Reserva> {
-    return this.reservasService.update(id, reserva);
-  }
-
   @Delete(':id')
+  @Roles('cliente', 'recepcionista', 'administrador')
   async remove(@Param('id') id: number): Promise<{ message: string }> {
     await this.reservasService.remove(id);
     return { message: `Reserva con ID ${id} eliminada correctamente` };
+  }
+
+  @Patch(':id/cancelar')
+  @Roles('recepcionista', 'administrador')
+  async cancelarReserva(@Param('id') id: number): Promise<{ message: string }> {
+    await this.reservasService.cancelarReserva(id);
+    return { message: 'Reserva cancelada correctamente' };
   }
 }
