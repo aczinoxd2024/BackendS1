@@ -10,4 +10,6 @@ export class Cliente {
 
   @Column('text')
   Observacion: string;
+
+ 
 }

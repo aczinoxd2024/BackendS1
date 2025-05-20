@@ -16,4 +16,6 @@ export class Membresia {
 
   @Column()
   TipoMembresiaID: number;
+
+ 
 }

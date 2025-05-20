@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Clase } from 'src/clases/clase.entity'; // ajusta la ruta según tu estructura
+
 
 @Entity('tipo_membresia')
 export class TipoMembresia {
@@ -19,4 +21,12 @@ export class TipoMembresia {
 
   @Column('text')
   Beneficios: string;
+// NUEVA RELACIÓN CON CLASE:
+  @ManyToOne(() => Clase, { eager: true, nullable: true })
+  @JoinColumn({ name: 'claseId' })
+  clase: Clase;
+
+  @Column({ nullable: true })
+  claseId: number;
+ 
 }

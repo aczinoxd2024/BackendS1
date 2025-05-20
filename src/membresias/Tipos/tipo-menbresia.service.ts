@@ -8,6 +8,7 @@ export class TipoMembresiaService {
   constructor(
     @InjectRepository(TipoMembresia)
     private tipoMembresiaRepository: Repository<TipoMembresia>,
+
   ) {}
 
   async obtenerTipos(): Promise<{ id: number; nombre: string }[]> {
