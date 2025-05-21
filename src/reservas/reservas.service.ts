@@ -92,7 +92,16 @@ export class ReservasService {
 
   await this.claseRepository.save(clase);
 
-  return reservaGuardada;
+  const claseSeActivo =
+  clase.Estado === 'Activo' &&
+  clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2);
+
+
+  return {
+  ...reservaGuardada,
+  claseActivada: claseSeActivo
+};
+
 }
 
 

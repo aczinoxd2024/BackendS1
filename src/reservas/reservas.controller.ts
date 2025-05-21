@@ -25,7 +25,7 @@ export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
   @Post()
-  @Roles('cliente')
+  @Roles('cliente', 'administrador')
   async crearReserva(@Req() req: Request, @Body() dto: CreateReservaDto) {
     const ci = (req.user as any)?.ci;
     if (!ci) throw new UnauthorizedException('Cliente no identificado');
