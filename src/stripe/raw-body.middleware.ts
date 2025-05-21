@@ -7,6 +7,10 @@ export function rawBodyMiddleware(
   encoding: BufferEncoding,
 ): void {
   if (req.originalUrl.includes('/stripe/webhook')) {
-    (req as any).rawBody = buf; // 👈 usamos 'as any' para evitar el error de TS
+    (req as any).rawBody = buf;
+
+    // Logs útiles para confirmar que rawBody fue capturado
+    console.log('📩 Middleware rawBody aplicado para:', req.originalUrl);
+    console.log('📦 Tamaño del rawBody:', buf.length);
   }
 }
