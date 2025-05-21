@@ -14,8 +14,6 @@ export class Membresia {
   @Column({ length: 50 })
   PlataformaWeb: string;
 
-  @Column()
+  @Column({ name: 'TipoMembresiaID' })
   TipoMembresiaID: number;
-
- 
 }

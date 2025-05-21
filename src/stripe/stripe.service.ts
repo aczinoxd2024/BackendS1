@@ -16,19 +16,24 @@ export class StripeService {
   private stripe: Stripe;
 
   constructor(
-    private configService: ConfigService,
-    @InjectRepository(Pago) private pagoRepository: Repository<Pago>,
-    @InjectRepository(Usuario) private usuarioRepository: Repository<Usuario>,
-    @InjectRepository(Cliente) private clienteRepository: Repository<Cliente>,
+    private readonly configService: ConfigService,
+    @InjectRepository(Pago) private readonly pagoRepository: Repository<Pago>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
+    @InjectRepository(Cliente)
+    private readonly clienteRepository: Repository<Cliente>,
     @InjectRepository(DetallePago)
-    private detallePagoRepository: Repository<DetallePago>,
+    private readonly detallePagoRepository: Repository<DetallePago>,
     @InjectRepository(Membresia)
-    private membresiaRepository: Repository<Membresia>,
+    private readonly membresiaRepository: Repository<Membresia>,
     @InjectRepository(TipoMembresia)
-    private tipoMembresiaRepository: Repository<TipoMembresia>,
+    private readonly tipoMembresiaRepository: Repository<TipoMembresia>,
   ) {
     this.stripe = new Stripe(
-      this.configService.get<string>('STRIPE_SECRET_KEY')!,
+      this.configService.getOrThrow<string>('STRIPE_SECRET_KEY'),
+      {
+        apiVersion: '2022-11-15',
+      },
     );
   }
 
@@ -57,120 +62,104 @@ export class StripeService {
           quantity: 1,
         },
       ],
-      success_url: `${this.configService.get<string>('FRONTEND_URL')}/pagos/success`,
-      cancel_url: `${this.configService.get<string>('FRONTEND_URL')}/pagos/cancel`,
+      success_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/success`,
+      cancel_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/cancel`,
     });
 
     if (!session.url) {
-      throw new Error('Stripe session URL está nulo');
+      throw new Error('La URL de la sesión de Stripe es nula');
     }
 
     return { url: session.url };
   }
 
-  constructEvent(payload: Buffer, sig: string, secret: string) {
+  constructEvent(payload: Buffer, sig: string, secret: string): Stripe.Event {
     return this.stripe.webhooks.constructEvent(payload, sig, secret);
   }
 
-  async handleEvent(event: Stripe.Event) {
+  async handleEvent(event: Stripe.Event): Promise<void> {
     console.log('📩 Evento recibido desde Stripe:', event.type);
 
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-
-      console.log('📦 Session completa:', JSON.stringify(session, null, 2));
-
-      const email = session.metadata?.email;
-      const amount = session.amount_total;
-      const descripcion = session.metadata?.descripcion;
-      const date = new Date();
-
-      console.log('📧 Email:', email);
-      console.log('💰 Monto (centavos):', amount);
-      console.log('📝 Descripción:', descripcion);
-
-      if (!email || !amount || !descripcion) {
-        console.log('❌ Datos incompletos. Abortando guardado.');
-        return;
-      }
-
-      const usuario = await this.usuarioRepository.findOne({
-        where: { correo: email },
-        relations: ['idPersona'],
-      });
-
-      console.log('🧑 Usuario encontrado:', usuario);
-
-      if (!usuario || !usuario.idPersona?.CI) {
-        console.log('❌ No se encontró usuario o CI.');
-        return;
-      }
-
-      const cliente = await this.clienteRepository.findOne({
-        where: { CI: usuario.idPersona.CI },
-      });
-
-      console.log('🧾 Cliente encontrado:', cliente);
-
-      if (!cliente) {
-        console.log('❌ Cliente no encontrado con ese CI.');
-        return;
-      }
-
-      const nuevoPago = this.pagoRepository.create({
-        Fecha: date,
-        Monto: amount / 100,
-        MetodoPago: 2,
-        CIPersona: usuario.idPersona.CI,
-      });
-
-      const pagoGuardado = await this.pagoRepository.save(nuevoPago);
-      console.log('💾 Pago guardado:', pagoGuardado);
-
-      const tipo = await this.tipoMembresiaRepository.findOne({
-        where: { NombreTipo: descripcion },
-      });
-
-      console.log('🔎 Tipo de membresía encontrado:', tipo);
-
-      if (!tipo) {
-        console.log(`❌ Tipo de membresía no encontrada: "${descripcion}"`);
-        return;
-      }
-
-      const membresia = await this.membresiaRepository.findOne({
-        where: { TipoMembresiaID: tipo.ID },
-      });
-
-      console.log('🏷 Membresía encontrada:', membresia);
-
-      if (!membresia) {
-        console.log(
-          `❌ No se encontró membresía con TipoMembresiaID = ${tipo.ID}`,
-        );
-        return;
-      }
-
-      const nuevoDetalle = this.detallePagoRepository.create({
-        IDPago: pagoGuardado.NroPago,
-        IDMembresia: membresia.IDMembresia,
-        MontoTotal: amount / 100,
-        IDPromo: null,
-      });
-
-      const detalleGuardado =
-        await this.detallePagoRepository.save(nuevoDetalle);
-      console.log('📄 Detalle de pago guardado:', detalleGuardado);
-
-      cliente.IDEstado = 1;
-      const clienteActualizado = await this.clienteRepository.save(cliente);
-      console.log('🟢 Estado del cliente actualizado:', clienteActualizado);
-    } else {
-      console.log(`⚠️ Tipo de evento no manejado: ${event.type}`);
+    if (event.type !== 'checkout.session.completed') {
+      console.log(`⚠️ Evento no manejado: ${event.type}`);
+      return;
     }
+
+    const session = event.data.object;
+    const email = session.metadata?.email ?? null;
+    const descripcion = session.metadata?.descripcion ?? null;
+    const amount = session.amount_total ?? 0;
+
+    if (!email || !descripcion || !amount) {
+      console.log('❌ Faltan datos necesarios del evento. Abortando guardado.');
+      return;
+    }
+
+    const usuario = await this.usuarioRepository.findOne({
+      where: { correo: email },
+      relations: ['idPersona'],
+    });
+
+    if (!usuario || !usuario.idPersona?.CI) {
+      console.log('❌ Usuario o CI no encontrado.');
+      return;
+    }
+
+    const cliente = await this.clienteRepository.findOne({
+      where: { CI: usuario.idPersona.CI },
+    });
+
+    if (!cliente) {
+      console.log('❌ Cliente no encontrado con ese CI.');
+      return;
+    }
+
+    const nuevoPago = this.pagoRepository.create({
+      Fecha: new Date(),
+      Monto: amount / 100,
+      MetodoPago: 2,
+      CIPersona: usuario.idPersona.CI,
+    });
+
+    const pagoGuardado = await this.pagoRepository.save(nuevoPago);
+    console.log('💾 Pago guardado:', pagoGuardado);
+
+    const tipo = await this.tipoMembresiaRepository.findOne({
+      where: { NombreTipo: descripcion },
+    });
+
+    if (!tipo) {
+      console.log(`❌ Tipo de membresía "${descripcion}" no encontrada.`);
+      return;
+    }
+
+    const membresia = await this.membresiaRepository.findOne({
+      where: { TipoMembresiaID: tipo.ID },
+    });
+
+    if (!membresia) {
+      console.log(
+        `❌ Membresía no encontrada con TipoMembresiaID = ${tipo.ID}`,
+      );
+      return;
+    }
+
+    const detalle = this.detallePagoRepository.create({
+      IDPago: pagoGuardado.NroPago,
+      IDMembresia: membresia.IDMembresia,
+      MontoTotal: amount / 100,
+      IDPromo: null,
+    });
+
+    await this.detallePagoRepository.save(detalle);
+    console.log('📄 Detalle de pago guardado.');
+
+    cliente.IDEstado = 1;
+    await this.clienteRepository.save(cliente);
+    console.log('🟢 Estado del cliente actualizado a ACTIVO.');
   }
 
-  async obtenerPagosPorCliente(ci: string) {
+  async obtenerPagosPorCliente(ci: string): Promise<Pago[]> {
     return this.pagoRepository.find({
       where: { CIPersona: ci },
       order: { Fecha: 'DESC' },

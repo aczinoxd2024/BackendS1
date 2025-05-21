@@ -1,8 +1,16 @@
 import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { StripeService } from './stripe.service';
-import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Roles } from 'src/auth/roles/roles.decorator';
+import { Response } from 'express';
+import { Request as ExpressRequest } from 'express';
+import Stripe from 'stripe';
+
+// Extensión del request para incluir rawBody y user (usado por Auth)
+interface RawBodyRequest extends ExpressRequest {
+  rawBody: Buffer;
+  user?: { ci: string };
+}
 
 @Controller('stripe')
 export class StripeController {
@@ -20,19 +28,18 @@ export class StripeController {
   }
 
   @Post('webhook')
-  async handleStripeWebhook(@Req() req: Request, @Res() res: Response) {
+  async handleStripeWebhook(@Req() req: RawBodyRequest, @Res() res: Response) {
     const sig = req.headers['stripe-signature'];
     const webhookSecret = this.configService.get<string>(
       'STRIPE_WEBHOOK_SECRET',
     );
-
-    const rawBody = (req as any).rawBody || req.body; // ⚠️ se asegura de usar rawBody asignado en main.ts
+    const rawBody = req.rawBody;
 
     console.log('🧾 Tipo de rawBody:', typeof rawBody);
     console.log('🧾 rawBody presente?', !!rawBody);
     console.log('🧾 Header [stripe-signature]:', sig);
 
-    let event;
+    let event: Stripe.Event;
 
     try {
       event = this.stripeService.constructEvent(
@@ -41,9 +48,11 @@ export class StripeController {
         webhookSecret!,
       );
       console.log('✅ Evento verificado:', event.type);
-    } catch (err: any) {
-      console.error('❌ Verificación fallida:', err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Error desconocido';
+      console.error('❌ Verificación fallida:', errorMessage);
+      return res.status(400).send(`Webhook Error: ${errorMessage}`);
     }
 
     await this.stripeService.handleEvent(event);
@@ -52,8 +61,14 @@ export class StripeController {
 
   @Get('mis-pagos')
   @Roles('cliente')
-  getPagosPorCliente(@Req() req: Request) {
-    const ci = (req.user as any)?.ci;
+  getPagosPorCliente(@Req() req: RawBodyRequest) {
+    const ci = req.user?.ci;
+
+    if (!ci) {
+      console.error('❌ No se pudo obtener el CI del usuario autenticado.');
+      throw new Error('CI de usuario no disponible.');
+    }
+
     console.log('📥 Solicitando pagos para CI:', ci);
     return this.stripeService.obtenerPagosPorCliente(ci);
   }

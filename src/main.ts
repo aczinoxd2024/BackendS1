@@ -8,17 +8,17 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  // ✅ STRIPE WEBHOOK — usar express.raw Y asignar manualmente rawBody
+  // ✅ Stripe Webhook — usa express.raw() directamente SIN middleware adicional
   app.use(
     '/api/stripe/webhook',
     express.raw({ type: 'application/json' }),
     (req, res, next) => {
-      req.rawBody = req.body; // ⚠️ necesario para firma de Stripe
+      req.rawBody = req.body; // 👈 NECESARIO para Stripe
       next();
     },
   );
 
-  // ✅ Todas las demás rutas usan JSON normal
+  // ✅ Resto de la app con JSON normal
   app.use(express.json());
 
   app.useGlobalPipes(
@@ -40,7 +40,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port: number = parseInt(process.env.PORT || '3000', 10);
+  const port = parseInt(process.env.PORT || '3000', 10);
   await app.listen(port);
   console.log(`🚀 Backend en ejecución → http://localhost:${port}/api`);
 }
