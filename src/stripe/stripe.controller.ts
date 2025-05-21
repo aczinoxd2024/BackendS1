@@ -6,7 +6,7 @@ import { Response } from 'express';
 import { Request as ExpressRequest } from 'express';
 import Stripe from 'stripe';
 
-// Extensión del request para incluir rawBody y user (usado por Auth)
+// ✅ Interface extendida para req con rawBody y user (usado por Stripe y Auth)
 interface RawBodyRequest extends ExpressRequest {
   rawBody: Buffer;
   user?: { ci: string };
