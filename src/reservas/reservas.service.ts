@@ -30,15 +30,19 @@ export class ReservasService {
     const clase = await this.claseRepository.findOneBy({ IDClase });
     if (!clase) throw new NotFoundException('Clase no encontrada');
 
-    const estadoConfirmada = await this.estadoReservaRepository.findOneBy({ Estado: 'Confirmada' });
-    if (!estadoConfirmada) throw new NotFoundException('Estado "Confirmada" no encontrado');
+    const estadoConfirmada = await this.estadoReservaRepository.findOneBy({
+      Estado: 'Confirmada',
+    });
+    if (!estadoConfirmada)
+      throw new NotFoundException('Estado "Confirmada" no encontrado');
 
     const horario = await this.horarioRepository.findOne({
       where: { clase: { IDClase } },
       order: { HoraIni: 'ASC' },
       relations: ['clase'],
     });
-    if (!horario) throw new NotFoundException('No hay horario asignado a esta clase');
+    if (!horario)
+      throw new NotFoundException('No hay horario asignado a esta clase');
 
     const yaExiste = await this.reservasRepository.findOne({
       where: {
@@ -49,7 +53,10 @@ export class ReservasService {
       relations: ['clase', 'cliente', 'estado'],
     });
 
-    if (yaExiste) throw new ConflictException('Ya tienes una reserva activa para esta clase');
+    if (yaExiste)
+      throw new ConflictException(
+        'Ya tienes una reserva activa para esta clase',
+      );
 
     const cupos = await this.reservasRepository.count({
       where: {
@@ -64,13 +71,12 @@ export class ReservasService {
     }
 
     const nuevaReserva = this.reservasRepository.create({
-  clase: { IDClase } as any,
-  cliente: { CI } as any,
-  estado: estadoConfirmada,
-  FechaReserva: new Date(),
-  horario: { IDHorario: horario.IDHorario } as any, // ✅ así garantizas persistencia por FK
-});
-
+      clase: { IDClase } as any,
+      cliente: { CI } as any,
+      estado: estadoConfirmada,
+      FechaReserva: new Date(),
+      horario: { IDHorario: horario.IDHorario } as any, // ✅ así garantizas persistencia por FK
+    });
 
     return this.reservasRepository.save(nuevaReserva);
   }
@@ -106,83 +112,95 @@ export class ReservasService {
     const reserva = await this.findOne(id);
     await this.reservasRepository.remove(reserva);
   }
- async buscarPorCICliente(ci: string, estado?: string, fechaInicio?: string, fechaFin?: string) {
-  const where: any = {
-    cliente: { CI: ci }
-  };
+  async buscarPorCICliente(
+    ci: string,
+    estado?: string,
+    fechaInicio?: string,
+    fechaFin?: string,
+  ) {
+    const where: any = {
+      cliente: { CI: ci },
+    };
 
-  if (estado) {
-    where.estado = { Estado: estado };
+    if (estado) {
+      where.estado = { Estado: estado };
+    }
+
+    const query = this.reservasRepository
+      .createQueryBuilder('reserva')
+      .leftJoinAndSelect('reserva.cliente', 'cliente')
+      .leftJoinAndSelect('reserva.clase', 'clase')
+      .leftJoinAndSelect('reserva.estado', 'estado')
+      .leftJoinAndSelect('reserva.horario', 'horario')
+      .where('cliente.CI = :ci', { ci });
+
+    if (estado) {
+      query.andWhere('estado.Estado = :estado', { estado });
+    }
+
+    if (fechaInicio) {
+      query.andWhere('reserva.FechaReserva >= :fechaInicio', { fechaInicio });
+    }
+
+    if (fechaFin) {
+      query.andWhere('reserva.FechaReserva <= :fechaFin', { fechaFin });
+    }
+
+    return query.getMany();
+  }
+  async cancelarReserva(id: number) {
+    const reserva = await this.reservasRepository.findOne({
+      where: { IDReserva: id },
+      relations: ['estado'],
+    });
+
+    if (!reserva) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    const estadoCancelado = await this.estadoReservaRepository.findOneBy({
+      Estado: 'Cancelada',
+    });
+
+    if (!estadoCancelado) {
+      throw new NotFoundException('Estado "Cancelada" no existe');
+    }
+
+    reserva.estado = estadoCancelado;
+    return this.reservasRepository.save(reserva);
   }
 
-  const query = this.reservasRepository.createQueryBuilder('reserva')
-    .leftJoinAndSelect('reserva.cliente', 'cliente')
-    .leftJoinAndSelect('reserva.clase', 'clase')
-    .leftJoinAndSelect('reserva.estado', 'estado')
-    .leftJoinAndSelect('reserva.horario', 'horario')
-    .where('cliente.CI = :ci', { ci });
+  async getReservasPasadas(
+    ciCliente: string,
+    fechaInicio?: string,
+    fechaFin?: string,
+  ) {
+    const query = this.reservasRepository
+      .createQueryBuilder('reserva')
+      .leftJoinAndSelect('reserva.clase', 'clase')
+      .leftJoinAndSelect('reserva.horario', 'horario')
+      .leftJoinAndSelect('reserva.estado', 'estadoReserva')
+      .leftJoinAndSelect('reserva.cliente', 'cliente')
+      .where('cliente.CI = :ci', { ci: ciCliente })
+      .andWhere('reserva.FechaReserva < CURDATE()');
 
-  if (estado) {
-    query.andWhere('estado.Estado = :estado', { estado });
-  }
+    if (fechaInicio) {
+      query.andWhere('reserva.FechaReserva >= :fechaInicio', { fechaInicio });
+    }
 
-  if (fechaInicio) {
-    query.andWhere('reserva.FechaReserva >= :fechaInicio', { fechaInicio });
-  }
+    if (fechaFin) {
+      query.andWhere('reserva.FechaReserva <= :fechaFin', { fechaFin });
+    }
 
-  if (fechaFin) {
-    query.andWhere('reserva.FechaReserva <= :fechaFin', { fechaFin });
-  }
+    query.orderBy('reserva.FechaReserva', 'DESC');
 
-  return query.getMany();
-}
-async cancelarReserva(id: number) {
-  const reserva = await this.reservasRepository.findOne({
-    where: { IDReserva: id },
-    relations: ['estado']
-  });
+    const reservas = await query.getMany();
 
-  if (!reserva) {
-    throw new NotFoundException('Reserva no encontrada');
-  }
-
-  const estadoCancelado = await this.estadoReservaRepository.findOneBy({ Estado: 'Cancelada' });
-
-  if (!estadoCancelado) {
-    throw new NotFoundException('Estado "Cancelada" no existe');
-  }
-
-  reserva.estado = estadoCancelado;
-  return this.reservasRepository.save(reserva);
-}
-
-async getReservasPasadas(ciCliente: string, fechaInicio?: string, fechaFin?: string) {
-  const query = this.reservasRepository
-    .createQueryBuilder('reserva')
-    .leftJoinAndSelect('reserva.clase', 'clase')
-    .leftJoinAndSelect('reserva.horario', 'horario')
-    .leftJoinAndSelect('reserva.estado', 'estadoReserva')
-    .leftJoinAndSelect('reserva.cliente', 'cliente')
-    .where('cliente.CI = :ci', { ci: ciCliente })
-    .andWhere('reserva.FechaReserva < CURDATE()');
-
-  if (fechaInicio) {
-    query.andWhere('reserva.FechaReserva >= :fechaInicio', { fechaInicio });
-  }
-
-  if (fechaFin) {
-    query.andWhere('reserva.FechaReserva <= :fechaFin', { fechaFin });
-  }
-
-  query.orderBy('reserva.FechaReserva', 'DESC');
-
-  const reservas = await query.getMany();
-
-  // Para cada reserva, buscar si existe asistencia relacionada
-  const connection = this.reservasRepository.manager.connection;
-  for (const reserva of reservas) {
-    const result = await connection.query(
-      `
+    // Para cada reserva, buscar si existe asistencia relacionada
+    const connection = this.reservasRepository.manager.connection;
+    for (const reserva of reservas) {
+      const result = await connection.query(
+        `
       SELECT ea.Estado
       FROM asistencia_clases ac
       JOIN estado_asistencia ea ON ea.ID = ac.IDEstadoAsis
@@ -192,14 +210,13 @@ async getReservasPasadas(ciCliente: string, fechaInicio?: string, fechaFin?: str
         AND ag.Fecha = ?
       LIMIT 1
       `,
-      [reserva.clase.IDClase, reserva.cliente.CI, reserva.FechaReserva]
-    );
+        [reserva.clase.IDClase, reserva.cliente.CI, reserva.FechaReserva],
+      );
 
-    reserva['estadoAsistencia'] = result.length > 0 ? result[0].Estado : 'Sin registro';
+      reserva['estadoAsistencia'] =
+        result.length > 0 ? result[0].Estado : 'Sin registro';
+    }
+
+    return reservas;
   }
-
-  return reservas;
-}
-
-
 }

@@ -61,8 +61,7 @@ export class ClasesController {
     return this.clasesService.obtenerClasesPorInstructor(ci);
   }
 
-  @Get('disponibles')
-  @Roles('cliente')
+  @Get('publicas')
   getDisponiblesParaCliente() {
     return this.clasesService.obtenerClasesParaCliente();
   }
