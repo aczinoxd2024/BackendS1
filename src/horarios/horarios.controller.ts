@@ -38,19 +38,21 @@ export class HorariosController {
     }
     return this.horariosService.findByClase(claseId);
   }
-  // ADMIN, INSTRUCTOR, RECEPCIONISTA, CLIENTE: Horarios agrupados por día
-@Roles('administrador', 'instructor', 'recepcionista', 'cliente')
-@Get('por-dia')
-getHorariosAgrupadosPorDia() {
-  return this.horariosService.getHorariosConEtiqueta();
-}
 
-// ADMIN, INSTRUCTOR, RECEPCIONISTA, CLIENTE: Mostrar horarios con etiquetas visuales
+  // ADMIN, INSTRUCTOR, RECEPCIONISTA, CLIENTE: Horarios agrupados por día
+  @Roles('administrador', 'instructor', 'recepcionista', 'cliente')
+  @Get('por-dia')
+  getHorariosAgrupadosPorDia() {
+    return this.horariosService.getHorariosConEtiqueta();
+  }
+
+  // ADMIN, INSTRUCTOR, RECEPCIONISTA, CLIENTE: Mostrar horarios con etiquetas visuales
   @Roles('administrador', 'instructor', 'recepcionista', 'cliente')
   @Get('con-etiqueta')
   getHorariosEtiquetados() {
     return this.horariosService.getHorariosConEtiqueta();
   }
+
   // ADMIN, INSTRUCTOR, RECEPCIONISTA: Ver horario por ID
   @Roles('administrador', 'instructor', 'recepcionista')
   @Get(':id')
@@ -62,11 +64,11 @@ getHorariosAgrupadosPorDia() {
     return this.horariosService.findOne(horarioId);
   }
 
-  // ADMIN: Crear horario
+  // ✅ POST: Crear un horario
   @Roles('administrador')
   @Post()
   create(@Body() dto: CreateHorarioDto): Promise<Horario> {
-    return this.horariosService.create(dto as Horario);
+    return this.horariosService.create(dto); // ✅ corregido, sin casting
   }
 
   // ADMIN: Editar horario
@@ -77,7 +79,7 @@ getHorariosAgrupadosPorDia() {
     if (isNaN(horarioId)) {
       throw new BadRequestException('El ID de horario debe ser un número válido');
     }
-    return this.horariosService.update(horarioId, dto as Horario);
+    return this.horariosService.update(horarioId, dto); // ❌ eliminado cast a Horario
   }
 
   // ADMIN: Eliminar horario
@@ -90,6 +92,4 @@ getHorariosAgrupadosPorDia() {
     }
     return this.horariosService.remove(horarioId);
   }
-
-  
 }

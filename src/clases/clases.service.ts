@@ -8,6 +8,9 @@ import { Repository, DataSource } from 'typeorm';
 import { Clase } from './clase.entity';
 import { ClaseInstructor } from './clase-instructor.entity';
 import { Personal } from '../personal/personal.entity';
+import { Horario } from '../horarios/horario.entity';
+import { DiaSemana } from '../dia-semana/dia-semana.entity';
+import { CreateClaseDto } from './dto/create-clase.dto'; // 👈 asegúrate de importar
 
 @Injectable()
 export class ClasesService {
@@ -16,10 +19,6 @@ export class ClasesService {
     private clasesRepository: Repository<Clase>,
     private readonly dataSource: DataSource,
   ) {}
-
-  create(clase: Clase): Promise<Clase> {
-    return this.clasesRepository.save(clase);
-  }
 
   findAll(): Promise<Clase[]> {
     return this.clasesRepository.find();
@@ -32,6 +31,7 @@ export class ClasesService {
     }
     return clase;
   }
+  
 
   async update(id: number, clase: Clase): Promise<Clase> {
     await this.clasesRepository.update(id, clase);
@@ -41,6 +41,99 @@ export class ClasesService {
   async remove(id: number): Promise<void> {
     await this.clasesRepository.delete(id);
   }
+
+async create(data: CreateClaseDto): Promise<Clase> {
+  const horarioRepo = this.dataSource.getRepository(Horario);
+  const diaRepo = this.dataSource.getRepository(DiaSemana);
+
+  // Obtener día
+  const dia = await diaRepo.findOne({ where: { Dia: data.Dia } });
+  if (!dia) throw new NotFoundException('Día inválido');
+
+  // Validar conflicto de horario en la misma sala
+  const horariosEnSala = await horarioRepo
+    .createQueryBuilder('horario')
+    .leftJoin('horario.clase', 'clase')
+    .where('clase.IDSalaa = :sala', { sala: data.IDSalaa })
+    .andWhere('horario.IDDia = :dia', { dia: dia.ID })
+    .getMany();
+
+  for (const h of horariosEnSala) {
+    const conflicto =
+      (data.HoraIni >= h.HoraIni && data.HoraIni < h.HoraFin) ||
+      (data.HoraFin > h.HoraIni && data.HoraFin <= h.HoraFin) ||
+      (data.HoraIni <= h.HoraIni && data.HoraFin >= h.HoraFin);
+
+    if (conflicto) {
+      throw new ConflictException(
+        `⛔ Conflicto de horario en la sala: ya existe una clase entre ${h.HoraIni} y ${h.HoraFin}`
+      );
+    }
+  }
+
+// Validar conflicto de horario del instructor (usando ClaseInstructor)
+const clasesDelInstructor = await this.clasesRepository
+  .createQueryBuilder('clase')
+  .leftJoin('clase.claseInstructores', 'ci')
+  .leftJoinAndSelect('clase.horarios', 'horario')
+  .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
+  .where('ci.instructor.CI = :ci', { ci: data.CIInstructor })
+  .getMany();
+
+
+  for (const clase of clasesDelInstructor) {
+    for (const h of clase.horarios) {
+      const mismoDia = h.diaSemana?.Dia === data.Dia;
+      const conflicto =
+        (data.HoraIni >= h.HoraIni && data.HoraIni < h.HoraFin) ||
+        (data.HoraFin > h.HoraIni && data.HoraFin <= h.HoraFin) ||
+        (data.HoraIni <= h.HoraIni && data.HoraFin >= h.HoraFin);
+
+      if (mismoDia && conflicto) {
+        throw new ConflictException(
+          `⛔ El instructor ya tiene una clase el ${data.Dia} entre ${h.HoraIni} y ${h.HoraFin}`
+        );
+      }
+    }
+  }
+
+  // Crear la clase
+  const nuevaClase = this.clasesRepository.create({
+  Nombre: data.Nombre,
+  IDSalaa: data.IDSalaa,
+  CupoMaximo: data.CupoMaximo,
+  Estado: 'Pendiente',
+  NumInscritos: 0,
+});
+
+
+  const claseGuardada = await this.clasesRepository.save(nuevaClase);
+
+  // Crear horario asociado
+  const nuevoHorario = horarioRepo.create({
+  clase: claseGuardada,     // 👈 relación ManyToOne
+  HoraIni: data.HoraIni,
+  HoraFin: data.HoraFin,
+  diaSemana: dia            // 👈 relación ManyToOne
+});
+
+
+  await horarioRepo.save(nuevoHorario);
+
+  // Registrar relación clase-instructor
+const claseInstructorRepo = this.dataSource.getRepository(ClaseInstructor);
+
+const nuevaRelacion = claseInstructorRepo.create({
+  IDClase: claseGuardada.IDClase,
+  CI: data.CIInstructor
+});
+
+await claseInstructorRepo.save(nuevaRelacion);
+
+
+  return claseGuardada;
+}
+
 
   // ✅ Clases activas con detalles completos (para admin/recepción)
   async obtenerClasesActivas() {
