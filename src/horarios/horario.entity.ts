@@ -2,14 +2,10 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 't
 import { Clase } from '../clases/clase.entity';
 import { DiaSemana } from '../dia-semana/dia-semana.entity';
 
-
 @Entity('horario')
 export class Horario {
   @PrimaryGeneratedColumn()
   IDHorario: number;
-
-  @Column()
-  IDClases: number;
 
   @Column('time')
   HoraIni: string;
@@ -17,15 +13,11 @@ export class Horario {
   @Column('time')
   HoraFin: string;
 
-   //@Column()
-  //Dia: string;
-
-  @ManyToOne(() => Clase, clase => clase.horarios)
+  @ManyToOne(() => Clase, clase => clase.horarios, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'IDClases' })
   clase: Clase;
 
-  @ManyToOne(() => DiaSemana)
-@JoinColumn({ name: 'IDDia' })
-diaSemana: DiaSemana;
-
+  @ManyToOne(() => DiaSemana, { eager: true })
+  @JoinColumn({ name: 'IDDia' })
+  diaSemana: DiaSemana;
 }

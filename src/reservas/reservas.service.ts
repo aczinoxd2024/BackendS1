@@ -27,59 +27,74 @@ export class ReservasService {
   ) {}
 
   async crearReserva(IDClase: number, CI: string) {
-    const clase = await this.claseRepository.findOneBy({ IDClase });
-    if (!clase) throw new NotFoundException('Clase no encontrada');
+  const clase = await this.claseRepository.findOneBy({ IDClase });
+  if (!clase) throw new NotFoundException('Clase no encontrada');
 
-    const estadoConfirmada = await this.estadoReservaRepository.findOneBy({
-      Estado: 'Confirmada',
-    });
-    if (!estadoConfirmada)
-      throw new NotFoundException('Estado "Confirmada" no encontrado');
+  const estadoConfirmada = await this.estadoReservaRepository.findOneBy({
+    Estado: 'Confirmada',
+  });
+  if (!estadoConfirmada)
+    throw new NotFoundException('Estado "Confirmada" no encontrado');
 
-    const horario = await this.horarioRepository.findOne({
-      where: { clase: { IDClase } },
-      order: { HoraIni: 'ASC' },
-      relations: ['clase'],
-    });
-    if (!horario)
-      throw new NotFoundException('No hay horario asignado a esta clase');
+  const horario = await this.horarioRepository.findOne({
+    where: { clase: { IDClase } },
+    order: { HoraIni: 'ASC' },
+    relations: ['clase'],
+  });
+  if (!horario)
+    throw new NotFoundException('No hay horario asignado a esta clase');
 
-    const yaExiste = await this.reservasRepository.findOne({
-      where: {
-        clase: { IDClase },
-        cliente: { CI },
-        estado: { Estado: 'Confirmada' },
-      },
-      relations: ['clase', 'cliente', 'estado'],
-    });
+  const yaExiste = await this.reservasRepository.findOne({
+    where: {
+      clase: { IDClase },
+      cliente: { CI },
+      estado: { Estado: 'Confirmada' },
+    },
+    relations: ['clase', 'cliente', 'estado'],
+  });
 
-    if (yaExiste)
-      throw new ConflictException(
-        'Ya tienes una reserva activa para esta clase',
-      );
+  if (yaExiste)
+    throw new ConflictException(
+      'Ya tienes una reserva activa para esta clase',
+    );
 
-    const cupos = await this.reservasRepository.count({
-      where: {
-        clase: { IDClase },
-        estado: { Estado: 'Confirmada' },
-      },
-      relations: ['estado'],
-    });
+  const cupos = await this.reservasRepository.count({
+    where: {
+      clase: { IDClase },
+      estado: { Estado: 'Confirmada' },
+    },
+    relations: ['estado'],
+  });
 
-    if (cupos >= clase.NumInscritos) {
-      throw new ConflictException('Clase sin cupos disponibles');
-    }
-
-    const nuevaReserva = this.reservasRepository.create({
-      clase: { IDClase } as any,
-      cliente: { CI } as any,
-      estado: estadoConfirmada,
-      FechaReserva: new Date(),
-      horario: { IDHorario: horario.IDHorario } as any, // ✅ así garantizas persistencia por FK
-    });
-
-    return this.reservasRepository.save(nuevaReserva);
+  if (cupos >= clase.CupoMaximo) {
+    throw new ConflictException('Clase sin cupos disponibles');
   }
+
+  const nuevaReserva = this.reservasRepository.create({
+    clase: { IDClase } as any,
+    cliente: { CI } as any,
+    estado: estadoConfirmada,
+    FechaReserva: new Date(),
+    horario: { IDHorario: horario.IDHorario } as any,
+  });
+
+  const reservaGuardada = await this.reservasRepository.save(nuevaReserva);
+
+  // ✅ Lógica adicional: actualizar NumInscritos y estado de la clase
+  clase.NumInscritos++;
+
+  if (
+    clase.Estado === 'Pendiente' &&
+    clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2)
+  ) {
+    clase.Estado = 'Activo';
+  }
+
+  await this.claseRepository.save(clase);
+
+  return reservaGuardada;
+}
+
 
   async buscarPorCliente(ci: string) {
     return this.reservasRepository.find({

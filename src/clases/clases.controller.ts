@@ -23,11 +23,12 @@ import { Roles } from 'src/auth/roles/roles.decorator';
 export class ClasesController {
   constructor(private readonly clasesService: ClasesService) {}
 
-  @Post()
-  create(@Body() claseDto: CreateClaseDto): Promise<Clase> {
-    const clase = plainToInstance(Clase, claseDto);
-    return this.clasesService.create(clase);
-  }
+@Post()
+create(@Body() claseDto: CreateClaseDto): Promise<Clase> {
+  return this.clasesService.create(claseDto);
+}
+
+
 
   @Post(':id/instructores')
   @Roles('administrador')

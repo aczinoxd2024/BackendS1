@@ -1,8 +1,11 @@
-import { IsInt, IsString, Matches } from 'class-validator';
+import { IsInt, IsString, Matches, IsNotEmpty } from 'class-validator';
 
 export class CreateHorarioDto {
-  @IsInt({ message: 'IDClases debe ser un número entero' })
-  IDClases: number;
+  @IsInt({ message: 'IDClase debe ser un número entero' })
+  IDClase: number;
+
+  @IsInt({ message: 'IDDia debe ser un número entero' })
+  IDDia: number;
 
   @IsString()
   @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
