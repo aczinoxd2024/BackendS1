@@ -32,6 +32,7 @@ import { HorariosModule } from './horarios/horarios.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
+import { AsistenciaModule } from './asistencia/asistencia.module';
 
 //
 
@@ -102,6 +103,7 @@ import { join } from 'path';
     HorariosModule,
     PersonalModule,
     DiaSemanaModule,
+    AsistenciaModule,
   ],
   providers: [
     // Aplicar RolesGuard globalmente para manejar permisos en rutas protegidas
@@ -112,4 +114,3 @@ import { join } from 'path';
   ],
 })
 export class AppModule {}
-
