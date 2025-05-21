@@ -1,8 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe, Body } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 import { RawBodyRequest } from './stripe/raw-body-request.interface';
+import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,9 +14,9 @@ async function bootstrap() {
   app.use(
     '/api/stripe/webhook',
     express.raw({ type: 'application/json' }),
-    (req, _res, next) => {
-      (req as RawBodyRequest).rawBody = req.Body as Buffer;
-      next();
+    (req: Request, _res: Response, next: NextFunction) => {
+      (req as RawBodyRequest).rawBody = req.body as Buffer;
+      next(); // 🔒 ya tipado como NextFunction
     },
   );
 
