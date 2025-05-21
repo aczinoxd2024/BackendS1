@@ -15,30 +15,36 @@ export class Usuario {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'Correo', unique: true }) // ✅ Correo único
+  @Column({ name: 'Correo', unique: true })
   correo: string;
 
-  @Column({ name: 'Contrasena' }) // ✅ Contraseña
+  @Column({ name: 'Contrasena' })
   contrasena: string;
 
-  // ✅ Relación con Persona (nombre, apellido, etc)
-  @ManyToOne(() => Persona)
-  @JoinColumn({ name: 'IDPersona' }) // ✅ Nombre exacto del campo FK en la BD
+  // 🔗 Relación con persona (CI, nombre, apellido, etc.)
+  @ManyToOne(() => Persona, { eager: true })
+  @JoinColumn({ name: 'IDPersona' }) // Nombre exacto de la FK en la BD
   idPersona: Persona;
 
-  @Column({ name: 'IDEstadoU' }) // ✅ Estado del usuario
+  @Column({ name: 'IDEstadoU' })
   idEstadoU: number;
 
-  // ✅ Relación con perfiles de usuario
-  @OneToMany(() => UsuarioPerfil, (usuarioPerfil) => usuarioPerfil.usuario)
+  // 🔗 Relación con perfiles de usuario (rol, permisos, etc.)
+  @OneToMany(() => UsuarioPerfil, (usuarioPerfil) => usuarioPerfil.usuario, {
+    cascade: true,
+  })
   usuarioPerfil: UsuarioPerfil[];
 
-  // ✅ Relación con Bitácora (importante para saber qué acciones hizo)
-  @OneToMany(() => Bitacora, (bitacora) => bitacora.usuario)
+  // 🔗 Relación con bitácora (acciones del usuario)
+  @OneToMany(() => Bitacora, (bitacora) => bitacora.usuario, {
+    cascade: true,
+  })
   bitacoras: Bitacora[];
 
-  // ✅ BONUS OPCIONAL: Virtual Getter para traer nombre directamente (esto es solo para uso en código)
+  // 🧠 Getter virtual (no persistido en BD)
   get nombreCompleto(): string {
-    return this.idPersona?.Nombre || ''; // 🔧 Asegúrate que "nombre" sea el campo correcto en Persona
+    const nombre = this.idPersona?.Nombre ?? '';
+    const apellido = this.idPersona?.Apellido ?? '';
+    return `${nombre} ${apellido}`.trim();
   }
 }
