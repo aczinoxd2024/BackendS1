@@ -129,8 +129,12 @@ export class StripeService {
       return;
     }
 
+    const fechaHoraBolivia = new Date();
+    fechaHoraBolivia.setHours(fechaHoraBolivia.getHours() - 4); // ✅ Ajuste UTC-4
+
     const nuevoPago = this.pagoRepository.create({
-      Fecha: new Date(),
+      Fecha: fechaHoraBolivia,
+
       Monto: amount / 100,
       MetodoPago: 2,
       CIPersona: usuario.idPersona.CI,
