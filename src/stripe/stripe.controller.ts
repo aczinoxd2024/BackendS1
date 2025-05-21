@@ -1,9 +1,10 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { Request, Response } from 'express';
 import { Req, Res } from '@nestjs/common';
-import { RawBodyRequest } from '@nestjs/common/interfaces';
 import { ConfigService } from '@nestjs/config';
+import { RawBodyRequest } from '@nestjs/common/interfaces';
+import { Roles } from 'src/auth/roles/roles.decorator';
 
 ///////////////////////////////////////////////
 @Controller('stripe')
@@ -30,7 +31,7 @@ export class StripeController {
       'STRIPE_WEBHOOK_SECRET',
     );
 
-    console.log(' Tipo de rawBody:', typeof request.rawBody);
+    console.log(' Tipo de rawBody:', typeof request.RawBodyRequest);
     console.log(' rawBody existe?', !!request.rawBody);
     let event;
 
@@ -47,5 +48,11 @@ export class StripeController {
 
     await this.stripeService.handleEvent(event);
     return response.status(200).json({ received: true });
+  }
+  @Get('mis-pagos')
+  @Roles('cliente')
+  getPagosPorCliente(@Req() req: Request) {
+    const ci = (req.user as any)?.ci;
+    return this.stripeService.obtenerPagosPorCliente(ci);
   }
 }

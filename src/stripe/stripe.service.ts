@@ -82,7 +82,7 @@ export class StripeService {
   // Método para manejar eventos de Stripe
   async handleEvent(event: Stripe.Event) {
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object;
 
       const email = session.metadata?.email;
       const amount = session.amount_total;
@@ -178,5 +178,11 @@ export class StripeService {
     } else {
       console.log(`⚠️ Webhook recibido, tipo no manejado: ${event.type}`);
     }
+  }
+  async obtenerPagosPorCliente(ci: string) {
+    return this.pagoRepository.find({
+      where: { CIPersona: ci },
+      order: { Fecha: 'DESC' },
+    });
   }
 }
