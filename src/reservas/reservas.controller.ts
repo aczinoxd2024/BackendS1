@@ -46,7 +46,7 @@ export class ReservasController {
   async getReservasPasadas(
     @Req() req: Request,
     @Query('fechaInicio') fechaInicio?: string,
-    @Query('fechaFin') fechaFin?: string
+    @Query('fechaFin') fechaFin?: string,
   ) {
     const ci = (req.user as any)?.ci;
     if (!ci) throw new UnauthorizedException('Cliente no identificado');
@@ -61,7 +61,12 @@ export class ReservasController {
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
   ) {
-    return this.reservasService.buscarPorCICliente(ci, estado, fechaInicio, fechaFin);
+    return this.reservasService.buscarPorCICliente(
+      ci,
+      estado,
+      fechaInicio,
+      fechaFin,
+    );
   }
 
   @Get()
