@@ -8,8 +8,15 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  // ✅ STRIPE WEBHOOK — usar express.raw SIN middleware extra
-  app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+  // ✅ STRIPE WEBHOOK — usar express.raw Y asignar manualmente rawBody
+  app.use(
+    '/api/stripe/webhook',
+    express.raw({ type: 'application/json' }),
+    (req, res, next) => {
+      req.rawBody = req.body; // ⚠️ necesario para firma de Stripe
+      next();
+    },
+  );
 
   // ✅ Todas las demás rutas usan JSON normal
   app.use(express.json());

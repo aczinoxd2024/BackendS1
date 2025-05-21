@@ -62,7 +62,7 @@ export class StripeService {
     });
 
     if (!session.url) {
-      throw new Error('Stripe session URL esta nulo');
+      throw new Error('Stripe session URL está nulo');
     }
 
     return { url: session.url };
@@ -89,8 +89,8 @@ export class StripeService {
       console.log('💰 Monto (centavos):', amount);
       console.log('📝 Descripción:', descripcion);
 
-      if (!email || !amount) {
-        console.log('❌ Email o monto inválido. Abortando guardado.');
+      if (!email || !amount || !descripcion) {
+        console.log('❌ Datos incompletos. Abortando guardado.');
         return;
       }
 
@@ -102,7 +102,7 @@ export class StripeService {
       console.log('🧑 Usuario encontrado:', usuario);
 
       if (!usuario || !usuario.idPersona?.CI) {
-        console.log('❌ No se encontró el CI asociado al usuario.');
+        console.log('❌ No se encontró usuario o CI.');
         return;
       }
 
@@ -134,9 +134,7 @@ export class StripeService {
       console.log('🔎 Tipo de membresía encontrado:', tipo);
 
       if (!tipo) {
-        console.log(
-          `❌ No se encontró tipo de membresía con NombreTipo = "${descripcion}"`,
-        );
+        console.log(`❌ Tipo de membresía no encontrada: "${descripcion}"`);
         return;
       }
 
@@ -166,7 +164,7 @@ export class StripeService {
 
       cliente.IDEstado = 1;
       const clienteActualizado = await this.clienteRepository.save(cliente);
-      console.log('🟢 Estado de cliente actualizado:', clienteActualizado);
+      console.log('🟢 Estado del cliente actualizado:', clienteActualizado);
     } else {
       console.log(`⚠️ Tipo de evento no manejado: ${event.type}`);
     }
