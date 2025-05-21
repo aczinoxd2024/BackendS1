@@ -10,18 +10,23 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  // ✅ Middleware de Stripe Webhook: express.raw + rawBody manual
+  // Middleware para Stripe Webhook con tipado correcto
   app.use(
     '/api/stripe/webhook',
     express.raw({ type: 'application/json' }),
     (req: Request, _res: Response, next: NextFunction) => {
       (req as RawBodyRequest).rawBody = req.body as Buffer;
-      next(); // 🔒 ya tipado como NextFunction
+      next();
     },
   );
 
-  // ✅ Resto del backend usa JSON normal
-  app.use(express.json());
+  // Middleware condicional: evitar express.json() en rutas de Webhook
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.originalUrl.includes('/stripe/webhook')) {
+      return next();
+    }
+    return express.json()(req, res, next);
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -35,10 +40,8 @@ async function bootstrap() {
     origin: [
       'http://localhost:4200',
       'https://backends1-production.up.railway.app',
-      'http://backends1-production.up.railway.app',
       'https://proyectosis12025.netlify.app',
     ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
