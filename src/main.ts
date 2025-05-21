@@ -7,41 +7,34 @@ import { rawBodyMiddleware } from './common/middleware/raw-body.middleware';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Prefijo global para todas las rutas
   app.setGlobalPrefix('api');
 
-  // Validación global: protege y transforma los datos recibidos
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Solo permite propiedades definidas en DTOs
-      forbidNonWhitelisted: true, // Rechaza propiedades no definidas
-      transform: true, // Transforma datos automáticamente al tipo esperado
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
-  // logica para el stripe con bodyParser
+  // ✅ Webhook de Stripe — requiere rawBody y middleware personalizado
   app.use('/api/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
-  app.use(rawBodyMiddleware);
-  app.use(bodyParser.json()); // para las otras rutas
+  app.use(rawBodyMiddleware); // ✅ asigna rawBody para verificación
+  app.use(bodyParser.json()); // ✅ para todas las demás rutas normales
 
-  /////////////////////////////////////////////////////////////
-
-  // Habilitar CORS para permitir acceso desde frontend en local, producción y futuros dominios
   app.enableCors({
     origin: [
-      'http://localhost:4200', // Frontend local
-      'https://backends1-production.up.railway.app', // Backend en producción (HTTPS)
-      'http://backends1-production.up.railway.app', // Backend en producción (HTTP)
-      'https://proyectosis12025.netlify.app', // Futuro dominio real (opcional)
+      'http://localhost:4200',
+      'https://backends1-production.up.railway.app',
+      'http://backends1-production.up.railway.app',
+      'https://proyectosis12025.netlify.app',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
-  // Asignar puerto dinámico para producción o 3000 por defecto en local
   const port: number = parseInt(process.env.PORT as string, 10) || 3000;
   await app.listen(port);
-
   console.log(`🚀 Backend en ejecución → http://localhost:${port}/api`);
 }
 bootstrap();
