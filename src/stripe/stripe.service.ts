@@ -83,12 +83,30 @@ export class StripeService {
     }
 
     const session = event.data.object;
+
     const email = session.metadata?.email ?? null;
     const descripcion = session.metadata?.descripcion ?? null;
     const amount = session.amount_total ?? 0;
+    const paymentIntent = session.payment_intent as string;
+
+    console.log('📧 Email:', email);
+    console.log('🧾 Descripción:', descripcion);
+    console.log('💲 Monto:', amount);
+    console.log('💳 PaymentIntent:', paymentIntent);
+    console.log('🔑 EventID:', event.id);
 
     if (!email || !descripcion || !amount) {
       console.log('❌ Faltan datos necesarios del evento. Abortando guardado.');
+      return;
+    }
+
+    // 🛡️ Prevención de eventos duplicados
+    const pagoExistente = await this.pagoRepository.findOne({
+      where: { StripeEventId: event.id },
+    });
+
+    if (pagoExistente) {
+      console.log('⚠️ Este evento ya fue procesado. Abortando.');
       return;
     }
 
@@ -116,6 +134,8 @@ export class StripeService {
       Monto: amount / 100,
       MetodoPago: 2,
       CIPersona: usuario.idPersona.CI,
+      StripeEventId: event.id,
+      StripePaymentIntentId: paymentIntent,
     });
 
     const pagoGuardado = await this.pagoRepository.save(nuevoPago);
@@ -149,11 +169,11 @@ export class StripeService {
     });
 
     await this.detallePagoRepository.save(detalle);
-    console.log('📄 Detalle de pago guardado.');
+    console.log('📄 Detalle de pago guardado correctamente.');
 
     cliente.IDEstado = 1;
     await this.clienteRepository.save(cliente);
-    console.log('🟢 Estado del cliente actualizado a ACTIVO.');
+    console.log('🟢 Cliente activado exitosamente.');
   }
 
   async obtenerPagosPorCliente(ci: string): Promise<Pago[]> {

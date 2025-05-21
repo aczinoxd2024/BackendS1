@@ -1,8 +1,16 @@
-import { Module } from '@nestjs/common';
+import {
+  Module,
+  NestModule,
+  MiddlewareConsumer,
+  RequestMethod,
+} from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import * as express from 'express';
+import { Request, Response, NextFunction } from 'express';
+import { RawBodyRequest } from './stripe/raw-body-request.interface';
 
-// Módulos funcionales de la aplicación
+// Módulos funcionales
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { PersonasModule } from './personas/personas.module';
@@ -18,30 +26,22 @@ import { TipoMembresiaModule } from './membresias/Tipos/tipo-menbresia.module';
 import { MetodoPagoModule } from './pagos/metodo-pago/metodo-pago.module';
 import { PersonalModule } from './personal/personal.module';
 import { DiaSemanaModule } from './dia-semana/dia-semana.module';
-
-//CAMBIOS PARA PAGOS STRIPE---------------------------------------------------
-
+import { HorariosModule } from './horarios/horarios.module';
+import { AsistenciaModule } from './asistencia/asistencia.module';
 import { StripeModule } from './stripe/stripe.module';
 
-// Seguridad global con RolesGuard
+// Seguridad global
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './auth/roles/roles.guard';
-import { HorariosModule } from './horarios/horarios.module';
 
-//para generar comprobantes por correo
+// Correo con templates
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
-import { AsistenciaModule } from './asistencia/asistencia.module';
-
-//
 
 @Module({
   imports: [
-    // Configuración global de variables de entorno (.env o Railway variables)
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
     StripeModule,
 
     MailerModule.forRootAsync({
@@ -58,19 +58,16 @@ import { AsistenciaModule } from './asistencia/asistencia.module';
           },
         },
         defaults: {
-          from: '"GoFit GYM" <' + configService.get<string>('EMAIL_USER') + '>',
+          from: `"GoFit GYM" <${configService.get<string>('EMAIL_USER')}>`,
         },
         template: {
           dir: join(__dirname, 'templates'),
           adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
-          },
+          options: { strict: true },
         },
       }),
     }),
 
-    // Configuración dinámica de TypeORM con soporte para producción y desarrollo
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -82,11 +79,11 @@ import { AsistenciaModule } from './asistencia/asistencia.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: false, // 🚨 IMPORTANTE: nunca usar true en producción para no perder datos
+        synchronize: false, // Nunca en true en producción
       }),
     }),
 
-    // Registro de todos los módulos funcionales de la aplicación
+    // Módulos funcionales
     UsuariosModule,
     ClientesModule,
     PersonasModule,
@@ -106,11 +103,22 @@ import { AsistenciaModule } from './asistencia/asistencia.module';
     AsistenciaModule,
   ],
   providers: [
-    // Aplicar RolesGuard globalmente para manejar permisos en rutas protegidas
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(
+        express.raw({ type: 'application/json' }),
+        (req: Request, _res: Response, next: NextFunction) => {
+          (req as RawBodyRequest).rawBody = req.body as Buffer;
+          next();
+        },
+      )
+      .forRoutes({ path: 'api/stripe/webhook', method: RequestMethod.POST });
+  }
+}

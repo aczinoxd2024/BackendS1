@@ -1,11 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { DetallePago } from './detalle-pago/detalle-pago.entity'; // Asegúrate de que esta ruta sea correcta
 
 @Entity('pago')
 export class Pago {
   @PrimaryGeneratedColumn()
   NroPago: number;
 
-  @Column({ type: 'date' })
+  @CreateDateColumn({ type: 'timestamp' })
   Fecha: Date;
 
   @Column('decimal', { precision: 10, scale: 2 })
@@ -16,4 +23,14 @@ export class Pago {
 
   @Column()
   CIPersona: string;
+
+  @Column({ nullable: true, unique: true })
+  StripeEventId?: string;
+
+  @Column({ nullable: true })
+  StripePaymentIntentId?: string;
+
+  // 🔗 Relación con DetallePago
+  @OneToMany(() => DetallePago, (detalle) => detalle.pago)
+  detalles: DetallePago[];
 }
