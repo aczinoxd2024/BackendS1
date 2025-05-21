@@ -1,30 +1,23 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import * as express from 'express';
 import * as bodyParser from 'body-parser';
-import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
 
-  // ✅ Webhook Stripe: capturamos rawBody correctamente
-  app.use('/api/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
-
-  // Middleware para guardar rawBody en request (para Stripe)
+  // ✅ STRIPE WEBHOOK — SOLO ESTE BLOQUE
   app.use(
     '/api/stripe/webhook',
-    (req: Request, res: Response, next: NextFunction) => {
-      (req as any).rawBody = req.body; // 👈 aquí es Buffer, está bien
-      next();
-    },
+    express.raw({ type: 'application/json' }), // << usar express.raw, no bodyParser.raw
   );
 
-  // ✅ JSON parser para todo lo demás
-  app.use(bodyParser.json());
+  // ✅ Resto de la app usa JSON
+  app.use(express.json());
 
-  // Pipes globales
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -33,7 +26,6 @@ async function bootstrap() {
     }),
   );
 
-  // CORS
   app.enableCors({
     origin: [
       'http://localhost:4200',
