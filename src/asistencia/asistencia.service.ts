@@ -2,10 +2,9 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Asistencia } from './asistencia.entity';
-import { CreateAsistenciaDto } from './create-asistencia.dto';
 import { PersonaTipo } from '../persona-tipo/persona-tipo.entity';
+import { Persona } from '../personas/persona.entity';
 import { Between } from 'typeorm';
-import { UpdateHoraSalidaDto } from './update-salida.dto';
 import * as moment from 'moment';
 import * as ExcelJS from 'exceljs';
 import * as PDFDocument from 'pdfkit';
@@ -19,52 +18,47 @@ export class AsistenciaService {
 
     @InjectRepository(PersonaTipo)
     private personaTipoRepo: Repository<PersonaTipo>,
+
+    @InjectRepository(Persona)
+    private personaRepo: Repository<Persona>,
   ) {}
+async registrarAsistencia(ci: string): Promise<Asistencia> {
+  const hoy = new Date();
+  const fechaHoy = hoy.toISOString().split('T')[0]; // 'YYYY-MM-DD'
 
-  async create(createAsistenciaDto: CreateAsistenciaDto): Promise<Asistencia> {
-    const esCliente = await this.personaTipoRepo.findOne({
-      where: {
-        CI: createAsistenciaDto.cipersona,
-        ID_TipoPersona: 1, // cliente
-      },
-    });
+  const persona = await this.personaRepo.findOne({ where: { CI: ci } });
+  if (!persona) {
+    throw new BadRequestException('Persona no encontrada con CI: ' + ci);
+  }
 
-    if (!esCliente) {
-      throw new BadRequestException(
-        `La persona con CI ${createAsistenciaDto.cipersona} no es cliente`,
-      );
-    }
-    const fechaAsistencia = new Date(createAsistenciaDto.fecha);
-  const yyyy = fechaAsistencia.getFullYear();
-  const mm = fechaAsistencia.getMonth();
-  const dd = fechaAsistencia.getDate();
+  const fechaInicio = new Date(fechaHoy + 'T00:00:00.000Z');
+  const fechaFin = new Date(fechaHoy + 'T23:59:59.999Z');
 
-  const fechaInicio = new Date(yyyy, mm, dd, 0, 0, 0);
-  const fechaFin = new Date(yyyy, mm, dd, 23, 59, 59);
   const asistenciaExistente = await this.asistenciaRepo.findOne({
     where: {
-      persona: { CI: createAsistenciaDto.cipersona },
       fecha: Between(fechaInicio, fechaFin),
+      persona: { CI: persona.CI },
     },
   });
 
   if (asistenciaExistente) {
-    throw new BadRequestException(
-      `La asistencia para la persona con CI ${createAsistenciaDto.cipersona} ya fue registrada el día ${fechaAsistencia.toDateString()}`,
-    );
+    throw new BadRequestException('Ya registraste tu asistencia hoy');
   }
 
+  const ahora = new Date();
+  const horaEntrada = ahora.toTimeString().split(' ')[0];
 
+  const nuevaAsistencia = this.asistenciaRepo.create({
+    fecha: fechaHoy,
+    horaEntrada,
+    persona,
+    idTipoPer: 1, // Ajusta según lógica real
+  });
 
-    const nuevaAsistencia = this.asistenciaRepo.create({
-      fecha: createAsistenciaDto.fecha,
-      horaEntrada: createAsistenciaDto.horaEntrada,
-      persona: { CI: createAsistenciaDto.cipersona },
-      idTipoPer: 1,
-    });
+  return this.asistenciaRepo.save(nuevaAsistencia);
+}
 
-    return this.asistenciaRepo.save(nuevaAsistencia);
-  }
+  
 async generarHistorialExcel(ci: string): Promise<Buffer> {
   const asistencias = await this.findByCIPersona(ci);
 
@@ -124,22 +118,91 @@ async generarHistorialExcel(ci: string): Promise<Buffer> {
       resolve(pdfBuffer);
     });
   });
+  
+}
+async findAllAgrupadasPorCI(): Promise<{ ci: string; nombre: string; asistencias: Asistencia[] }[]> {
+  const todasAsistencias = await this.asistenciaRepo.find({
+    relations: ['persona'],
+    order: { fecha: 'ASC' }, // orden opcional
+  });
+
+  const mapAgrupado = new Map<string, { nombre: string; asistencias: Asistencia[] }>();
+
+  todasAsistencias.forEach((asistencia) => {
+    const ci = asistencia.persona?.CI ?? 'Desconocido';
+    const nombre = asistencia.persona
+      ? `${asistencia.persona.Nombre} ${asistencia.persona.Apellido}`
+      : 'Sin nombre';
+
+    if (!mapAgrupado.has(ci)) {
+      mapAgrupado.set(ci, { nombre, asistencias: [] });
+    }
+
+    mapAgrupado.get(ci)!.asistencias.push(asistencia);
+  });
+
+  const resultado: { ci: string; nombre: string; asistencias: Asistencia[] }[] = [];
+
+  for (const [ci, datos] of mapAgrupado.entries()) {
+    resultado.push({ ci, nombre: datos.nombre, asistencias: datos.asistencias });
+  }
+
+  return resultado;
 }
 
-  async registrarSalida(idAsistencia: number, dto: UpdateHoraSalidaDto): Promise<Asistencia> {
-  const asistencia = await this.asistenciaRepo.findOne({ where: { id: idAsistencia } });
+async generarHistorialPDFTodos(): Promise<Buffer> {
+  const todasAsistencias = await this.findAllAgrupadasPorCI();
 
-  if (!asistencia) {
-    throw new BadRequestException('Asistencia no encontrada');
+  const doc = new PDFDocument({ size: 'A4', margin: 50 });
+  const chunks: Buffer[] = [];
+
+  doc.on('data', (chunk) => chunks.push(chunk));
+  doc.on('end', () => {});
+
+  doc.fontSize(18).text(`Historial de Asistencias - CI: todos`, { align: 'center' });
+  doc.moveDown();
+
+  doc.fontSize(12);
+
+  if (!todasAsistencias || todasAsistencias.length === 0) {
+    doc.text('No se encontraron asistencias.');
+  } else {
+    todasAsistencias.forEach(({ ci, asistencias }) => {
+      const persona = asistencias[0]?.persona;
+      const nombreCompleto = persona ? `${persona.Nombre} ${persona.Apellido}` : `CI: ${ci}`;
+
+      // Mostrar nombre y CI
+      doc.fontSize(14).text(nombreCompleto, { underline: true });
+      if (persona) {
+        doc.fontSize(12).text(`CI: ${ci}`);
+      }
+      doc.moveDown(0.3);
+
+      if (!asistencias || asistencias.length === 0) {
+        doc.text('No hay asistencias registradas.');
+      } else {
+        asistencias.forEach((a, index) => {
+          const fechaObj = new Date(a.fecha);
+          const fechaStr = isNaN(fechaObj.getTime()) ? 'Fecha inválida' : fechaObj.toISOString().split('T')[0];
+
+          doc.text(
+            `${index + 1}. Fecha: ${fechaStr} | Entrada: ${a.horaEntrada} | Salida: ${a.horaSalida || '---'}`
+          );
+        });
+      }
+
+      doc.moveDown();
+    });
   }
 
-  if (asistencia.horaSalida) {
-    throw new BadRequestException('La salida ya fue registrada');
-  }
+  doc.end();
 
-  asistencia.horaSalida = dto.horaSalida;
-
-  return this.asistenciaRepo.save(asistencia);
+  return new Promise((resolve) => {
+    doc.on('end', () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      resolve(pdfBuffer);
+    });
+  });
 }
 async contarTotalAsistencias(): Promise<number> {
     return this.asistenciaRepo.count();

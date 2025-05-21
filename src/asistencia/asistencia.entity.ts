@@ -17,8 +17,8 @@ export class Asistencia {
 
   @Column({ name: 'IDtipoPer' })
   idTipoPer: number;
-
-  @ManyToOne(() => Persona)
+  
+  @ManyToOne(() => Persona , { eager: true })
   @JoinColumn({ name: 'CIPerso' }) // esta es la FK
   persona: Persona;
 }

@@ -3,13 +3,13 @@ import {
   Column,
   PrimaryColumn,
   OneToOne,
-  JoinColumn
+  JoinColumn,
 } from 'typeorm';
 import { Usuario } from '../usuarios/usuario.entity';
 
 @Entity('persona')
 export class Persona {
-  @PrimaryColumn()
+  @PrimaryColumn({ name: 'CI' })
   CI: string;
 
   @Column()
@@ -30,4 +30,6 @@ export class Persona {
   @OneToOne(() => Usuario, usuario => usuario.idPersona)
   @JoinColumn({ name: 'CI' })
   usuario: Usuario;
+
+
 }

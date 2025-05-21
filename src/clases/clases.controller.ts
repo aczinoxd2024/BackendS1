@@ -30,7 +30,7 @@ export class ClasesController {
   }
 
   @Post(':id/instructores')
-  @Roles('admin', 'administrador')
+  @Roles('administrador')
   async asignarInstructor(
     @Param('id') id: string,
     @Body() body: AsignarInstructorDto,
