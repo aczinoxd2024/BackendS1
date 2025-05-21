@@ -1,24 +1,25 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Body } from '@nestjs/common';
 import * as express from 'express';
+import { RawBodyRequest } from './stripe/raw-body-request.interface';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
 
-  // ✅ Stripe Webhook — usa express.raw() directamente SIN middleware adicional
+  // ✅ Middleware de Stripe Webhook: express.raw + rawBody manual
   app.use(
     '/api/stripe/webhook',
     express.raw({ type: 'application/json' }),
-    (req, res, next) => {
-      req.rawBody = req.body; // 👈 NECESARIO para Stripe
+    (req, _res, next) => {
+      (req as RawBodyRequest).rawBody = req.Body as Buffer;
       next();
     },
   );
 
-  // ✅ Resto de la app con JSON normal
+  // ✅ Resto del backend usa JSON normal
   app.use(express.json());
 
   app.useGlobalPipes(
