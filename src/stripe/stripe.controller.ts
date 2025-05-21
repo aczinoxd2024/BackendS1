@@ -26,7 +26,8 @@ export class StripeController {
       'STRIPE_WEBHOOK_SECRET',
     );
 
-    const rawBody = req.body as Buffer; // 👈 Corrección aquí
+    // 👇 req.body ES un Buffer porque usas express.raw() en main.ts
+    const rawBody = req.body as Buffer;
 
     console.log('🧾 Tipo de rawBody:', typeof rawBody);
     console.log('🧾 rawBody presente?', !!rawBody);

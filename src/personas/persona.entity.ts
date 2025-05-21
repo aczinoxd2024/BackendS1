@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-  OneToOne,
-  JoinColumn
-} from 'typeorm';
+import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn } from 'typeorm';
 import { Usuario } from '../usuarios/usuario.entity';
 
 @Entity('persona')
@@ -27,7 +21,7 @@ export class Persona {
   @Column()
   Direccion: string;
 
-  @OneToOne(() => Usuario, usuario => usuario.idPersona)
+  @OneToOne(() => Usuario, (usuario) => usuario.idPersona)
   @JoinColumn({ name: 'CI' })
   usuario: Usuario;
 }
