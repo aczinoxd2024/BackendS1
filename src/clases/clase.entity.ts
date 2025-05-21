@@ -25,6 +25,12 @@ export class Clase {
   @Column({ length: 30 })
   Estado: string;
 
+  // @Column({ type: 'varchar', length: 20 })
+  //CIInstructor: string;
+
+  @Column({ type: 'int' })
+  CupoMaximo: number;
+
   //@Column({ length: 100 })
   //Horario: string;
 

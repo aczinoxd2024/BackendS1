@@ -114,7 +114,7 @@ export class AuthService {
     }
     // ✅ Agrega esto justo antes de crear el payload
     const rolesInternos: Record<string, string> = {
-      Administrador: 'admin',
+      Administrador: 'administrador',
       Instructor: 'instructor',
       Recepcionista: 'recepcionista',
       Cliente: 'cliente',

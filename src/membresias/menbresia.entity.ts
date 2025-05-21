@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
 
 @Entity('membresia')
 export class Membresia {
@@ -14,8 +15,10 @@ export class Membresia {
   @Column({ length: 50 })
   PlataformaWeb: string;
 
-  @Column()
+  @Column({ name: 'TipoMembresiaID' })
   TipoMembresiaID: number;
 
- 
+  // ✅ Relación inversa con DetallePago
+  @OneToMany(() => DetallePago, (detalle) => detalle.membresia)
+  detalles: DetallePago[];
 }

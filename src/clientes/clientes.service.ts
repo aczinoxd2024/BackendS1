@@ -180,13 +180,17 @@ export class ClientesService {
     });
     await this.membresiaRepository.save(membresia);
 
-    const pago = this.pagoRepository.create({
-      Fecha: hoy,
-      Monto: tipoMembresia.Precio,
-      MetodoPago: data.metodoPagoId,
-      CIPersona: persona.CI,
-    });
-    await this.pagoRepository.save(pago);
+    let pago: Pago | null = null;
+
+    if (plataforma === 'Presencial') {
+      pago = this.pagoRepository.create({
+        Fecha: hoy,
+        Monto: tipoMembresia.Precio,
+        MetodoPago: data.metodoPagoId,
+        CIPersona: persona.CI,
+      });
+      await this.pagoRepository.save(pago);
+    }
 
     let accionBitacora = '';
     let idUsuarioBitacora = '';
@@ -216,10 +220,10 @@ export class ClientesService {
     });
 
     return {
-      mensaje: 'Cliente registrado correctamente con membresía y pago',
+      mensaje: 'Cliente registrado correctamente con membresía',
       cliente,
       membresia,
-      pago,
+      ...(plataforma === 'Presencial' && pago ? { pago } : {}),
       usuario: { correo: usuario.correo, passwordTemporal: tempPassword },
     };
   }

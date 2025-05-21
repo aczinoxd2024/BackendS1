@@ -1,47 +1,48 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import * as bodyParser from 'body-parser';
-import { rawBodyMiddleware } from './common/middleware/raw-body.middleware';
+import * as express from 'express';
+import { RawBodyRequest } from './stripe/raw-body-request.interface';
+import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Prefijo global para todas las rutas
   app.setGlobalPrefix('api');
 
-  // Validación global: protege y transforma los datos recibidos
+  // ✅ Middleware unificado para Stripe Webhook y el resto del backend
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.originalUrl === '/api/stripe/webhook') {
+      express.raw({ type: 'application/json' })(req, res, () => {
+        (req as RawBodyRequest).rawBody = req.body as Buffer;
+        next();
+      });
+    } else {
+      express.json()(req, res, next);
+    }
+  });
+
+  // ✅ Validaciones globales
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Solo permite propiedades definidas en DTOs
-      forbidNonWhitelisted: true, // Rechaza propiedades no definidas
-      transform: true, // Transforma datos automáticamente al tipo esperado
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
-  // logica para el stripe con bodyParser
-  app.use('/api/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
-  app.use(rawBodyMiddleware);
-  app.use(bodyParser.json()); // para las otras rutas
-
-  /////////////////////////////////////////////////////////////
-
-  // Habilitar CORS para permitir acceso desde frontend en local, producción y futuros dominios
+  // ✅ CORS para frontend
   app.enableCors({
     origin: [
-      'http://localhost:4200', // Frontend local
-      'https://backends1-production.up.railway.app', // Backend en producción (HTTPS)
-      'http://backends1-production.up.railway.app', // Backend en producción (HTTP)
-      'https://proyectosis12025.netlify.app', // Futuro dominio real (opcional)
+      'http://localhost:4200',
+      'https://backends1-production.up.railway.app',
+      'https://proyectosis12025.netlify.app',
     ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
-  // Asignar puerto dinámico para producción o 3000 por defecto en local
-  const port: number = parseInt(process.env.PORT as string, 10) || 3000;
+  const port = parseInt(process.env.PORT || '3000', 10);
   await app.listen(port);
-
   console.log(`🚀 Backend en ejecución → http://localhost:${port}/api`);
 }
 bootstrap();

@@ -25,7 +25,7 @@ export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
   @Post()
-  @Roles('cliente')
+  @Roles('cliente', 'administrador')
   async crearReserva(@Req() req: Request, @Body() dto: CreateReservaDto) {
     const ci = (req.user as any)?.ci;
     if (!ci) throw new UnauthorizedException('Cliente no identificado');
@@ -46,7 +46,7 @@ export class ReservasController {
   async getReservasPasadas(
     @Req() req: Request,
     @Query('fechaInicio') fechaInicio?: string,
-    @Query('fechaFin') fechaFin?: string
+    @Query('fechaFin') fechaFin?: string,
   ) {
     const ci = (req.user as any)?.ci;
     if (!ci) throw new UnauthorizedException('Cliente no identificado');
@@ -61,7 +61,12 @@ export class ReservasController {
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
   ) {
-    return this.reservasService.buscarPorCICliente(ci, estado, fechaInicio, fechaFin);
+    return this.reservasService.buscarPorCICliente(
+      ci,
+      estado,
+      fechaInicio,
+      fechaFin,
+    );
   }
 
   @Get()
