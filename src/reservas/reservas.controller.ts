@@ -66,6 +66,19 @@ async getReservasFiltradas(
 ) {
   return this.reservasService.buscarPorFiltros(ci, estado, fechaInicio, fechaFin);
 }
+@Get('historial')
+@Roles('cliente','recepcionista')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getHistorialReservas(
+  @Req() req: Request,
+  @Query('fechaInicio') fechaInicio?: string,
+  @Query('fechaFin') fechaFin?: string,
+) {
+  const ci = (req.user as any)?.ci;
+  if (!ci) throw new UnauthorizedException('Cliente no identificado');
+  return this.reservasService.getReservasPasadas(ci, fechaInicio, fechaFin);
+}
+
 
 
   @Get()
