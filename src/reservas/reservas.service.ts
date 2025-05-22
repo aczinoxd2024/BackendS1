@@ -275,5 +275,30 @@ export class ReservasService {
 
   return query.orderBy('clase.Nombre', 'ASC').getMany();
 }
+async cancelarReservaCliente(id: number, ci: string) {
+  const reserva = await this.reservasRepository.findOne({
+    where: {
+      IDReserva: id,
+      cliente: { CI: ci }, // Verifica que le pertenezca
+    },
+    relations: ['estado', 'cliente'],
+  });
+
+  if (!reserva) {
+    throw new NotFoundException('Reserva no encontrada o no pertenece al cliente');
+  }
+
+  const estadoCancelada = await this.estadoReservaRepository.findOne({
+    where: { Estado: 'Cancelada' },
+  });
+
+  if (!estadoCancelada) {
+    throw new Error('Estado "Cancelada" no está definido en la base de datos');
+  }
+
+  reserva.estado = estadoCancelada;
+  await this.reservasRepository.save(reserva);
+}
+
 
 }

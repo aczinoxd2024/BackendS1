@@ -93,6 +93,20 @@ async getHistorialReservas(
   findOne(@Param('id') id: number): Promise<Reserva> {
     return this.reservasService.findOne(id);
   }
+  // ✅ Cliente cancela su propia reserva
+@Put('cancelar/:id')
+@Roles('cliente')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async cancelarReservaCliente(
+  @Param('id') id: number,
+  @Req() req: Request
+): Promise<{ message: string }> {
+  const ci = (req.user as any)?.ci;
+  if (!ci) throw new UnauthorizedException('Cliente no identificado');
+  await this.reservasService.cancelarReservaCliente(id, ci);
+  return { message: 'Reserva cancelada correctamente' };
+}
+
 
   @Delete(':id')
   @Roles('cliente', 'recepcionista', 'administrador')
