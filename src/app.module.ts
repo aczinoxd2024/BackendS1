@@ -102,6 +102,7 @@ import { join } from 'path';
     HorariosModule,
     PersonalModule,
     DiaSemanaModule,
+    AsistenciaModule,
   ],
   providers: [
     {
