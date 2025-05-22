@@ -243,4 +243,37 @@ export class ReservasService {
 
     return reservas;
   }
+  async buscarPorFiltros(
+  ci?: string,
+  estado?: string,
+  fechaInicio?: string,
+  fechaFin?: string,
+): Promise<Reserva[]> {
+  const query = this.reservasRepository
+    .createQueryBuilder('reserva')
+    .leftJoinAndSelect('reserva.cliente', 'cliente')
+    .leftJoinAndSelect('reserva.clase', 'clase')
+    .leftJoinAndSelect('reserva.horario', 'horario')
+    .leftJoinAndSelect('reserva.estado', 'estado')
+    .where('1 = 1'); // Para permitir agregar filtros dinámicos
+
+  if (ci) {
+    query.andWhere('cliente.ci = :ci', { ci });
+  }
+
+  if (estado) {
+    query.andWhere('estado.Estado = :estado', { estado });
+  }
+
+  if (fechaInicio) {
+    query.andWhere('reserva.FechaReserva >= :fechaInicio', { fechaInicio });
+  }
+
+  if (fechaFin) {
+    query.andWhere('reserva.FechaReserva <= :fechaFin', { fechaFin });
+  }
+
+  return query.orderBy('clase.Nombre', 'ASC').getMany();
+}
+
 }

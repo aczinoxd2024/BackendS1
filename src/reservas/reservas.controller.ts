@@ -1,17 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
-  Param,
-  Body,
-  Req,
-  UnauthorizedException,
-  UseGuards,
-  Query,
-  Patch,
-} from '@nestjs/common';
+import {Controller,Post,Get,Put,Delete,Param,Body,Req,UnauthorizedException,UseGuards,Query,Patch,} from '@nestjs/common';
 import { ReservasService } from './reservas.service';
 import { Reserva } from './reserva.entity';
 import { CreateReservaDto } from './dto/create-reserva.dto';
@@ -68,6 +55,18 @@ export class ReservasController {
       fechaFin,
     );
   }
+  @Get('filtradas')
+@Roles('recepcionista', 'administrador')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getReservasFiltradas(
+  @Query('ci') ci?: string,
+  @Query('estado') estado?: string,
+  @Query('fechaInicio') fechaInicio?: string,
+  @Query('fechaFin') fechaFin?: string,
+) {
+  return this.reservasService.buscarPorFiltros(ci, estado, fechaInicio, fechaFin);
+}
+
 
   @Get()
   @Roles('administrador', 'recepcionista')
