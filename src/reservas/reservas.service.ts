@@ -85,6 +85,27 @@ export class ReservasService {
     if (diferenciaMin < 30) {
       throw new ConflictException('Solo puedes reservar con al menos 30 minutos de anticipación');
     }
+      const reservasCliente = await this.reservasRepository.find({
+    where: {
+      cliente: { CI },
+      estado: { Estado: 'Confirmada' },
+    },
+    relations: ['horario'],
+  });
+
+  for (const reserva of reservasCliente) {
+    const horaIniExistente = reserva.horario?.HoraIni;
+    const horaFinExistente = reserva.horario?.HoraFin;
+    if (!horaIniExistente || !horaFinExistente) continue;
+
+    const [h1Start, h1End] = [new Date(`${hoy}T${horaIniExistente}`), new Date(`${hoy}T${horaFinExistente}`)];
+    const [h2Start, h2End] = [horaInicio, new Date(`${hoy}T${horario.HoraFin}`)];
+
+    const haySolapamiento = h1Start < h2End && h2Start < h1End;
+    if (haySolapamiento) {
+      throw new ConflictException('Ya tienes una reserva con horario solapado');
+    }
+  }
 
     const nuevaReserva = this.reservasRepository.create({
       clase: { IDClase } as any,
