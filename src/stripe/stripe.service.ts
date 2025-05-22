@@ -147,25 +147,60 @@ export class StripeService {
       return;
     }
 
-    const membresia = await this.membresiaRepository.findOne({
-      where: { TipoMembresiaID: tipo.ID },
+    // 🔍 Buscar la última membresía del cliente
+    const ultimaMembresia = await this.membresiaRepository.findOne({
+      where: { CICliente: cliente.CI },
+      order: { FechaFin: 'DESC' },
     });
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Limpiar hora para evitar errores de comparación
 
-    if (!membresia) {
-      console.log(
-        `❌ Membresía no encontrada con TipoMembresiaID = ${tipo.ID}`,
-      );
-      return;
+    let fechaInicio: Date;
+    if (ultimaMembresia && new Date(ultimaMembresia.FechaFin) >= hoy) {
+      fechaInicio = new Date(ultimaMembresia.FechaFin);
+      fechaInicio.setDate(fechaInicio.getDate() + 1); // día siguiente a FechaFin
+    } else {
+      fechaInicio = new Date(); // hoy
     }
 
+    const fechaFin = new Date(fechaInicio);
+    fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
+
+    // ✅ Crear nueva membresía vinculada al cliente
+    const nuevaMembresia = this.membresiaRepository.create({
+      FechaInicio: fechaInicio,
+      FechaFin: fechaFin,
+      PlataformaWeb: 'Web',
+      TipoMembresiaID: tipo.ID,
+      CICliente: cliente.CI,
+    });
+
+    await this.membresiaRepository.save(nuevaMembresia);
+
+    // 🧾 Crear y guardar el detalle del pago vinculado a la nueva membresía
     const detalle = this.detallePagoRepository.create({
       IDPago: pagoGuardado.NroPago,
-      IDMembresia: membresia.IDMembresia,
+      IDMembresia: nuevaMembresia.IDMembresia,
       MontoTotal: amount / 100,
       IDPromo: null,
     });
-
     await this.detallePagoRepository.save(detalle);
+
+    // ✅ Activar cliente si no lo estaba
+    cliente.IDEstado = 1;
+    await this.clienteRepository.save(cliente);
+
+    // 📝 Registrar renovación o adquisición en bitácora
+    const mensajeAccion = ultimaMembresia
+      ? `Renovó su membresía. Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`
+      : `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`;
+
+    await this.bitacoraRepository.save({
+      idUsuario: usuario.id,
+      accion: `Cliente CI ${usuario.id} realizó un pago con Stripe de $${(amount / 100).toFixed(2)}. ${mensajeAccion}.`,
+      tablaAfectada: 'membresia / pago / detalle_pago',
+      ipMaquina: 'web-stripe',
+    });
 
     cliente.IDEstado = 1;
     await this.clienteRepository.save(cliente);
