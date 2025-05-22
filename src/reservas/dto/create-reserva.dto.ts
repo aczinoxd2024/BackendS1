@@ -4,8 +4,5 @@ export class CreateReservaDto {
   @IsNotEmpty()
   @IsNumber()
   IDClase: number;
-
-  @IsNotEmpty()
-  @IsString()
-  CI: string;
+  // ❌ quita CI si se toma del token
 }
