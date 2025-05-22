@@ -1,17 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
-  Param,
-  Body,
-  Req,
-  UnauthorizedException,
-  UseGuards,
-  Query,
-  Patch,
-} from '@nestjs/common';
+import {Controller,Post,Get,Put,Delete,Param,Body,Req,UnauthorizedException,UseGuards,Query,Patch,} from '@nestjs/common';
 import { ReservasService } from './reservas.service';
 import { Reserva } from './reserva.entity';
 import { CreateReservaDto } from './dto/create-reserva.dto';
@@ -24,13 +11,14 @@ import { RolesGuard } from 'src/auth/roles/roles.guard';
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
-  @Post()
-  @Roles('cliente', 'administrador')
-  async crearReserva(@Req() req: Request, @Body() dto: CreateReservaDto) {
-    const ci = (req.user as any)?.ci;
-    if (!ci) throw new UnauthorizedException('Cliente no identificado');
-    return this.reservasService.crearReserva(dto.IDClase, ci);
-  }
+ @Post()
+@Roles('cliente', 'administrador')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async crearReserva(@Req() req: Request, @Body() dto: CreateReservaDto) {
+  const ci = (req.user as any)?.ci;
+  if (!ci) throw new UnauthorizedException('Cliente no identificado');
+  return this.reservasService.crearReserva(dto.IDClase, ci);
+}
 
   @Get('mis-reservas')
   @Roles('cliente')
@@ -68,6 +56,31 @@ export class ReservasController {
       fechaFin,
     );
   }
+  @Get('filtradas')
+@Roles('recepcionista', 'administrador')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getReservasFiltradas(
+  @Query('ci') ci?: string,
+  @Query('estado') estado?: string,
+  @Query('fechaInicio') fechaInicio?: string,
+  @Query('fechaFin') fechaFin?: string,
+) {
+  return this.reservasService.buscarPorFiltros(ci, estado, fechaInicio, fechaFin);
+}
+@Get('historial')
+@Roles('cliente','recepcionista')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getHistorialReservas(
+  @Req() req: Request,
+  @Query('fechaInicio') fechaInicio?: string,
+  @Query('fechaFin') fechaFin?: string,
+) {
+  const ci = (req.user as any)?.ci;
+  if (!ci) throw new UnauthorizedException('Cliente no identificado');
+  return this.reservasService.getReservasPasadas(ci, fechaInicio, fechaFin);
+}
+
+
 
   @Get()
   @Roles('administrador', 'recepcionista')
@@ -80,6 +93,20 @@ export class ReservasController {
   findOne(@Param('id') id: number): Promise<Reserva> {
     return this.reservasService.findOne(id);
   }
+  // ✅ Cliente cancela su propia reserva
+@Put('cancelar/:id')
+@Roles('cliente')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async cancelarReservaCliente(
+  @Param('id') id: number,
+  @Req() req: Request
+): Promise<{ message: string }> {
+  const ci = (req.user as any)?.ci;
+  if (!ci) throw new UnauthorizedException('Cliente no identificado');
+  await this.reservasService.cancelarReservaCliente(id, ci);
+  return { message: 'Reserva cancelada correctamente' };
+}
+
 
   @Delete(':id')
   @Roles('cliente', 'recepcionista', 'administrador')

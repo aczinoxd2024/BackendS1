@@ -10,6 +10,8 @@ import { Clase } from '../clases/clase.entity';
 import { Cliente } from '../clientes/cliente.entity';
 import { EstadoReserva } from '../estado-reserva/estado-reserva.entity';
 import { Horario } from '../horarios/horario.entity';
+import { Bitacora } from '../bitacora/bitacora.entity';
+
 
 @Injectable()
 export class ReservasService {
@@ -24,85 +26,119 @@ export class ReservasService {
     private readonly estadoReservaRepository: Repository<EstadoReserva>,
     @InjectRepository(Horario)
     private readonly horarioRepository: Repository<Horario>,
+    @InjectRepository(Bitacora)
+    private readonly bitacoraRepository: Repository<Bitacora>,
+
   ) {}
 
-  async crearReserva(IDClase: number, CI: string) {
-  const clase = await this.claseRepository.findOneBy({ IDClase });
-  if (!clase) throw new NotFoundException('Clase no encontrada');
+ async crearReserva(IDClase: number, CI: string) {
+    const clase = await this.claseRepository.findOneBy({ IDClase });
+    if (!clase) throw new NotFoundException('Clase no encontrada');
 
-  const estadoConfirmada = await this.estadoReservaRepository.findOneBy({
-    Estado: 'Confirmada',
-  });
-  if (!estadoConfirmada)
-    throw new NotFoundException('Estado "Confirmada" no encontrado');
+    const estadoConfirmada = await this.estadoReservaRepository.findOneBy({
+      Estado: 'Confirmada',
+    });
+    if (!estadoConfirmada)
+      throw new NotFoundException('Estado "Confirmada" no encontrado');
 
-  const horario = await this.horarioRepository.findOne({
-    where: { clase: { IDClase } },
-    order: { HoraIni: 'ASC' },
-    relations: ['clase'],
-  });
-  if (!horario)
-    throw new NotFoundException('No hay horario asignado a esta clase');
+    const horario = await this.horarioRepository.findOne({
+      where: { clase: { IDClase } },
+      order: { HoraIni: 'ASC' },
+      relations: ['clase'],
+    });
+    if (!horario)
+      throw new NotFoundException('No hay horario asignado a esta clase');
 
-  const yaExiste = await this.reservasRepository.findOne({
+    const yaExiste = await this.reservasRepository.findOne({
+      where: {
+        clase: { IDClase },
+        cliente: { CI },
+        estado: { Estado: 'Confirmada' },
+      },
+      relations: ['clase', 'cliente', 'estado'],
+    });
+
+    if (yaExiste)
+      throw new ConflictException('Ya tienes una reserva activa para esta clase');
+
+    const cupos = await this.reservasRepository.count({
+      where: {
+        clase: { IDClase },
+        estado: { Estado: 'Confirmada' },
+      },
+      relations: ['estado'],
+    });
+
+    if (cupos >= clase.CupoMaximo) {
+      throw new ConflictException('Clase sin cupos disponibles');
+    }
+
+    const ahora = new Date();
+    const hoy = ahora.toISOString().split('T')[0];
+    const horaInicio = new Date(`${hoy}T${horario.HoraIni}`);
+
+    if (ahora >= horaInicio) {
+      throw new ConflictException('La clase ya ha comenzado');
+    }
+
+    const diferenciaMin = (horaInicio.getTime() - ahora.getTime()) / (1000 * 60);
+    if (diferenciaMin < 30) {
+      throw new ConflictException('Solo puedes reservar con al menos 30 minutos de anticipación');
+    }
+      const reservasCliente = await this.reservasRepository.find({
     where: {
-      clase: { IDClase },
       cliente: { CI },
       estado: { Estado: 'Confirmada' },
     },
-    relations: ['clase', 'cliente', 'estado'],
+    relations: ['horario'],
   });
 
-  if (yaExiste)
-    throw new ConflictException(
-      'Ya tienes una reserva activa para esta clase',
-    );
+  for (const reserva of reservasCliente) {
+    const horaIniExistente = reserva.horario?.HoraIni;
+    const horaFinExistente = reserva.horario?.HoraFin;
+    if (!horaIniExistente || !horaFinExistente) continue;
 
-  const cupos = await this.reservasRepository.count({
-    where: {
-      clase: { IDClase },
-      estado: { Estado: 'Confirmada' },
-    },
-    relations: ['estado'],
-  });
+    const [h1Start, h1End] = [new Date(`${hoy}T${horaIniExistente}`), new Date(`${hoy}T${horaFinExistente}`)];
+    const [h2Start, h2End] = [horaInicio, new Date(`${hoy}T${horario.HoraFin}`)];
 
-  if (cupos >= clase.CupoMaximo) {
-    throw new ConflictException('Clase sin cupos disponibles');
+    const haySolapamiento = h1Start < h2End && h2Start < h1End;
+    if (haySolapamiento) {
+      throw new ConflictException('Ya tienes una reserva con horario solapado');
+    }
   }
 
-  const nuevaReserva = this.reservasRepository.create({
-    clase: { IDClase } as any,
-    cliente: { CI } as any,
-    estado: estadoConfirmada,
-    FechaReserva: new Date(),
-    horario: { IDHorario: horario.IDHorario } as any,
-  });
+    const nuevaReserva = this.reservasRepository.create({
+      clase: { IDClase } as any,
+      cliente: { CI } as any,
+      estado: estadoConfirmada,
+      FechaReserva: new Date(),
+      horario: { IDHorario: horario.IDHorario } as any,
+    });
 
-  const reservaGuardada = await this.reservasRepository.save(nuevaReserva);
+    const reservaGuardada = await this.reservasRepository.save(nuevaReserva);
 
-  // ✅ Lógica adicional: actualizar NumInscritos y estado de la clase
-  clase.NumInscritos++;
+    clase.NumInscritos++;
+    if (clase.Estado === 'Pendiente' && clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2)) {
+      clase.Estado = 'Activo';
+    }
+    await this.claseRepository.save(clase);
 
-  if (
-    clase.Estado === 'Pendiente' &&
-    clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2)
-  ) {
-    clase.Estado = 'Activo';
+    const claseSeActivo =
+      clase.Estado === 'Activo' &&
+      clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2);
+
+    await this.bitacoraRepository.save({
+      idUsuario: CI,
+      accion: 'RESERVA CREADA',
+      tablaAfectada: 'reserva',
+      ipMaquina: '127.0.0.1',
+    });
+
+    return {
+      ...reservaGuardada,
+      claseActivada: claseSeActivo,
+    };
   }
-
-  await this.claseRepository.save(clase);
-
-  const claseSeActivo =
-  clase.Estado === 'Activo' &&
-  clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2);
-
-
-  return {
-  ...reservaGuardada,
-  claseActivada: claseSeActivo
-};
-
-}
 
 
   async buscarPorCliente(ci: string) {
@@ -175,23 +211,30 @@ export class ReservasService {
   async cancelarReserva(id: number) {
     const reserva = await this.reservasRepository.findOne({
       where: { IDReserva: id },
-      relations: ['estado'],
+      relations: ['estado', 'cliente', 'clase'],
     });
 
     if (!reserva) {
       throw new NotFoundException('Reserva no encontrada');
     }
 
-    const estadoCancelado = await this.estadoReservaRepository.findOneBy({
+    const estadoCancelada = await this.estadoReservaRepository.findOneBy({
       Estado: 'Cancelada',
     });
 
-    if (!estadoCancelado) {
+    if (!estadoCancelada) {
       throw new NotFoundException('Estado "Cancelada" no existe');
     }
 
-    reserva.estado = estadoCancelado;
-    return this.reservasRepository.save(reserva);
+    reserva.estado = estadoCancelada;
+    await this.reservasRepository.save(reserva);
+
+    await this.bitacoraRepository.save({
+      idUsuario: reserva.cliente?.CI,
+      accion: 'RESERVA CANCELADA (admin)',
+      tablaAfectada: 'reserva',
+      ipMaquina: '127.0.0.1',
+    });
   }
 
   async getReservasPasadas(
@@ -242,5 +285,68 @@ export class ReservasService {
     }
 
     return reservas;
+  }
+  async buscarPorFiltros(
+  ci?: string,
+  estado?: string,
+  fechaInicio?: string,
+  fechaFin?: string,
+): Promise<Reserva[]> {
+  const query = this.reservasRepository
+    .createQueryBuilder('reserva')
+    .leftJoinAndSelect('reserva.cliente', 'cliente')
+    .leftJoinAndSelect('reserva.clase', 'clase')
+    .leftJoinAndSelect('reserva.horario', 'horario')
+    .leftJoinAndSelect('reserva.estado', 'estado')
+    .where('1 = 1'); // Para permitir agregar filtros dinámicos
+
+  if (ci) {
+    query.andWhere('cliente.ci = :ci', { ci });
+  }
+
+  if (estado) {
+    query.andWhere('estado.Estado = :estado', { estado });
+  }
+
+  if (fechaInicio) {
+    query.andWhere('reserva.FechaReserva >= :fechaInicio', { fechaInicio });
+  }
+
+  if (fechaFin) {
+    query.andWhere('reserva.FechaReserva <= :fechaFin', { fechaFin });
+  }
+
+  return query.orderBy('clase.Nombre', 'ASC').getMany();
+}
+ async cancelarReservaCliente(id: number, ci: string) {
+    const reserva = await this.reservasRepository.findOne({
+      where: {
+        IDReserva: id,
+        cliente: { CI: ci },
+      },
+      relations: ['estado', 'cliente', 'clase'],
+    });
+
+    if (!reserva) {
+      throw new NotFoundException('Reserva no encontrada o no pertenece al cliente');
+    }
+
+    const estadoCancelada = await this.estadoReservaRepository.findOne({
+      where: { Estado: 'Cancelada' },
+    });
+
+    if (!estadoCancelada) {
+      throw new Error('Estado "Cancelada" no está definido en la base de datos');
+    }
+
+    reserva.estado = estadoCancelada;
+    await this.reservasRepository.save(reserva);
+
+    await this.bitacoraRepository.save({
+      idUsuario: ci,
+      accion: 'RESERVA CANCELADA',
+      tablaAfectada: 'reserva',
+      ipMaquina: '127.0.0.1',
+    });
   }
 }

@@ -75,6 +75,11 @@ create(@Body() claseDto: CreateClaseDto): Promise<Clase> {
     }
     return this.clasesService.obtenerInstructoresPorClase(idNum);
   }
+    @Get('disponibles')
+async getDisponibles() {
+  return this.clasesService.obtenerClasesDisponibles();
+}
+
 
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Clase> {

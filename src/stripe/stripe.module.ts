@@ -11,6 +11,7 @@ import { Cliente } from 'src/clientes/cliente.entity';
 import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
 import { Membresia } from 'src/membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
+import { BitacoraModule } from 'src/bitacora/bitacora.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
       Membresia,
       TipoMembresia,
     ]),
+    BitacoraModule,
   ],
   controllers: [StripeController],
   providers: [StripeService],

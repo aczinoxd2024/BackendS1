@@ -5,7 +5,4 @@ export class CreateReservaDto {
   @IsNumber()
   IDClase: number;
 
-  @IsNotEmpty()
-  @IsString()
-  CI: string;
 }

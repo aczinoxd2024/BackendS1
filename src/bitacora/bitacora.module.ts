@@ -8,6 +8,6 @@ import { BitacoraController } from './bitacora.controller';
   imports: [TypeOrmModule.forFeature([Bitacora])],
   controllers: [BitacoraController],
   providers: [BitacoraService],
-  exports: [BitacoraService],
+  exports: [BitacoraService, TypeOrmModule],
 })
 export class BitacoraModule {}
