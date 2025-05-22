@@ -37,7 +37,7 @@ async registrarAsistencia(ci: string): Promise<Asistencia> {
   const asistenciaExistente = await this.asistenciaRepo.findOne({
     where: {
       fecha: Between(fechaInicio, fechaFin),
-      persona: { CI: persona.CI },
+      persona:persona,
     },
   });
 
@@ -57,6 +57,7 @@ async registrarAsistencia(ci: string): Promise<Asistencia> {
 
   return this.asistenciaRepo.save(nuevaAsistencia);
 }
+  
 
   
 async generarHistorialExcel(ci: string): Promise<Buffer> {
