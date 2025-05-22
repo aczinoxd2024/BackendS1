@@ -7,6 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Usuario } from '../usuarios/usuario.entity';
+import { Pago } from 'src/pagos/pagos.entity';
 
 @Entity('bitacora')
 export class Bitacora {
@@ -14,10 +15,11 @@ export class Bitacora {
   id: number;
 
   @Column()
-  idUsuario: string; // Este es el FK que apunta al usuario.id
+  idUsuario: string; // FK hacia usuario.id
 
   @Column('text')
   accion: string;
+
   @Column({ length: 50 })
   tablaAfectada: string;
 
@@ -27,10 +29,21 @@ export class Bitacora {
   @CreateDateColumn({ type: 'timestamp' })
   fechaHora: Date;
 
-  // ✅ Relación con usuario (importante que coincida con idUsuario)
+  // ✅ Relación con usuario
   @ManyToOne(() => Usuario, (usuario) => usuario.bitacoras, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'idUsuario' }) // este nombre debe ser EXACTO al de la columna
+  @JoinColumn({ name: 'idUsuario' })
   usuario: Usuario;
+
+  // ✅ Nueva relación con pago (opcional)
+  @Column({ nullable: true })
+  IDPago: number;
+
+  @ManyToOne(() => Pago, (pago) => pago.bitacoras, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'IDPago' })
+  pago: Pago;
 }

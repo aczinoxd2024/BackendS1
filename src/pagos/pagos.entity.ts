@@ -5,7 +5,8 @@ import {
   CreateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { DetallePago } from './detalle-pago/detalle-pago.entity'; // Asegúrate de que esta ruta sea correcta
+import { DetallePago } from './detalle-pago/detalle-pago.entity';
+import { Bitacora } from 'src/bitacora/bitacora.entity';
 
 @Entity('pago')
 export class Pago {
@@ -30,7 +31,9 @@ export class Pago {
   @Column({ nullable: true })
   StripePaymentIntentId?: string;
 
-  // 🔗 Relación con DetallePago
   @OneToMany(() => DetallePago, (detalle) => detalle.pago)
   detalles: DetallePago[];
+
+  @OneToMany(() => Bitacora, (bitacora) => bitacora.pago)
+  bitacoras: Bitacora[];
 }

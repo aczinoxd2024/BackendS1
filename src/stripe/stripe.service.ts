@@ -10,6 +10,7 @@ import { Cliente } from 'src/clientes/cliente.entity';
 import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
 import { Membresia } from 'src/membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
+import { Bitacora } from 'src/bitacora/bitacora.entity';
 
 @Injectable()
 export class StripeService {
@@ -17,6 +18,8 @@ export class StripeService {
 
   constructor(
     private readonly configService: ConfigService,
+    @InjectRepository(Bitacora)
+    private readonly bitacoraRepository: Repository<Bitacora>,
     @InjectRepository(Pago) private readonly pagoRepository: Repository<Pago>,
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
@@ -83,24 +86,16 @@ export class StripeService {
     }
 
     const session = event.data.object;
-
     const email = session.metadata?.email ?? null;
     const descripcion = session.metadata?.descripcion ?? null;
     const amount = session.amount_total ?? 0;
     const paymentIntent = session.payment_intent as string;
-
-    console.log('📧 Email:', email);
-    console.log('🧾 Descripción:', descripcion);
-    console.log('💲 Monto:', amount);
-    console.log('💳 PaymentIntent:', paymentIntent);
-    console.log('🔑 EventID:', event.id);
 
     if (!email || !descripcion || !amount) {
       console.log('❌ Faltan datos necesarios del evento. Abortando guardado.');
       return;
     }
 
-    // 🛡️ Prevención de eventos duplicados
     const pagoExistente = await this.pagoRepository.findOne({
       where: { StripeEventId: event.id },
     });
@@ -130,11 +125,10 @@ export class StripeService {
     }
 
     const fechaHoraBolivia = new Date();
-    fechaHoraBolivia.setHours(fechaHoraBolivia.getHours() - 4); // ✅ Ajuste UTC-4
+    fechaHoraBolivia.setHours(fechaHoraBolivia.getHours() - 4);
 
     const nuevoPago = this.pagoRepository.create({
       Fecha: fechaHoraBolivia,
-
       Monto: amount / 100,
       MetodoPago: 2,
       CIPersona: usuario.idPersona.CI,
@@ -143,7 +137,6 @@ export class StripeService {
     });
 
     const pagoGuardado = await this.pagoRepository.save(nuevoPago);
-    console.log('💾 Pago guardado:', pagoGuardado);
 
     const tipo = await this.tipoMembresiaRepository.findOne({
       where: { NombreTipo: descripcion },
@@ -173,11 +166,18 @@ export class StripeService {
     });
 
     await this.detallePagoRepository.save(detalle);
-    console.log('📄 Detalle de pago guardado correctamente.');
 
     cliente.IDEstado = 1;
     await this.clienteRepository.save(cliente);
-    console.log('🟢 Cliente activado exitosamente.');
+
+    // 📝 Registrar en Bitácora
+    await this.bitacoraRepository.save({
+      idUsuario: usuario.id,
+      accion: `Cliente CI ${usuario.id} realizó un pago con Stripe de $${(amount / 100).toFixed(2)} por la membresía "${descripcion}".`,
+      tablaAfectada: 'pago / detalle_pago',
+      ipMaquina: 'web-stripe',
+    });
+    console.log('📝 Registro en bitácora guardado.');
   }
 
   async obtenerPagosPorCliente(ci: string): Promise<Pago[]> {
