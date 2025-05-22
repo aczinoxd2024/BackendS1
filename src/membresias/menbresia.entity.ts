@@ -1,4 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
+import { Cliente } from 'src/clientes/cliente.entity';
 
 @Entity('membresia')
 export class Membresia {
@@ -16,4 +25,14 @@ export class Membresia {
 
   @Column({ name: 'TipoMembresiaID' })
   TipoMembresiaID: number;
+
+  @Column({ name: 'CICliente', nullable: true })
+  CICliente: string;
+
+  @ManyToOne(() => Cliente)
+  @JoinColumn({ name: 'CICliente' })
+  cliente: Cliente;
+
+  @OneToMany(() => DetallePago, (detalle) => detalle.membresia)
+  detalles: DetallePago[];
 }

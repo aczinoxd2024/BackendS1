@@ -25,18 +25,18 @@ export class Clase {
   @Column({ length: 30 })
   Estado: string;
 
- // @Column({ type: 'varchar', length: 20 })
-//CIInstructor: string;
+  // @Column({ type: 'varchar', length: 20 })
+  //CIInstructor: string;
 
-@Column({ type: 'int' })
-CupoMaximo: number;
+  @Column({ type: 'int' })
+  CupoMaximo: number;
 
   //@Column({ length: 100 })
   //Horario: string;
 
   @Column()
   IDSalaa: number;
-  
+
   @ManyToOne(() => Sala, (sala) => sala.clases)
   @JoinColumn({ name: 'IDSalaa' })
   sala: Sala;
@@ -46,5 +46,4 @@ CupoMaximo: number;
 
   @OneToMany(() => ClaseInstructor, (ci) => ci.clase)
   claseInstructores: ClaseInstructor[];
-
 }

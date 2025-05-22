@@ -10,19 +10,19 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  // ✅ Middleware de Stripe Webhook: express.raw + rawBody manual
-  app.use(
-    '/api/stripe/webhook',
-    express.raw({ type: 'application/json' }),
-    (req: Request, _res: Response, next: NextFunction) => {
-      (req as RawBodyRequest).rawBody = req.body as Buffer;
-      next(); // 🔒 ya tipado como NextFunction
-    },
-  );
+  // ✅ Middleware unificado para Stripe Webhook y el resto del backend
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.originalUrl === '/api/stripe/webhook') {
+      express.raw({ type: 'application/json' })(req, res, () => {
+        (req as RawBodyRequest).rawBody = req.body as Buffer;
+        next();
+      });
+    } else {
+      express.json()(req, res, next);
+    }
+  });
 
-  // ✅ Resto del backend usa JSON normal
-  app.use(express.json());
-
+  // ✅ Validaciones globales
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -31,6 +31,7 @@ async function bootstrap() {
     }),
   );
 
+  // ✅ CORS para frontend
   app.enableCors({
     origin: [
       'http://localhost:4200',

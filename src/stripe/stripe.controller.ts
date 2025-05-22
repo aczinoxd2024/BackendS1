@@ -35,9 +35,10 @@ export class StripeController {
     );
     const rawBody = req.rawBody;
 
-    console.log('🧾 Tipo de rawBody:', typeof rawBody);
-    console.log('🧾 rawBody presente?', !!rawBody);
-    console.log('🧾 Header [stripe-signature]:', sig);
+    console.log('📥 Webhook recibido en /stripe/webhook');
+    console.log('📦 typeof rawBody:', typeof rawBody);
+    console.log('📦 Buffer.isBuffer:', Buffer.isBuffer(rawBody));
+    console.log('📦 Header [stripe-signature]:', sig);
 
     let event: Stripe.Event;
 
@@ -47,16 +48,24 @@ export class StripeController {
         sig as string,
         webhookSecret!,
       );
-      console.log('✅ Evento verificado:', event.type);
+      console.log('✅ Firma válida. Tipo de evento:', event.type);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Error desconocido';
-      console.error('❌ Verificación fallida:', errorMessage);
+      console.error('❌ Verificación de firma fallida:', errorMessage);
       return res.status(400).send(`Webhook Error: ${errorMessage}`);
     }
 
-    await this.stripeService.handleEvent(event);
-    return res.status(200).json({ received: true });
+    try {
+      await this.stripeService.handleEvent(event);
+      console.log('✅ Evento procesado correctamente.');
+      return res.status(200).json({ received: true });
+    } catch (err) {
+      console.error('❌ Error al procesar el evento:', err);
+      return res
+        .status(500)
+        .json({ error: 'Error interno al procesar el webhook' });
+    }
   }
 
   @Get('mis-pagos')

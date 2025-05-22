@@ -1,13 +1,22 @@
-import { Entity, PrimaryColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Pago } from '../pagos.entity';
 import { Membresia } from 'src/membresias/menbresia.entity';
 
 @Entity('detalle_pago')
 export class DetallePago {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  ID: number;
+
+  @Column()
   IDPago: number;
 
-  @PrimaryColumn()
+  @Column()
   IDMembresia: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
@@ -16,11 +25,13 @@ export class DetallePago {
   @Column({ type: 'int', nullable: true })
   IDPromo: number | null;
 
-  @ManyToOne(() => Pago)
+  @ManyToOne(() => Pago, (pago) => pago.detalles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'IDPago' })
   pago: Pago;
 
-  @ManyToOne(() => Membresia)
+  @ManyToOne(() => Membresia, (membresia) => membresia.detalles, {
+    onDelete: 'SET NULL',
+  })
   @JoinColumn({ name: 'IDMembresia' })
   membresia: Membresia;
 }

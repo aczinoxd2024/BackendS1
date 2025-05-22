@@ -10,6 +10,7 @@ import { Cliente } from 'src/clientes/cliente.entity';
 import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
 import { Membresia } from 'src/membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
+import { Bitacora } from 'src/bitacora/bitacora.entity';
 
 @Injectable()
 export class StripeService {
@@ -17,6 +18,8 @@ export class StripeService {
 
   constructor(
     private readonly configService: ConfigService,
+    @InjectRepository(Bitacora)
+    private readonly bitacoraRepository: Repository<Bitacora>,
     @InjectRepository(Pago) private readonly pagoRepository: Repository<Pago>,
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
@@ -86,9 +89,19 @@ export class StripeService {
     const email = session.metadata?.email ?? null;
     const descripcion = session.metadata?.descripcion ?? null;
     const amount = session.amount_total ?? 0;
+    const paymentIntent = session.payment_intent as string;
 
     if (!email || !descripcion || !amount) {
       console.log('❌ Faltan datos necesarios del evento. Abortando guardado.');
+      return;
+    }
+
+    const pagoExistente = await this.pagoRepository.findOne({
+      where: { StripeEventId: event.id },
+    });
+
+    if (pagoExistente) {
+      console.log('⚠️ Este evento ya fue procesado. Abortando.');
       return;
     }
 
@@ -111,15 +124,19 @@ export class StripeService {
       return;
     }
 
+    const fechaHoraBolivia = new Date();
+    fechaHoraBolivia.setHours(fechaHoraBolivia.getHours() - 4);
+
     const nuevoPago = this.pagoRepository.create({
-      Fecha: new Date(),
+      Fecha: fechaHoraBolivia,
       Monto: amount / 100,
       MetodoPago: 2,
       CIPersona: usuario.idPersona.CI,
+      StripeEventId: event.id,
+      StripePaymentIntentId: paymentIntent,
     });
 
     const pagoGuardado = await this.pagoRepository.save(nuevoPago);
-    console.log('💾 Pago guardado:', pagoGuardado);
 
     const tipo = await this.tipoMembresiaRepository.findOne({
       where: { NombreTipo: descripcion },
@@ -130,30 +147,72 @@ export class StripeService {
       return;
     }
 
-    const membresia = await this.membresiaRepository.findOne({
-      where: { TipoMembresiaID: tipo.ID },
+    // 🔍 Buscar la última membresía del cliente
+    const ultimaMembresia = await this.membresiaRepository.findOne({
+      where: { CICliente: cliente.CI },
+      order: { FechaFin: 'DESC' },
     });
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Limpiar hora para evitar errores de comparación
 
-    if (!membresia) {
-      console.log(
-        `❌ Membresía no encontrada con TipoMembresiaID = ${tipo.ID}`,
-      );
-      return;
+    let fechaInicio: Date;
+    if (ultimaMembresia && new Date(ultimaMembresia.FechaFin) >= hoy) {
+      fechaInicio = new Date(ultimaMembresia.FechaFin);
+      fechaInicio.setDate(fechaInicio.getDate() + 1); // día siguiente a FechaFin
+    } else {
+      fechaInicio = new Date(); // hoy
     }
 
+    const fechaFin = new Date(fechaInicio);
+    fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
+
+    // ✅ Crear nueva membresía vinculada al cliente
+    const nuevaMembresia = this.membresiaRepository.create({
+      FechaInicio: fechaInicio,
+      FechaFin: fechaFin,
+      PlataformaWeb: 'Web',
+      TipoMembresiaID: tipo.ID,
+      CICliente: cliente.CI,
+    });
+
+    await this.membresiaRepository.save(nuevaMembresia);
+
+    // 🧾 Crear y guardar el detalle del pago vinculado a la nueva membresía
     const detalle = this.detallePagoRepository.create({
       IDPago: pagoGuardado.NroPago,
-      IDMembresia: membresia.IDMembresia,
+      IDMembresia: nuevaMembresia.IDMembresia,
       MontoTotal: amount / 100,
       IDPromo: null,
     });
-
     await this.detallePagoRepository.save(detalle);
-    console.log('📄 Detalle de pago guardado.');
+
+    // ✅ Activar cliente si no lo estaba
+    cliente.IDEstado = 1;
+    await this.clienteRepository.save(cliente);
+
+    // 📝 Registrar renovación o adquisición en bitácora
+    const mensajeAccion = ultimaMembresia
+      ? `Renovó su membresía. Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`
+      : `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`;
+
+    await this.bitacoraRepository.save({
+      idUsuario: usuario.id,
+      accion: `Cliente CI ${usuario.id} realizó un pago con Stripe de $${(amount / 100).toFixed(2)}. ${mensajeAccion}.`,
+      tablaAfectada: 'membresia / pago / detalle_pago',
+      ipMaquina: 'web-stripe',
+    });
 
     cliente.IDEstado = 1;
     await this.clienteRepository.save(cliente);
-    console.log('🟢 Estado del cliente actualizado a ACTIVO.');
+
+    // 📝 Registrar en Bitácora
+    await this.bitacoraRepository.save({
+      idUsuario: usuario.id,
+      accion: `Cliente CI ${usuario.id} realizó un pago con Stripe de $${(amount / 100).toFixed(2)} por la membresía "${descripcion}".`,
+      tablaAfectada: 'pago / detalle_pago',
+      ipMaquina: 'web-stripe',
+    });
+    console.log('📝 Registro en bitácora guardado.');
   }
 
   async obtenerPagosPorCliente(ci: string): Promise<Pago[]> {
