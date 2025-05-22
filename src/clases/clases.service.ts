@@ -270,4 +270,13 @@ await claseInstructorRepo.save(nuevaRelacion);
       ),
     }));
   }
+  async obtenerClasesDisponibles(): Promise<any[]> {
+  return this.clasesRepository.find({
+  select: ['IDClase', 'Nombre', 'CupoMaximo', 'NumInscritos', 'Estado'],
+  where: { Estado: 'Activo' },
+  order: { Nombre: 'ASC' },
+});
+
+}
+
 }
