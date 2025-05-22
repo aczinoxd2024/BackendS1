@@ -11,13 +11,14 @@ import { RolesGuard } from 'src/auth/roles/roles.guard';
 export class ReservasController {
   constructor(private readonly reservasService: ReservasService) {}
 
-  @Post()
-  @Roles('cliente', 'administrador')
-  async crearReserva(@Req() req: Request, @Body() dto: CreateReservaDto) {
-    const ci = (req.user as any)?.ci;
-    if (!ci) throw new UnauthorizedException('Cliente no identificado');
-    return this.reservasService.crearReserva(dto.IDClase, ci);
-  }
+ @Post()
+@Roles('cliente', 'administrador')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async crearReserva(@Req() req: Request, @Body() dto: CreateReservaDto) {
+  const ci = (req.user as any)?.ci;
+  if (!ci) throw new UnauthorizedException('Cliente no identificado');
+  return this.reservasService.crearReserva(dto.IDClase, ci);
+}
 
   @Get('mis-reservas')
   @Roles('cliente')
