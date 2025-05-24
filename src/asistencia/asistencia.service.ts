@@ -23,21 +23,21 @@ export class AsistenciaService {
     private personaRepo: Repository<Persona>,
   ) {}
 async registrarAsistencia(ci: string): Promise<Asistencia> {
-  const hoy = new Date();
-  const fechaHoy = hoy.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+  const ahora = new Date();
+  const fechaHoy = ahora.toISOString().split('T')[0]; // 'YYYY-MM-DD'
 
   const persona = await this.personaRepo.findOne({ where: { CI: ci } });
   if (!persona) {
     throw new BadRequestException('Persona no encontrada con CI: ' + ci);
   }
 
-  const fechaInicio = new Date(fechaHoy + 'T00:00:00.000Z');
-  const fechaFin = new Date(fechaHoy + 'T23:59:59.999Z');
+  const fechaInicio = new Date(`${fechaHoy}T00:00:00.000Z`);
+  const fechaFin = new Date(`${fechaHoy}T23:59:59.999Z`);
 
   const asistenciaExistente = await this.asistenciaRepo.findOne({
     where: {
       fecha: Between(fechaInicio, fechaFin),
-      persona:persona,
+      persona,
     },
   });
 
@@ -45,20 +45,14 @@ async registrarAsistencia(ci: string): Promise<Asistencia> {
     throw new BadRequestException('Ya registraste tu asistencia hoy');
   }
 
-  const ahora = new Date();
-  const horaEntrada = ahora.toTimeString().split(' ')[0];
-
   const nuevaAsistencia = this.asistenciaRepo.create({
-    fecha: fechaHoy,
-    horaEntrada,
+    fecha: ahora, // Guardar fecha completa con hora
     persona,
-    idTipoPer: 1, // Ajusta según lógica real
+    idTipoPer: 1,
   });
 
   return this.asistenciaRepo.save(nuevaAsistencia);
 }
-  
-
   
 async generarHistorialExcel(ci: string): Promise<Buffer> {
   const asistencias = await this.findByCIPersona(ci);
@@ -238,9 +232,9 @@ async contarTotalAsistencias(): Promise<number> {
   return this.asistenciaRepo.find({
     where: { persona: { CI: ci } },
     relations: ['persona'],
-    order: { fecha: 'DESC' },
+    order: { horaEntrada: 'DESC' },
   });
-}
+  }
 
   findAll(): Promise<Asistencia[]> {
     return this.asistenciaRepo.find({ relations: ['persona'] });
