@@ -1,15 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Delete,
-  Param,
-  Body,
-  BadRequestException,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
+import {Controller,Post,Get,Put,Delete,Param,Body,BadRequestException,Req,UnauthorizedException,} from '@nestjs/common';
 import { ClasesService } from './clases.service';
 import { Clase } from './clase.entity';
 import { CreateClaseDto } from './dto/create-clase.dto';
@@ -21,11 +10,21 @@ import { Roles } from 'src/auth/roles/roles.decorator';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
+import { Patch } from '@nestjs/common';        // asegúrate que este archivo exista
+import { BitacoraService } from 'src/bitacora/bitacora.service';
+
+     
+  // asegúrate que este archivo exista
+
 
 
 @Controller('clases')
 export class ClasesController {
-  constructor(private readonly clasesService: ClasesService) {}
+  constructor(
+  private readonly clasesService: ClasesService,
+  private readonly bitacoraService: BitacoraService, // 👈 AÑADIDO
+) {}
+
 
 @Post()
 create(@Body() claseDto: CreateClaseDto): Promise<Clase> {
@@ -111,6 +110,15 @@ async getPermitidas(@Req() req: Request) {
     return this.clasesService.update(idNum, claseDto);
 
   }
+
+  @Patch(':id/suspender')
+@Roles('administrador')
+suspenderClase(@Param('id') id: number, @Req() req: Request) {
+  const usuario = (req.user as any)?.idUsuario ?? 'admin'; // o extraído del token
+  const ip = this.bitacoraService.getClientIp(req);
+  return this.clasesService.suspenderClase(+id, usuario, ip);
+}
+
 
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {

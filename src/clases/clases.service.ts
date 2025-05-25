@@ -12,16 +12,20 @@ import { Horario } from '../horarios/horario.entity';
 import { DiaSemana } from '../dia-semana/dia-semana.entity';
 import { CreateClaseDto } from './dto/create-clase.dto'; // 👈 asegúrate de importar
 import { UpdateClaseDto } from './dto/update-clase.dto';
+import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
+
+import { BitacoraService } from '../bitacora/bitacora.service';
 
 
 @Injectable()
 export class ClasesService {
   constructor(
   @InjectRepository(Clase)
-  private readonly clasesRepository: Repository<Clase>,  // ✅ así se soluciona el error
-
-  private readonly dataSource: DataSource                // ✅ si usas transacciones o queryBuilder
+  private readonly clasesRepository: Repository<Clase>,
+  private readonly dataSource: DataSource,
+  private readonly bitacoraService: BitacoraService, // 👈 AÑADIDO
 ) {}
+
 
   findAll(): Promise<Clase[]> {
     return this.clasesRepository.find();
@@ -295,6 +299,26 @@ async obtenerClasesPermitidas(ci: string): Promise<Clase[]> {
     .andWhere('dp.IDClase IS NOT NULL')
     .getMany();
 }
+
+async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
+  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
+  if (!clase) {
+    throw new NotFoundException('Clase no encontrada');
+  }
+
+  clase.Estado = 'Suspendida';
+  await this.clasesRepository.save(clase);
+
+  await this.bitacoraService.registrar(
+    idUsuario,
+    AccionBitacora.SUSPENDER, // debe estar definido en el enum
+    'clase',
+    ip,
+  );
+
+  return clase;
+}
+
 
 
 }
