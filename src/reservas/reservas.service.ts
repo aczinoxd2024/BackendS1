@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Request } from 'express';
 import { Reserva } from './reserva.entity';
 import { Clase } from '../clases/clase.entity';
 import { Cliente } from '../clientes/cliente.entity';
@@ -164,11 +165,13 @@ async crearReserva(IDClase: number, CI: string) {
     });
   }
 
+
   async findAll(): Promise<Reserva[]> {
     return this.reservasRepository.find({
       relations: ['clase', 'cliente', 'estado', 'horario'],
     });
   }
+
 
   async findOne(id: number): Promise<Reserva> {
     const reserva = await this.reservasRepository.findOne({
@@ -181,10 +184,13 @@ async crearReserva(IDClase: number, CI: string) {
     return reserva;
   }
 
+
   async remove(id: number): Promise<void> {
     const reserva = await this.findOne(id);
     await this.reservasRepository.remove(reserva);
   }
+
+
   async buscarPorCICliente(
     ci: string,
     estado?: string,
@@ -221,34 +227,63 @@ async crearReserva(IDClase: number, CI: string) {
 
     return query.getMany();
   }
-  async cancelarReserva(id: number) {
-    const reserva = await this.reservasRepository.findOne({
-      where: { IDReserva: id },
-      relations: ['estado', 'cliente', 'clase'],
-    });
 
-    if (!reserva) {
-      throw new NotFoundException('Reserva no encontrada');
-    }
+async cancelarReserva(id: number, req: Request) {
+  const reserva = await this.reservasRepository.findOne({
+    where: { IDReserva: id },
+    relations: ['estado', 'cliente', 'clase'],
+  });
 
-    const estadoCancelada = await this.estadoReservaRepository.findOneBy({
-      Estado: 'Cancelada',
-    });
-
-    if (!estadoCancelada) {
-      throw new NotFoundException('Estado "Cancelada" no existe');
-    }
-
-    reserva.estado = estadoCancelada;
-    await this.reservasRepository.save(reserva);
-
-    await this.bitacoraRepository.save({
-      idUsuario: reserva.cliente?.CI,
-      accion: 'RESERVA CANCELADA (admin)',
-      tablaAfectada: 'reserva',
-      ipMaquina: '127.0.0.1',
-    });
+  if (!reserva) {
+    throw new NotFoundException('Reserva no encontrada');
   }
+
+  const estadoCancelada = await this.estadoReservaRepository.findOneBy({
+    Estado: 'Cancelada',
+  });
+
+  if (!estadoCancelada) {
+    throw new NotFoundException('Estado "Cancelada" no existe');
+  }
+
+  // ✅ Cambiar estado de la reserva
+  reserva.estado = estadoCancelada;
+  await this.reservasRepository.save(reserva);
+
+  // ✅ Recalcular inscritos confirmados de la clase
+  const clase = reserva.clase;
+
+  const reservasConfirmadas = await this.reservasRepository.count({
+    where: {
+      clase: { IDClase: clase.IDClase },
+      estado: { Estado: 'Confirmada' },
+    },
+    relations: ['estado'],
+  });
+
+  clase.NumInscritos = reservasConfirmadas;
+
+  const mitad = Math.ceil(clase.CupoMaximo / 2);
+  if (clase.Estado === 'Activo' && reservasConfirmadas < mitad) {
+    clase.Estado = 'Pendiente';
+  }
+
+  await this.claseRepository.save(clase);
+
+  // ✅ Obtener IP real del solicitante
+  const ip =
+    req.headers['x-forwarded-for']?.toString() ||
+    req.socket.remoteAddress ||
+    'IP_DESCONOCIDA';
+
+  // ✅ Registrar en bitácora con detalle de clase e IP
+  await this.bitacoraRepository.save({
+    idUsuario: reserva.cliente?.CI,
+    accion: `Reserva cancelada (cliente) - Clase: ${clase.Nombre}`,
+    tablaAfectada: 'reserva',
+    ipMaquina: ip,
+  });
+}
 
   async getReservasPasadas(
     ciCliente: string,

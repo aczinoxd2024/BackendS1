@@ -116,9 +116,14 @@ async cancelarReservaCliente(
   }
 
   @Patch(':id/cancelar')
-  @Roles('recepcionista', 'administrador')
-  async cancelarReserva(@Param('id') id: number): Promise<{ message: string }> {
-    await this.reservasService.cancelarReserva(id);
-    return { message: 'Reserva cancelada correctamente' };
-  }
+@Roles('recepcionista', 'administrador')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async cancelarReserva(
+  @Param('id') id: number,
+  @Req() req: Request
+): Promise<{ message: string }> {
+  await this.reservasService.cancelarReserva(id, req);
+  return { message: 'Reserva cancelada correctamente' };
+}
+
 }
