@@ -108,7 +108,8 @@ async getPermitidas(@Req() req: Request) {
     if (isNaN(idNum)) {
       throw new BadRequestException('El ID de clase debe ser un número válido');
     }
-    return this.clasesService.update(idNum, claseDto as Clase);
+    return this.clasesService.update(idNum, claseDto);
+
   }
 
   @Delete(':id')

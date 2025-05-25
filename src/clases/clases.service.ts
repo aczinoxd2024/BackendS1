@@ -11,14 +11,17 @@ import { Personal } from '../personal/personal.entity';
 import { Horario } from '../horarios/horario.entity';
 import { DiaSemana } from '../dia-semana/dia-semana.entity';
 import { CreateClaseDto } from './dto/create-clase.dto'; // 👈 asegúrate de importar
+import { UpdateClaseDto } from './dto/update-clase.dto';
+
 
 @Injectable()
 export class ClasesService {
   constructor(
-    @InjectRepository(Clase)
-    private clasesRepository: Repository<Clase>,
-    private readonly dataSource: DataSource,
-  ) {}
+  @InjectRepository(Clase)
+  private readonly clasesRepository: Repository<Clase>,  // ✅ así se soluciona el error
+
+  private readonly dataSource: DataSource                // ✅ si usas transacciones o queryBuilder
+) {}
 
   findAll(): Promise<Clase[]> {
     return this.clasesRepository.find();
@@ -33,10 +36,15 @@ export class ClasesService {
   }
   
 
-  async update(id: number, clase: Clase): Promise<Clase> {
-    await this.clasesRepository.update(id, clase);
-    return this.findOne(id);
-  }
+  async update(id: number, dto: UpdateClaseDto): Promise<Clase> {
+  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
+  if (!clase) throw new NotFoundException('Clase no encontrada');
+
+  Object.assign(clase, dto); // ✅ Copia los campos válidos del DTO
+
+  return this.clasesRepository.save(clase); // Guarda los cambios
+}
+
 
   async remove(id: number): Promise<void> {
     await this.clasesRepository.delete(id);
