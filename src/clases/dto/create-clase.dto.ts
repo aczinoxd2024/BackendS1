@@ -1,6 +1,10 @@
 import { IsNotEmpty, IsString, IsNumber, Matches } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { HoraValida } from '../validators/hora-valid-range.validator';
 
+@HoraValida({
+  message: 'La hora de fin debe ser mayor que la hora de inicio',
+})
 export class CreateClaseDto {
   @IsNotEmpty()
   @IsString()
@@ -25,7 +29,7 @@ export class CreateClaseDto {
     if (value === 'Sabado') return 'Sábado';
     return value;
   })
-  Dia: string; // Ej: 'Lunes', 'Martes'
+  Dia: string;
 
   @IsNotEmpty()
   @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
