@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString, IsNumber, Matches } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateClaseDto {
   @IsNotEmpty()
@@ -19,6 +20,11 @@ export class CreateClaseDto {
 
   @IsNotEmpty()
   @IsString()
+  @Transform(({ value }) => {
+    if (value === 'Miercoles') return 'Miércoles';
+    if (value === 'Sabado') return 'Sábado';
+    return value;
+  })
   Dia: string; // Ej: 'Lunes', 'Martes'
 
   @IsNotEmpty()
