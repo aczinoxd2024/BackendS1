@@ -18,6 +18,7 @@ import { TipoPersonaModule } from './tipo-persona/tipo-persona.module';
 import { PersonaTipoModule } from './persona-tipo/persona-tipo.module';
 import { AuthModule } from './auth/auth.module';
 import { MembresiasModule } from './membresias/membresias.module';
+import { SalaModule } from './salas/sala.module';
 import { ClasesModule } from './clases/clases.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -103,6 +104,7 @@ import { join } from 'path';
     PersonalModule,
     DiaSemanaModule,
     AsistenciaModule,
+    SalaModule,
   ],
   providers: [
     {
