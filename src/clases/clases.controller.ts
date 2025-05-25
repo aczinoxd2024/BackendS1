@@ -18,6 +18,10 @@ import { plainToInstance } from 'class-transformer';
 import { AsignarInstructorDto } from './dto/asignar-instructor.dto';
 import { Request } from 'express';
 import { Roles } from 'src/auth/roles/roles.decorator';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
+import { RolesGuard } from 'src/auth/roles/roles.guard';
+
 
 @Controller('clases')
 export class ClasesController {
@@ -79,8 +83,13 @@ create(@Body() claseDto: CreateClaseDto): Promise<Clase> {
 async getDisponibles() {
   return this.clasesService.obtenerClasesDisponibles();
 }
-
-
+@Get('permitidas')
+@Roles('cliente')
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getPermitidas(@Req() req: Request) {
+  const ci = (req.user as any)?.ci;
+  return this.clasesService.obtenerClasesPermitidas(ci);
+}
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Clase> {
     const idNum = Number(id);

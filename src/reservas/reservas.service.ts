@@ -30,62 +30,71 @@ export class ReservasService {
     private readonly bitacoraRepository: Repository<Bitacora>,
 
   ) {}
+async crearReserva(IDClase: number, CI: string) {
+  // ✅ Validar que la clase fue pagada por el cliente
+  const claseAutorizada = await this.claseRepository
+    .createQueryBuilder('clase')
+    .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
+    .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
+    .where('p.CIPersona = :ci', { ci: CI })
+    .andWhere('dp.IDClase = :idClase', { idClase: IDClase })
+    .getOne();
 
- async crearReserva(IDClase: number, CI: string) {
-    const clase = await this.claseRepository.findOneBy({ IDClase });
-    if (!clase) throw new NotFoundException('Clase no encontrada');
+  if (!claseAutorizada) {
+    throw new ConflictException('No tienes acceso a esta clase. Adquiere una membresía válida.');
+  }
 
-    const estadoConfirmada = await this.estadoReservaRepository.findOneBy({
-      Estado: 'Confirmada',
-    });
-    if (!estadoConfirmada)
-      throw new NotFoundException('Estado "Confirmada" no encontrado');
+  // ✅ Validar que la clase existe
+  const clase = await this.claseRepository.findOneBy({ IDClase });
+  if (!clase) throw new NotFoundException('Clase no encontrada');
 
-    const horario = await this.horarioRepository.findOne({
-      where: { clase: { IDClase } },
-      order: { HoraIni: 'ASC' },
-      relations: ['clase'],
-    });
-    if (!horario)
-      throw new NotFoundException('No hay horario asignado a esta clase');
+  // ✅ Validar estado de la clase
+  const estadoConfirmada = await this.estadoReservaRepository.findOneBy({
+    Estado: 'Confirmada',
+  });
+  if (!estadoConfirmada) {
+    throw new NotFoundException('Estado "Confirmada" no encontrado');
+  }
 
-    const yaExiste = await this.reservasRepository.findOne({
-      where: {
-        clase: { IDClase },
-        cliente: { CI },
-        estado: { Estado: 'Confirmada' },
-      },
-      relations: ['clase', 'cliente', 'estado'],
-    });
+  // ✅ Obtener el horario de la clase
+  const horario = await this.horarioRepository.findOne({
+    where: { clase: { IDClase } },
+    order: { HoraIni: 'ASC' },
+    relations: ['clase'],
+  });
+  if (!horario) {
+    throw new NotFoundException('No hay horario asignado a esta clase');
+  }
 
-    if (yaExiste)
-      throw new ConflictException('Ya tienes una reserva activa para esta clase');
+  // ✅ Validar cupos
+  const cupos = await this.reservasRepository.count({
+    where: {
+      clase: { IDClase },
+      estado: { Estado: 'Confirmada' },
+    },
+    relations: ['estado'],
+  });
 
-    const cupos = await this.reservasRepository.count({
-      where: {
-        clase: { IDClase },
-        estado: { Estado: 'Confirmada' },
-      },
-      relations: ['estado'],
-    });
+  if (cupos >= clase.CupoMaximo) {
+    throw new ConflictException('Clase sin cupos disponibles');
+  }
 
-    if (cupos >= clase.CupoMaximo) {
-      throw new ConflictException('Clase sin cupos disponibles');
-    }
+  // ✅ Validar que la clase aún no comenzó y que falten al menos 30 min
+  const ahora = new Date();
+  const hoy = ahora.toISOString().split('T')[0];
+  const horaInicio = new Date(`${hoy}T${horario.HoraIni}`);
 
-    const ahora = new Date();
-    const hoy = ahora.toISOString().split('T')[0];
-    const horaInicio = new Date(`${hoy}T${horario.HoraIni}`);
+  if (ahora >= horaInicio) {
+    throw new ConflictException('La clase ya ha comenzado');
+  }
 
-    if (ahora >= horaInicio) {
-      throw new ConflictException('La clase ya ha comenzado');
-    }
+  const diferenciaMin = (horaInicio.getTime() - ahora.getTime()) / (1000 * 60);
+  if (diferenciaMin < 30) {
+    throw new ConflictException('Solo puedes reservar con al menos 30 minutos de anticipación');
+  }
 
-    const diferenciaMin = (horaInicio.getTime() - ahora.getTime()) / (1000 * 60);
-    if (diferenciaMin < 30) {
-      throw new ConflictException('Solo puedes reservar con al menos 30 minutos de anticipación');
-    }
-      const reservasCliente = await this.reservasRepository.find({
+  // ✅ Verificar solapamiento con otras reservas del cliente
+  const reservasCliente = await this.reservasRepository.find({
     where: {
       cliente: { CI },
       estado: { Estado: 'Confirmada' },
@@ -98,8 +107,10 @@ export class ReservasService {
     const horaFinExistente = reserva.horario?.HoraFin;
     if (!horaIniExistente || !horaFinExistente) continue;
 
-    const [h1Start, h1End] = [new Date(`${hoy}T${horaIniExistente}`), new Date(`${hoy}T${horaFinExistente}`)];
-    const [h2Start, h2End] = [horaInicio, new Date(`${hoy}T${horario.HoraFin}`)];
+    const h1Start = new Date(`${hoy}T${horaIniExistente}`);
+    const h1End = new Date(`${hoy}T${horaFinExistente}`);
+    const h2Start = horaInicio;
+    const h2End = new Date(`${hoy}T${horario.HoraFin}`);
 
     const haySolapamiento = h1Start < h2End && h2Start < h1End;
     if (haySolapamiento) {
@@ -107,38 +118,40 @@ export class ReservasService {
     }
   }
 
-    const nuevaReserva = this.reservasRepository.create({
-      clase: { IDClase } as any,
-      cliente: { CI } as any,
-      estado: estadoConfirmada,
-      FechaReserva: new Date(),
-      horario: { IDHorario: horario.IDHorario } as any,
-    });
+  // ✅ Crear la reserva
+  const nuevaReserva = this.reservasRepository.create({
+    clase: { IDClase } as any,
+    cliente: { CI } as any,
+    estado: estadoConfirmada,
+    FechaReserva: new Date(),
+    horario: { IDHorario: horario.IDHorario } as any,
+  });
 
-    const reservaGuardada = await this.reservasRepository.save(nuevaReserva);
+  const reservaGuardada = await this.reservasRepository.save(nuevaReserva);
 
-    clase.NumInscritos++;
-    if (clase.Estado === 'Pendiente' && clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2)) {
-      clase.Estado = 'Activo';
-    }
-    await this.claseRepository.save(clase);
-
-    const claseSeActivo =
-      clase.Estado === 'Activo' &&
-      clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2);
-
-    await this.bitacoraRepository.save({
-      idUsuario: CI,
-      accion: 'RESERVA CREADA',
-      tablaAfectada: 'reserva',
-      ipMaquina: '127.0.0.1',
-    });
-
-    return {
-      ...reservaGuardada,
-      claseActivada: claseSeActivo,
-    };
+  // ✅ Actualizar estado de la clase si se activa
+  clase.NumInscritos++;
+  if (clase.Estado === 'Pendiente' && clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2)) {
+    clase.Estado = 'Activo';
   }
+  await this.claseRepository.save(clase);
+
+  const claseSeActivo = clase.Estado === 'Activo';
+
+  // ✅ Registrar en bitácora
+  await this.bitacoraRepository.save({
+    idUsuario: CI,
+    accion: 'RESERVA CREADA',
+    tablaAfectada: 'reserva',
+    ipMaquina: '127.0.0.1',
+  });
+
+  return {
+    ...reservaGuardada,
+    claseActivada: claseSeActivo,
+  };
+}
+
 
 
   async buscarPorCliente(ci: string) {

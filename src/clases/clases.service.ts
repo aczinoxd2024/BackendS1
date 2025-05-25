@@ -274,9 +274,19 @@ await claseInstructorRepo.save(nuevaRelacion);
   return this.clasesRepository.find({
   select: ['IDClase', 'Nombre', 'CupoMaximo', 'NumInscritos', 'Estado'],
   where: { Estado: 'Activo' },
-  order: { Nombre: 'ASC' },
+  order: { Nombre: 'ASC' }, 
 });
 
 }
+async obtenerClasesPermitidas(ci: string): Promise<Clase[]> {
+  return this.clasesRepository
+    .createQueryBuilder('clase')
+    .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
+    .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
+    .where('p.CIPersona = :ci', { ci })
+    .andWhere('dp.IDClase IS NOT NULL')
+    .getMany();
+}
+
 
 }
