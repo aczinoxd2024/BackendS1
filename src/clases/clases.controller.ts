@@ -114,4 +114,21 @@ async getPermitidas(@Req() req: Request) {
     }
     return this.clasesService.remove(idNum);
   }
+
+  @Patch(':id/suspender')
+// Puedes protegerlo después con @Roles y @UseGuards si lo deseas
+suspenderClase(@Param('id') id: string, @Req() req: Request) {
+  const usuario = (req.user as any)?.idUsuario ?? 'admin'; // por ahora usa "admin"
+  const ip = req.ip ?? '127.0.0.1'; // usa IP por defecto si no se obtiene
+  return this.clasesService.suspenderClase(Number(id), usuario, ip);
+}
+
+@Patch(':id/reactivar')
+// Puedes protegerlo después con @Roles y @UseGuards si lo deseas
+reactivarClase(@Param('id') id: string, @Req() req: Request) {
+  const usuario = (req.user as any)?.idUsuario ?? 'admin';
+  const ip = req.ip ?? '127.0.0.1';
+  return this.clasesService.reactivarClase(Number(id), usuario, ip);
+}
+
 }
