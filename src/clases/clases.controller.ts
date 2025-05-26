@@ -119,6 +119,14 @@ suspenderClase(@Param('id') id: number, @Req() req: Request) {
   return this.clasesService.suspenderClase(+id, usuario, ip);
 }
 
+@Patch(':id/reactivar')
+@Roles('administrador')
+reactivarClase(@Param('id') id: number, @Req() req: Request) {
+  const usuario = (req.user as any)?.idUsuario ?? 'admin';
+  const ip = this.bitacoraService.getClientIp(req);
+  return this.clasesService.reactivarClase(id, usuario, ip);
+}
+
 
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {

@@ -308,17 +308,31 @@ async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> 
 
   clase.Estado = 'Suspendida';
   await this.clasesRepository.save(clase);
+   await this.bitacoraService.registrar(
+     idUsuario,
+     AccionBitacora.SUSPENDER,
+     'clase',
+     ip,
+    );
+    return clase;
+  }
 
+  async reactivarClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
+  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
+  if (!clase) {
+    throw new NotFoundException('Clase no encontrada');
+  }
+
+  clase.Estado = 'Activo';
+  await this.clasesRepository.save(clase);
   await this.bitacoraService.registrar(
-    idUsuario,
-    AccionBitacora.SUSPENDER, // debe estar definido en el enum
+    idUsuario || 'admin',
+    AccionBitacora.REACTIVAR,
     'clase',
     ip,
   );
 
   return clase;
 }
-
-
 
 }
