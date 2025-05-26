@@ -11,8 +11,6 @@ import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
 import { Patch } from '@nestjs/common';        // asegúrate que este archivo exista
-import { BitacoraService } from 'src/bitacora/bitacora.service';
-
      
   // asegúrate que este archivo exista
 
@@ -20,11 +18,7 @@ import { BitacoraService } from 'src/bitacora/bitacora.service';
 
 @Controller('clases')
 export class ClasesController {
-  constructor(
-  private readonly clasesService: ClasesService,
-  private readonly bitacoraService: BitacoraService, // 👈 AÑADIDO
-) {}
-
+  constructor(private readonly clasesService: ClasesService) {}
 
 @Post()
 create(@Body() claseDto: CreateClaseDto): Promise<Clase> {
@@ -110,22 +104,6 @@ async getPermitidas(@Req() req: Request) {
     return this.clasesService.update(idNum, claseDto);
 
   }
-
-  @Patch(':id/suspender')
-@Roles('administrador')
-suspenderClase(@Param('id') id: number, @Req() req: Request) {
-  const usuario = (req.user as any)?.idUsuario ?? 'admin'; // o extraído del token
-  const ip = this.bitacoraService.getClientIp(req);
-  return this.clasesService.suspenderClase(+id, usuario, ip);
-}
-
-@Patch(':id/reactivar')
-@Roles('administrador')
-reactivarClase(@Param('id') id: number, @Req() req: Request) {
-  const usuario = (req.user as any)?.idUsuario ?? 'admin';
-  const ip = this.bitacoraService.getClientIp(req);
-  return this.clasesService.reactivarClase(id, usuario, ip);
-}
 
 
   @Delete(':id')

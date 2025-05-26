@@ -27,9 +27,11 @@ export class ClasesService {
 ) {}
 
 
-  findAll(): Promise<Clase[]> {
-    return this.clasesRepository.find();
-  }
+ findAll(): Promise<Clase[]> {
+  return this.clasesRepository.find({
+    relations: ['sala'], // ✅ Esto carga la sala relacionada
+  });
+}
 
   async findOne(id: number): Promise<Clase> {
     const clase = await this.clasesRepository.findOneBy({ IDClase: id });
