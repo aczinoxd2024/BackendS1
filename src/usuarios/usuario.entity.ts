@@ -9,6 +9,8 @@ import {
 import { Persona } from '../personas/persona.entity';
 import { UsuarioPerfil } from './usuario-perfil.entity';
 import { Bitacora } from '../bitacora/bitacora.entity';
+import { Cliente } from '../clientes/cliente.entity';
+
 
 @Entity('usuario')
 export class Usuario {
@@ -20,6 +22,9 @@ export class Usuario {
 
   @Column({ name: 'Contrasena' })
   contrasena: string;
+
+  @OneToMany(() => Cliente, (cliente) => cliente.usuario)
+clientes: Cliente[];
 
   // 🔗 Relación con persona (CI, nombre, apellido, etc.)
   @ManyToOne(() => Persona, { eager: true })
