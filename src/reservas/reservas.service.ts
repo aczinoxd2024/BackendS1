@@ -2,9 +2,11 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  InternalServerErrorException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Request } from 'express';
 import { Reserva } from './reserva.entity';
 import { Clase } from '../clases/clase.entity';
 import { Cliente } from '../clientes/cliente.entity';
@@ -30,37 +32,53 @@ export class ReservasService {
     private readonly bitacoraRepository: Repository<Bitacora>,
 
   ) {}
+async crearReserva(IDClase: number, CI: string) {
+  try {
+    // ✅ Validar que la clase fue pagada por el cliente
+    const claseAutorizada = await this.claseRepository
+      .createQueryBuilder('clase')
+      .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
+      .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
+      .where('p.CIPersona = :ci', { ci: CI })
+      .andWhere('dp.IDClase = :idClase', { idClase: IDClase })
+      .getOne();
 
- async crearReserva(IDClase: number, CI: string) {
+    if (!claseAutorizada) {
+      throw new ConflictException('No tienes acceso a esta clase. Adquiere una membresía válida.');
+    }
+
+    // ✅ Validar que la clase existe
     const clase = await this.claseRepository.findOneBy({ IDClase });
     if (!clase) throw new NotFoundException('Clase no encontrada');
 
+    // ✅ Validar estado "Confirmada"
     const estadoConfirmada = await this.estadoReservaRepository.findOneBy({
       Estado: 'Confirmada',
     });
-    if (!estadoConfirmada)
+    if (!estadoConfirmada) {
       throw new NotFoundException('Estado "Confirmada" no encontrado');
+    }
 
+    // ✅ Obtener el cliente con usuario
+    const cliente = await this.clienteRepository.findOne({
+      where: { CI },
+      relations: ['usuario'],
+    });
+    if (!cliente || !cliente.usuario) {
+      throw new ConflictException('El cliente no tiene un usuario asociado');
+    }
+
+    // ✅ Obtener horario de la clase
     const horario = await this.horarioRepository.findOne({
       where: { clase: { IDClase } },
       order: { HoraIni: 'ASC' },
       relations: ['clase'],
     });
-    if (!horario)
+    if (!horario) {
       throw new NotFoundException('No hay horario asignado a esta clase');
+    }
 
-    const yaExiste = await this.reservasRepository.findOne({
-      where: {
-        clase: { IDClase },
-        cliente: { CI },
-        estado: { Estado: 'Confirmada' },
-      },
-      relations: ['clase', 'cliente', 'estado'],
-    });
-
-    if (yaExiste)
-      throw new ConflictException('Ya tienes una reserva activa para esta clase');
-
+    // ✅ Validar cupos
     const cupos = await this.reservasRepository.count({
       where: {
         clase: { IDClase },
@@ -73,6 +91,7 @@ export class ReservasService {
       throw new ConflictException('Clase sin cupos disponibles');
     }
 
+    // ✅ Validar que la clase aún no comenzó y hay al menos 30 minutos
     const ahora = new Date();
     const hoy = ahora.toISOString().split('T')[0];
     const horaInicio = new Date(`${hoy}T${horario.HoraIni}`);
@@ -85,48 +104,53 @@ export class ReservasService {
     if (diferenciaMin < 30) {
       throw new ConflictException('Solo puedes reservar con al menos 30 minutos de anticipación');
     }
-      const reservasCliente = await this.reservasRepository.find({
-    where: {
-      cliente: { CI },
-      estado: { Estado: 'Confirmada' },
-    },
-    relations: ['horario'],
-  });
 
-  for (const reserva of reservasCliente) {
-    const horaIniExistente = reserva.horario?.HoraIni;
-    const horaFinExistente = reserva.horario?.HoraFin;
-    if (!horaIniExistente || !horaFinExistente) continue;
+    // ✅ Validar solapamiento de horarios
+    const reservasCliente = await this.reservasRepository.find({
+      where: {
+        cliente: { CI },
+        estado: { Estado: 'Confirmada' },
+      },
+      relations: ['horario'],
+    });
 
-    const [h1Start, h1End] = [new Date(`${hoy}T${horaIniExistente}`), new Date(`${hoy}T${horaFinExistente}`)];
-    const [h2Start, h2End] = [horaInicio, new Date(`${hoy}T${horario.HoraFin}`)];
+    for (const reserva of reservasCliente) {
+      const horaIniExistente = reserva.horario?.HoraIni;
+      const horaFinExistente = reserva.horario?.HoraFin;
+      if (!horaIniExistente || !horaFinExistente) continue;
 
-    const haySolapamiento = h1Start < h2End && h2Start < h1End;
-    if (haySolapamiento) {
-      throw new ConflictException('Ya tienes una reserva con horario solapado');
+      const h1Start = new Date(`${hoy}T${horaIniExistente}`);
+      const h1End = new Date(`${hoy}T${horaFinExistente}`);
+      const h2Start = horaInicio;
+      const h2End = new Date(`${hoy}T${horario.HoraFin}`);
+
+      const haySolapamiento = h1Start < h2End && h2Start < h1End;
+      if (haySolapamiento) {
+        throw new ConflictException('Ya tienes una reserva con horario solapado');
+      }
     }
-  }
 
+    // ✅ Crear y guardar reserva
     const nuevaReserva = this.reservasRepository.create({
-      clase: { IDClase } as any,
-      cliente: { CI } as any,
+      clase,
+      cliente,
       estado: estadoConfirmada,
       FechaReserva: new Date(),
-      horario: { IDHorario: horario.IDHorario } as any,
+      horario,
     });
 
     const reservaGuardada = await this.reservasRepository.save(nuevaReserva);
 
+    // ✅ Actualizar estado de clase si se activa
     clase.NumInscritos++;
     if (clase.Estado === 'Pendiente' && clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2)) {
       clase.Estado = 'Activo';
     }
     await this.claseRepository.save(clase);
 
-    const claseSeActivo =
-      clase.Estado === 'Activo' &&
-      clase.NumInscritos >= Math.ceil(clase.CupoMaximo / 2);
+    const claseSeActivo = clase.Estado === 'Activo';
 
+    // ✅ Registrar en bitácora
     await this.bitacoraRepository.save({
       idUsuario: CI,
       accion: 'RESERVA CREADA',
@@ -138,7 +162,13 @@ export class ReservasService {
       ...reservaGuardada,
       claseActivada: claseSeActivo,
     };
+
+  } catch (error) {
+    console.error('❌ Error al crear reserva:', error);
+    throw new InternalServerErrorException('Error interno al crear la reserva');
   }
+}
+
 
 
   async buscarPorCliente(ci: string) {
@@ -151,11 +181,13 @@ export class ReservasService {
     });
   }
 
+
   async findAll(): Promise<Reserva[]> {
     return this.reservasRepository.find({
       relations: ['clase', 'cliente', 'estado', 'horario'],
     });
   }
+
 
   async findOne(id: number): Promise<Reserva> {
     const reserva = await this.reservasRepository.findOne({
@@ -168,10 +200,13 @@ export class ReservasService {
     return reserva;
   }
 
+
   async remove(id: number): Promise<void> {
     const reserva = await this.findOne(id);
     await this.reservasRepository.remove(reserva);
   }
+
+
   async buscarPorCICliente(
     ci: string,
     estado?: string,
@@ -208,34 +243,69 @@ export class ReservasService {
 
     return query.getMany();
   }
-  async cancelarReserva(id: number) {
-    const reserva = await this.reservasRepository.findOne({
-      where: { IDReserva: id },
-      relations: ['estado', 'cliente', 'clase'],
-    });
 
-    if (!reserva) {
-      throw new NotFoundException('Reserva no encontrada');
-    }
+async cancelarReserva(id: number, req: Request) {
+   try {
+  const reserva = await this.reservasRepository.findOne({
+    where: { IDReserva: id },
+    relations: ['estado', 'cliente', 'clase'],
+  });
 
-    const estadoCancelada = await this.estadoReservaRepository.findOneBy({
-      Estado: 'Cancelada',
-    });
-
-    if (!estadoCancelada) {
-      throw new NotFoundException('Estado "Cancelada" no existe');
-    }
-
-    reserva.estado = estadoCancelada;
-    await this.reservasRepository.save(reserva);
-
-    await this.bitacoraRepository.save({
-      idUsuario: reserva.cliente?.CI,
-      accion: 'RESERVA CANCELADA (admin)',
-      tablaAfectada: 'reserva',
-      ipMaquina: '127.0.0.1',
-    });
+  if (!reserva) {
+    throw new NotFoundException('Reserva no encontrada');
   }
+
+  const estadoCancelada = await this.estadoReservaRepository.findOneBy({
+    Estado: 'Cancelada',
+  });
+
+  if (!estadoCancelada) {
+    throw new NotFoundException('Estado "Cancelada" no existe');
+  }
+
+  // ✅ Cambiar estado de la reserva
+  reserva.estado = estadoCancelada;
+  await this.reservasRepository.save(reserva);
+
+  // ✅ Recalcular inscritos confirmados de la clase
+  const clase = reserva.clase;
+
+  const reservasConfirmadas = await this.reservasRepository.count({
+    where: {
+      clase: { IDClase: clase.IDClase },
+      estado: { Estado: 'Confirmada' },
+    },
+    relations: ['estado'],
+  });
+
+  clase.NumInscritos = reservasConfirmadas;
+
+  const mitad = Math.ceil(clase.CupoMaximo / 2);
+  if (clase.Estado === 'Activo' && reservasConfirmadas < mitad) {
+    clase.Estado = 'Pendiente';
+  }
+
+  await this.claseRepository.save(clase);
+
+  // ✅ Obtener IP real del solicitante
+  const ip =
+    req.headers['x-forwarded-for']?.toString() ||
+    req.socket.remoteAddress ||
+    'IP_DESCONOCIDA';
+
+  // ✅ Registrar en bitácora con detalle de clase e IP
+  await this.bitacoraRepository.save({
+    idUsuario: reserva.cliente?.CI,
+    accion: `Reserva cancelada (cliente) - Clase: ${clase.Nombre}`,
+    tablaAfectada: 'reserva',
+    ipMaquina: ip,
+  });
+
+} catch (error) {
+    console.error('❌ Error al cancelar reserva (admin/recepcionista):', error);
+    throw new InternalServerErrorException('Error interno al cancelar la reserva');
+  }
+}
 
   async getReservasPasadas(
     ciCliente: string,
@@ -319,6 +389,7 @@ export class ReservasService {
   return query.orderBy('clase.Nombre', 'ASC').getMany();
 }
  async cancelarReservaCliente(id: number, ci: string) {
+  try {
     const reserva = await this.reservasRepository.findOne({
       where: {
         IDReserva: id,
@@ -348,5 +419,9 @@ export class ReservasService {
       tablaAfectada: 'reserva',
       ipMaquina: '127.0.0.1',
     });
+   } catch (error) {
+    console.error('❌ Error al cancelar reserva (cliente):', error);
+    throw new InternalServerErrorException('Error interno al cancelar la reserva del cliente');
   }
+}
 }

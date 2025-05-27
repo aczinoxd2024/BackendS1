@@ -11,18 +11,27 @@ import { Personal } from '../personal/personal.entity';
 import { Horario } from '../horarios/horario.entity';
 import { DiaSemana } from '../dia-semana/dia-semana.entity';
 import { CreateClaseDto } from './dto/create-clase.dto'; // 👈 asegúrate de importar
+import { UpdateClaseDto } from './dto/update-clase.dto';
+import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
+
+import { BitacoraService } from '../bitacora/bitacora.service';
+
 
 @Injectable()
 export class ClasesService {
   constructor(
-    @InjectRepository(Clase)
-    private clasesRepository: Repository<Clase>,
-    private readonly dataSource: DataSource,
-  ) {}
+  @InjectRepository(Clase)
+  private readonly clasesRepository: Repository<Clase>,
+  private readonly dataSource: DataSource,
+  private readonly bitacoraService: BitacoraService, // 👈 AÑADIDO
+) {}
 
-  findAll(): Promise<Clase[]> {
-    return this.clasesRepository.find();
-  }
+
+ findAll(): Promise<Clase[]> {
+  return this.clasesRepository.find({
+    relations: ['sala'], // ✅ Esto carga la sala relacionada
+  });
+}
 
   async findOne(id: number): Promise<Clase> {
     const clase = await this.clasesRepository.findOneBy({ IDClase: id });
@@ -33,10 +42,15 @@ export class ClasesService {
   }
   
 
-  async update(id: number, clase: Clase): Promise<Clase> {
-    await this.clasesRepository.update(id, clase);
-    return this.findOne(id);
-  }
+  async update(id: number, dto: UpdateClaseDto): Promise<Clase> {
+  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
+  if (!clase) throw new NotFoundException('Clase no encontrada');
+
+  Object.assign(clase, dto); // ✅ Copia los campos válidos del DTO
+
+  return this.clasesRepository.save(clase); // Guarda los cambios
+}
+
 
   async remove(id: number): Promise<void> {
     await this.clasesRepository.delete(id);
@@ -274,9 +288,53 @@ await claseInstructorRepo.save(nuevaRelacion);
   return this.clasesRepository.find({
   select: ['IDClase', 'Nombre', 'CupoMaximo', 'NumInscritos', 'Estado'],
   where: { Estado: 'Activo' },
-  order: { Nombre: 'ASC' },
+  order: { Nombre: 'ASC' }, 
 });
 
+}
+async obtenerClasesPermitidas(ci: string): Promise<Clase[]> {
+  return this.clasesRepository
+    .createQueryBuilder('clase')
+    .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
+    .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
+    .where('p.CIPersona = :ci', { ci })
+    .andWhere('dp.IDClase IS NOT NULL')
+    .getMany();
+}
+
+async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
+  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
+  if (!clase) {
+    throw new NotFoundException('Clase no encontrada');
+  }
+
+  clase.Estado = 'Suspendida';
+  await this.clasesRepository.save(clase);
+   await this.bitacoraService.registrar(
+     idUsuario,
+     AccionBitacora.SUSPENDER,
+     'clase',
+     ip,
+    );
+    return clase;
+  }
+
+  async reactivarClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
+  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
+  if (!clase) {
+    throw new NotFoundException('Clase no encontrada');
+  }
+
+  clase.Estado = 'Activo';
+  await this.clasesRepository.save(clase);
+  await this.bitacoraService.registrar(
+    idUsuario || 'admin',
+    AccionBitacora.REACTIVAR,
+    'clase',
+    ip,
+  );
+
+  return clase;
 }
 
 }

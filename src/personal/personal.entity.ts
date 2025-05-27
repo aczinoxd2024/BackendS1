@@ -1,13 +1,7 @@
-import {
-  Entity,
-  Column,
-  PrimaryColumn,
-  OneToMany,
-  ManyToOne,
-  JoinColumn
-} from 'typeorm';
+import {Entity,Column,PrimaryColumn,OneToMany,ManyToOne,JoinColumn} from 'typeorm';
 import { ClaseInstructor } from '../clases/clase-instructor.entity';
 import { Persona } from '../personas/persona.entity';
+
 
 @Entity('personal')
 export class Personal {

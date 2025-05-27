@@ -1,17 +1,27 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { Roles } from 'src/auth/roles/roles.decorator';
-import { RolesGuard } from 'src/auth/roles/roles.guard';
-import { User } from 'src/auth/user.decorator';
+import { Controller, Get } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Like } from 'typeorm';
+import { Personal } from 'src/personal/personal.entity';
+import { Persona } from 'src/personas/persona.entity';
 
-@UseGuards(RolesGuard)
-@Controller('instructor')
+@Controller('instructores')
 export class InstructorController {
-  @Roles('instructor')
-  @Get('inicio')
-  inicioInstructor(@User() user: any) {
-    return {
-      mensaje: 'Acceso autorizado para instructor 🏋️',
-      usuario: user,
-    };
+  constructor(
+    @InjectRepository(Personal) private readonly personalRepo: Repository<Personal>
+  ) {}
+
+  @Get()
+  async obtenerInstructores() {
+    const instructores = await this.personalRepo.find({
+      where: { Cargo: Like('%Instructor%') },
+      relations: ['persona']
+    });
+
+    return instructores.map(i => ({
+      ci: i.CI,
+      nombre: i.persona?.Nombre || '',
+      apellido: i.persona?.Apellido || '',
+      cargo: i.Cargo
+    }));
   }
 }

@@ -287,25 +287,45 @@ export class ClientesService {
   // ------------------------------
   // OBTENER CLIENTE POR CI
   // ------------------------------
-  async obtenerClientePorCI(ci: string) {
-    const cliente = await this.clientesRepository.findOneBy({ CI: ci });
-    const persona = await this.personasRepository.findOne({
-      where: { CI: ci },
-    });
+async obtenerClientePorCI(ci: string) {
+  console.log('🔎 Verificando existencia del cliente con CI:', ci);
 
-    if (!cliente || !persona)
-      throw new BadRequestException(`No se encontró el cliente CI: ${ci}`);
+  const persona = await this.personasRepository.findOne({ where: { CI: ci } });
+  console.log('👤 Persona encontrada:', persona);
 
-    return {
-      ci: cliente.CI,
-      nombre: persona.Nombre ?? '', // 👈 Forzar que al menos sea string vacío
-      apellido: persona.Apellido ?? '',
-      telefono: persona.Telefono ?? '',
-      direccion: persona.Direccion ?? '',
-      observacion: cliente.Observacion ?? '',
-      estado: cliente.IDEstado ?? 'Desconocido',
-    };
+  const cliente = await this.clientesRepository.findOne({ where: { CI: ci } });
+  console.log('📋 Cliente encontrado:', cliente);
+
+  const usuario = await this.usuariosRepository.findOne({ where: { id: ci } });
+  console.log('🔐 Usuario encontrado:', usuario);
+
+  if (!persona) {
+    throw new BadRequestException(`❌ No se encontró la persona con CI: ${ci}`);
   }
+
+  if (!cliente) {
+    throw new BadRequestException(`❌ No se encontró el cliente con CI: ${ci}`);
+  }
+
+  if (!usuario) {
+    throw new BadRequestException(`❌ No se encontró el usuario con CI: ${ci}`);
+  }
+
+  return {
+    ci: cliente.CI,
+    nombre: persona.Nombre ?? '',
+    apellido: persona.Apellido ?? '',
+    telefono: persona.Telefono ?? '',
+    direccion: persona.Direccion ?? '',
+    observacion: cliente.Observacion ?? '',
+    estado: cliente.IDEstado ?? 'Desconocido',
+    usuario: {
+      correo: usuario.correo,
+    },
+  };
+}
+
+
 
   // Eliminar (desactivar) Cliente + Usuario relacionado
   async eliminarCliente(ci: string, idUsuario: string, ip: string) {
