@@ -288,20 +288,27 @@ export class ClientesService {
   // OBTENER CLIENTE POR CI
   // ------------------------------
 async obtenerClientePorCI(ci: string) {
-  const persona = await this.personasRepository.findOne({
-    where: { CI: ci },
-  });
+  console.log('🔎 Verificando existencia del cliente con CI:', ci);
 
-  const cliente = await this.clientesRepository.findOne({
-    where: { CI: ci },
-  });
+  const persona = await this.personasRepository.findOne({ where: { CI: ci } });
+  console.log('👤 Persona encontrada:', persona);
 
-  const usuario = await this.usuariosRepository.findOne({
-    where: { id: ci },
-  });
+  const cliente = await this.clientesRepository.findOne({ where: { CI: ci } });
+  console.log('📋 Cliente encontrado:', cliente);
 
-  if (!cliente || !persona || !usuario) {
-    throw new BadRequestException(`No se encontró el cliente CI: ${ci}`);
+  const usuario = await this.usuariosRepository.findOne({ where: { id: ci } });
+  console.log('🔐 Usuario encontrado:', usuario);
+
+  if (!persona) {
+    throw new BadRequestException(`❌ No se encontró la persona con CI: ${ci}`);
+  }
+
+  if (!cliente) {
+    throw new BadRequestException(`❌ No se encontró el cliente con CI: ${ci}`);
+  }
+
+  if (!usuario) {
+    throw new BadRequestException(`❌ No se encontró el usuario con CI: ${ci}`);
   }
 
   return {
@@ -317,6 +324,7 @@ async obtenerClientePorCI(ci: string) {
     },
   };
 }
+
 
 
   // Eliminar (desactivar) Cliente + Usuario relacionado
