@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  InternalServerErrorException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -32,6 +33,7 @@ export class ReservasService {
 
   ) {}
 async crearReserva(IDClase: number, CI: string) {
+  try {
   // ✅ Validar que la clase fue pagada por el cliente
   const claseAutorizada = await this.claseRepository
     .createQueryBuilder('clase')
@@ -151,8 +153,15 @@ async crearReserva(IDClase: number, CI: string) {
     ...reservaGuardada,
     claseActivada: claseSeActivo,
   };
+  return {
+      ...reservaGuardada,
+      claseActivada: claseSeActivo,
+    };
+  } catch (error) {
+    console.error('❌ Error al crear reserva:', error);
+    throw new InternalServerErrorException('Error interno al crear la reserva');
+  }
 }
-
 
 
   async buscarPorCliente(ci: string) {
@@ -229,6 +238,7 @@ async crearReserva(IDClase: number, CI: string) {
   }
 
 async cancelarReserva(id: number, req: Request) {
+   try {
   const reserva = await this.reservasRepository.findOne({
     where: { IDReserva: id },
     relations: ['estado', 'cliente', 'clase'],
@@ -283,6 +293,11 @@ async cancelarReserva(id: number, req: Request) {
     tablaAfectada: 'reserva',
     ipMaquina: ip,
   });
+
+} catch (error) {
+    console.error('❌ Error al cancelar reserva (admin/recepcionista):', error);
+    throw new InternalServerErrorException('Error interno al cancelar la reserva');
+  }
 }
 
   async getReservasPasadas(
@@ -367,6 +382,7 @@ async cancelarReserva(id: number, req: Request) {
   return query.orderBy('clase.Nombre', 'ASC').getMany();
 }
  async cancelarReservaCliente(id: number, ci: string) {
+  try {
     const reserva = await this.reservasRepository.findOne({
       where: {
         IDReserva: id,
@@ -396,5 +412,9 @@ async cancelarReserva(id: number, req: Request) {
       tablaAfectada: 'reserva',
       ipMaquina: '127.0.0.1',
     });
+   } catch (error) {
+    console.error('❌ Error al cancelar reserva (cliente):', error);
+    throw new InternalServerErrorException('Error interno al cancelar la reserva del cliente');
   }
+}
 }
