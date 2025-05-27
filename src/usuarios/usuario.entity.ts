@@ -23,9 +23,6 @@ export class Usuario {
   @Column({ name: 'Contrasena' })
   contrasena: string;
 
-  @OneToMany(() => Cliente, (cliente) => cliente.usuario)
-clientes: Cliente[];
-
   // 🔗 Relación con persona (CI, nombre, apellido, etc.)
   @ManyToOne(() => Persona, { eager: true })
   @JoinColumn({ name: 'IDPersona' }) // Nombre exacto de la FK en la BD

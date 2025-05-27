@@ -13,12 +13,11 @@ export class ReservasController {
 
  @Post()
 @Roles('cliente', 'administrador')
-@UseGuards(JwtAuthGuard, RolesGuard)
-async crearReserva(@Req() req: Request, @Body() dto: CreateReservaDto) {
-  const ci = (req.user as any)?.ci;
-  if (!ci) throw new UnauthorizedException('Cliente no identificado');
-  return this.reservasService.crearReserva(dto.IDClase, ci);
+create(@Body() dto: CreateReservaDto, @Req() req) {
+  const CI = req.user.ci; // depende de cómo lo hayas guardado en el token
+  return this.reservasService.crearReserva(dto.IDClase, CI);
 }
+
 
   @Get('mis-reservas')
   @Roles('cliente')

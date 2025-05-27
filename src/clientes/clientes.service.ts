@@ -1,12 +1,8 @@
-import {
-  Injectable,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
+import {Injectable,ForbiddenException,BadRequestException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-
+import {NotFoundException,InternalServerErrorException} from '@nestjs/common';
 import { Cliente } from './cliente.entity';
 import { Persona } from '../personas/persona.entity';
 import { Usuario } from '../usuarios/usuario.entity';
@@ -288,41 +284,34 @@ export class ClientesService {
   // OBTENER CLIENTE POR CI
   // ------------------------------
 async obtenerClientePorCI(ci: string) {
-  console.log('🔎 Verificando existencia del cliente con CI:', ci);
+  try {
+    const cliente = await this.clientesRepository.findOneBy({ CI: ci });
+    const persona = await this.personasRepository.findOneBy({ CI: ci });
 
-  const persona = await this.personasRepository.findOne({ where: { CI: ci } });
-  console.log('👤 Persona encontrada:', persona);
+    if (!cliente) {
+      console.warn(`⚠️ Cliente no encontrado: ${ci}`);
+    }
+    if (!persona) {
+      console.warn(`⚠️ Persona no encontrada: ${ci}`);
+    }
 
-  const cliente = await this.clientesRepository.findOne({ where: { CI: ci } });
-  console.log('📋 Cliente encontrado:', cliente);
+    if (!cliente || !persona) {
+      throw new NotFoundException(`No se encontró el cliente con CI ${ci}`);
+    }
 
-  const usuario = await this.usuariosRepository.findOne({ where: { id: ci } });
-  console.log('🔐 Usuario encontrado:', usuario);
-
-  if (!persona) {
-    throw new BadRequestException(`❌ No se encontró la persona con CI: ${ci}`);
+    return {
+      ci: cliente.CI,
+      nombre: persona.Nombre ?? '',
+      apellido: persona.Apellido ?? '',
+      telefono: persona.Telefono ?? '',
+      direccion: persona.Direccion ?? '',
+      observacion: cliente.Observacion ?? '',
+      estado: cliente.IDEstado ?? 'Desconocido',
+    };
+  } catch (error) {
+    console.error('❌ Error al obtener cliente por CI:', error);
+    throw new InternalServerErrorException('Error interno al obtener cliente.');
   }
-
-  if (!cliente) {
-    throw new BadRequestException(`❌ No se encontró el cliente con CI: ${ci}`);
-  }
-
-  if (!usuario) {
-    throw new BadRequestException(`❌ No se encontró el usuario con CI: ${ci}`);
-  }
-
-  return {
-    ci: cliente.CI,
-    nombre: persona.Nombre ?? '',
-    apellido: persona.Apellido ?? '',
-    telefono: persona.Telefono ?? '',
-    direccion: persona.Direccion ?? '',
-    observacion: cliente.Observacion ?? '',
-    estado: cliente.IDEstado ?? 'Desconocido',
-    usuario: {
-      correo: usuario.correo,
-    },
-  };
 }
 
 

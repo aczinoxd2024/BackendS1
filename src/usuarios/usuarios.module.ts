@@ -10,10 +10,13 @@ import { BitacoraModule } from 'src/bitacora/bitacora.module'; // ✅ Importar B
 @Module({
   imports: [
     TypeOrmModule.forFeature([Usuario, Perfil, UsuarioPerfil]),
-    BitacoraModule, // ✅ Agregar BitacoraModule aquí para poder inyectar BitacoraService
+    BitacoraModule,
   ],
   controllers: [UsuariosController],
   providers: [UsuariosService],
-  exports: [UsuariosService],
+  exports: [
+    UsuariosService,
+    TypeOrmModule, // ✅ ¡Esto es lo que permite inyectar el repositorio en otros módulos!
+  ],
 })
 export class UsuariosModule {}

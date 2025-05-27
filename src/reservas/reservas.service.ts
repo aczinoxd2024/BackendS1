@@ -13,6 +13,7 @@ import { Cliente } from '../clientes/cliente.entity';
 import { EstadoReserva } from '../estado-reserva/estado-reserva.entity';
 import { Horario } from '../horarios/horario.entity';
 import { Bitacora } from '../bitacora/bitacora.entity';
+import { Usuario } from '../usuarios/usuario.entity'; // ✅ Correcto
 
 
 @Injectable()
@@ -30,6 +31,9 @@ export class ReservasService {
     private readonly horarioRepository: Repository<Horario>,
     @InjectRepository(Bitacora)
     private readonly bitacoraRepository: Repository<Bitacora>,
+    @InjectRepository(Usuario)
+private readonly usuariosRepository: Repository<Usuario>,
+
 
   ) {}
 async crearReserva(IDClase: number, CI: string) {
@@ -60,13 +64,18 @@ async crearReserva(IDClase: number, CI: string) {
     }
 
     // ✅ Obtener el cliente con usuario
-    const cliente = await this.clienteRepository.findOne({
-      where: { CI },
-      relations: ['usuario'],
-    });
-    if (!cliente || !cliente.usuario) {
-      throw new ConflictException('El cliente no tiene un usuario asociado');
-    }
+    const cliente = await this.clienteRepository.findOneBy({ CI });
+if (!cliente) {
+  throw new NotFoundException('Cliente no encontrado');
+}
+
+const usuario = await this.usuariosRepository.findOne({
+  where: { idPersona: { CI } }, // ✅ así consultas por la FK dentro de Persona
+});
+
+if (!usuario) {
+  throw new NotFoundException('Usuario no encontrado');
+}
 
     // ✅ Obtener horario de la clase
     const horario = await this.horarioRepository.findOne({
