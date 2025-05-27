@@ -63,7 +63,17 @@ async crearReserva(IDClase: number, CI: string) {
       throw new NotFoundException('Estado "Confirmada" no encontrado');
     }
 
-    // ✅ Obtener el cliente con usuario
+    // ✅ Obtener el cliente con usuarioconsole.log('✅ Validar que la clase fue pagada por el cliente');
+console.log('✅ Validar que la clase existe');
+console.log('✅ Validar estado "Confirmada"');
+console.log('✅ Obtener el cliente con usuario');
+console.log('✅ Obtener horario de la clase');
+console.log('✅ Validar cupos');
+console.log('✅ Validar que la clase aún no comenzó y hay al menos 30 minutos');
+console.log('✅ Validar solapamiento de horarios');
+console.log('✅ Crear y guardar reserva');
+console.log('✅ Actualizar estado de clase si se activa');
+console.log('✅ Registrar en bitácora');
     const cliente = await this.clienteRepository.findOneBy({ CI });
 if (!cliente) {
   throw new NotFoundException('Cliente no encontrado');
