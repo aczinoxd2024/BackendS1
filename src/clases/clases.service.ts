@@ -297,10 +297,12 @@ async obtenerClasesPermitidas(ci: string): Promise<Clase[]> {
     .createQueryBuilder('clase')
     .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
     .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
+    .leftJoinAndSelect('clase.horario', 'horario') // ✅ incluye el horario
+    .leftJoinAndSelect('horario.diaSemana', 'diaSemana') // ✅ incluye día
     .where('p.CIPersona = :ci', { ci })
-    .andWhere('dp.IDClase IS NOT NULL')
     .getMany();
 }
+
 
 async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
   const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
