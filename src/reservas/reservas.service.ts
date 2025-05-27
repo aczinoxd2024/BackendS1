@@ -62,7 +62,6 @@ async crearReserva(IDClase: number, CI: string) {
     if (!estadoConfirmada) {
       throw new NotFoundException('Estado "Confirmada" no encontrado');
     }
-
     // ✅ Obtener el cliente con usuarioconsole.log('✅ Validar que la clase fue pagada por el cliente');
 console.log('✅ Validar que la clase existe');
 console.log('✅ Validar estado "Confirmada"');
@@ -183,11 +182,15 @@ if (!usuario) {
     };
 
   } catch (error) {
-    console.error('❌ Error al crear reserva:', error);
-    throw new InternalServerErrorException('Error interno al crear la reserva');
+  console.error('❌ Error al crear reserva:', {
+    message: error?.message,
+    stack: error?.stack,
+    data: { IDClase, CI }
+  });
+
+  throw error; // ❗ lanza el error original (ya es ConflictException, etc.)
   }
 }
-
 
 
   async buscarPorCliente(ci: string) {
