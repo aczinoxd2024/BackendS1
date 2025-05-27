@@ -297,8 +297,10 @@ async obtenerClasesPermitidas(ci: string): Promise<Clase[]> {
     .createQueryBuilder('clase')
     .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
     .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
-    .leftJoinAndSelect('clase.horario', 'horario') // ✅ incluye el horario
-    .leftJoinAndSelect('horario.diaSemana', 'diaSemana') // ✅ incluye día
+    .leftJoinAndSelect('clase.horarios', 'horarios') // ✅ alias correcto
+    .leftJoinAndSelect('clase.claseInstructores', 'claseInstructores')
+    .leftJoinAndSelect('clase.sala', 'sala')
+    .leftJoinAndSelect('horarios.diaSemana', 'diaSemana') // ✅ corregido alias
     .where('p.CIPersona = :ci', { ci })
     .getMany();
 }

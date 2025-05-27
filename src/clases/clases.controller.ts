@@ -77,7 +77,7 @@ async getDisponibles() {
   return this.clasesService.obtenerClasesDisponibles();
 }
 @Get('permitidas')
-@Roles('cliente')
+@Roles('cliente','administrador')
 @UseGuards(JwtAuthGuard, RolesGuard)
 async getPermitidas(@Req() req: Request) {
   const ci = (req.user as any)?.ci;
