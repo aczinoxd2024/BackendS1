@@ -251,6 +251,7 @@ await claseInstructorRepo.save(nuevaRelacion);
       .leftJoinAndSelect('ci_rel.instructor', 'instructor')
       .leftJoinAndSelect('clase.horarios', 'horario')
       .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
+      .leftJoinAndSelect('clase.sala', 'sala') // ⚠️ Agrega esta línea si no está
       .where('instructor.CI = :ci', { ci })
       .getMany();
 
