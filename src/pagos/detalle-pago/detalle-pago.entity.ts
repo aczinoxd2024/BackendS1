@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { Pago } from '../pagos.entity';
 import { Membresia } from 'src/membresias/menbresia.entity';
+import { Clase } from 'src/clases/clase.entity'; // ✅ Importación agregada
 
 @Entity('detalle_pago')
 export class DetallePago {
@@ -25,6 +26,11 @@ export class DetallePago {
   @Column({ type: 'int', nullable: true })
   IDPromo: number | null;
 
+  // ✅ Nueva columna para clase asociada
+  @Column({ type: 'int', nullable: true })
+  IDClase: number | null;
+
+  // Relaciones
   @ManyToOne(() => Pago, (pago) => pago.detalles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'IDPago' })
   pago: Pago;
@@ -34,4 +40,12 @@ export class DetallePago {
   })
   @JoinColumn({ name: 'IDMembresia' })
   membresia: Membresia;
+
+  // ✅ Relación con clase
+  @ManyToOne(() => Clase, (clase) => clase.detallesPago, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'IDClase' })
+  clase: Clase;
 }

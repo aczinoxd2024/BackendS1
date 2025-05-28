@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { ConfigService } from '@nestjs/config';
 import { Roles } from 'src/auth/roles/roles.decorator';
@@ -6,7 +6,7 @@ import { Response } from 'express';
 import { Request as ExpressRequest } from 'express';
 import Stripe from 'stripe';
 
-// ✅ Interface extendida para req con rawBody y user (usado por Stripe y Auth)
+// ✅ Interface extendida
 interface RawBodyRequest extends ExpressRequest {
   rawBody: Buffer;
   user?: { ci: string };
@@ -21,24 +21,23 @@ export class StripeController {
 
   @Post('checkout')
   async checkout(
-    @Body() body: { amount: number; description: string; email: string },
+    @Body()
+    body: {
+      amount: number;
+      description: string;
+      email: string;
+      idClase?: number;
+    },
   ) {
-    console.log('📦 Checkout iniciado:', body);
+    console.log('📦 Datos recibidos en /stripe/checkout:', body);
     return this.stripeService.createCheckoutSession(body);
   }
 
   @Post('webhook')
   async handleStripeWebhook(@Req() req: RawBodyRequest, @Res() res: Response) {
     const sig = req.headers['stripe-signature'];
-    const webhookSecret = this.configService.get<string>(
-      'STRIPE_WEBHOOK_SECRET',
-    );
+    const secret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
     const rawBody = req.rawBody;
-
-    console.log('📥 Webhook recibido en /stripe/webhook');
-    console.log('📦 typeof rawBody:', typeof rawBody);
-    console.log('📦 Buffer.isBuffer:', Buffer.isBuffer(rawBody));
-    console.log('📦 Header [stripe-signature]:', sig);
 
     let event: Stripe.Event;
 
@@ -46,25 +45,21 @@ export class StripeController {
       event = this.stripeService.constructEvent(
         rawBody,
         sig as string,
-        webhookSecret!,
+        secret!,
       );
-      console.log('✅ Firma válida. Tipo de evento:', event.type);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Error desconocido';
-      console.error('❌ Verificación de firma fallida:', errorMessage);
-      return res.status(400).send(`Webhook Error: ${errorMessage}`);
+      const message = err instanceof Error ? err.message : 'Error desconocido';
+      return res.status(400).send(`Webhook Error: ${message}`);
     }
 
     try {
       await this.stripeService.handleEvent(event);
-      console.log('✅ Evento procesado correctamente.');
       return res.status(200).json({ received: true });
     } catch (err) {
-      console.error('❌ Error al procesar el evento:', err);
+      console.error('Error al manejar el evento:', err);
       return res
         .status(500)
-        .json({ error: 'Error interno al procesar el webhook' });
+        .json({ error: 'Error interno al procesar el evento' });
     }
   }
 
@@ -72,13 +67,17 @@ export class StripeController {
   @Roles('cliente')
   getPagosPorCliente(@Req() req: RawBodyRequest) {
     const ci = req.user?.ci;
-
-    if (!ci) {
-      console.error('❌ No se pudo obtener el CI del usuario autenticado.');
-      throw new Error('CI de usuario no disponible.');
-    }
-
-    console.log('📥 Solicitando pagos para CI:', ci);
+    if (!ci) throw new Error('CI no encontrado');
     return this.stripeService.obtenerPagosPorCliente(ci);
+  }
+
+  //SE ANADIO ESTA FUNCION PARA OBTENER INFO DEL PAGO PARA LUEGO GENERAR EL COMPROBANTE DESDE FRONT
+  // 🔗 NUEVA RUTA: Obtener NroPago desde session_id
+  @Get('success-info')
+  async getSuccessInfo(@Query('session_id') sessionId: string) {
+    if (!sessionId) {
+      throw new Error('Falta session_id');
+    }
+    return this.stripeService.obtenerInfoPagoDesdeSession(sessionId);
   }
 }

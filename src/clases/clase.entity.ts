@@ -11,6 +11,9 @@ import { OneToMany } from 'typeorm';
 import { Horario } from 'src/horarios/horario.entity'; // crearás esta entidad
 import { ClaseInstructor } from './clase-instructor.entity';
 
+//comprobante pago
+import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
+
 @Entity('clase')
 export class Clase {
   @PrimaryGeneratedColumn()
@@ -46,4 +49,8 @@ export class Clase {
 
   @OneToMany(() => ClaseInstructor, (ci) => ci.clase)
   claseInstructores: ClaseInstructor[];
+
+  // ✅ Nueva relación hacia detalle_pago
+  @OneToMany(() => DetallePago, (detallePago) => detallePago.clase)
+  detallesPago: DetallePago[];
 }

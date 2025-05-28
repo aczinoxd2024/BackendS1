@@ -12,6 +12,8 @@ import { Membresia } from 'src/membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
 import { Bitacora } from 'src/bitacora/bitacora.entity';
 
+import { PagosService } from 'src/pagos/pagos.service';
+
 @Injectable()
 export class StripeService {
   private readonly stripe: Stripe;
@@ -31,6 +33,7 @@ export class StripeService {
     private readonly membresiaRepository: Repository<Membresia>,
     @InjectRepository(TipoMembresia)
     private readonly tipoMembresiaRepository: Repository<TipoMembresia>,
+    private readonly pagosService: PagosService,
   ) {
     this.stripe = new Stripe(
       this.configService.getOrThrow<string>('STRIPE_SECRET_KEY'),
@@ -41,6 +44,7 @@ export class StripeService {
     amount: number;
     description: string;
     email: string;
+    idClase?: number; // Para Gold o Disciplina
   }): Promise<{ url: string }> {
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -49,6 +53,7 @@ export class StripeService {
       metadata: {
         email: data.email,
         descripcion: data.description,
+        idClase: data.idClase?.toString() || '',
       },
       line_items: [
         {
@@ -62,7 +67,7 @@ export class StripeService {
           quantity: 1,
         },
       ],
-      success_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/success`,
+      success_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/cancel`,
     });
 
@@ -88,6 +93,9 @@ export class StripeService {
     const session = event.data.object;
     const email = session.metadata?.email ?? null;
     const descripcion = session.metadata?.descripcion ?? null;
+    const idClase = session.metadata?.idClase
+      ? parseInt(session.metadata.idClase)
+      : null;
     const amount = session.amount_total ?? 0;
     const paymentIntent = session.payment_intent as string;
 
@@ -147,26 +155,78 @@ export class StripeService {
       return;
     }
 
-    // 🔍 Buscar la última membresía del cliente
+    const esDisciplina = tipo.ID === 3;
+
+    // Crear membresía para disciplina también
+    if (esDisciplina) {
+      const fechaInicio = new Date();
+      const fechaFin = new Date();
+      fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
+
+      const nuevaDisciplina = this.membresiaRepository.create({
+        FechaInicio: fechaInicio,
+        FechaFin: fechaFin,
+        PlataformaWeb: 'Web',
+        TipoMembresiaID: tipo.ID,
+        CICliente: cliente.CI,
+      });
+
+      await this.membresiaRepository.save(nuevaDisciplina);
+
+      //mensaje para asegurarme de que hay un idClase
+      console.log('Clase asignada:', idClase);
+      const detalleDisciplina = this.detallePagoRepository.create({
+        IDPago: pagoGuardado.NroPago,
+        IDMembresia: nuevaDisciplina.IDMembresia,
+        IDClase: idClase,
+        MontoTotal: amount / 100,
+        IDPromo: null,
+      });
+
+      //para probar si se esta guardando disciplina en pagos:
+      //await this.detallePagoRepository.save(detalleDisciplina);
+      const guardado = await this.detallePagoRepository.save(detalleDisciplina);
+      console.log('🧾 Detalle de disciplina guardado:', guardado);
+
+      await this.bitacoraRepository.save({
+        idUsuario: usuario.id,
+        accion: `Cliente adquirió disciplina "${descripcion}" del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`,
+        tablaAfectada: 'membresia / detalle_pago',
+        ipMaquina: 'web-stripe',
+        IDPago: pagoGuardado.NroPago,
+      });
+
+      await this.pagosService.enviarComprobantePorCorreo(pagoGuardado.NroPago);
+      console.log('📧 Comprobante enviado para disciplina.');
+      return;
+    }
+
     const ultimaMembresia = await this.membresiaRepository.findOne({
       where: { CICliente: cliente.CI },
       order: { FechaFin: 'DESC' },
     });
+
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); // Limpiar hora para evitar errores de comparación
+    hoy.setHours(0, 0, 0, 0);
 
     let fechaInicio: Date;
-    if (ultimaMembresia && new Date(ultimaMembresia.FechaFin) >= hoy) {
-      fechaInicio = new Date(ultimaMembresia.FechaFin);
-      fechaInicio.setDate(fechaInicio.getDate() + 1); // día siguiente a FechaFin
+    let fechaFin: Date;
+    const mismaMembresia = ultimaMembresia?.TipoMembresiaID === tipo.ID;
+
+    if (
+      ultimaMembresia &&
+      mismaMembresia &&
+      new Date(ultimaMembresia.FechaFin) >= hoy
+    ) {
+      fechaInicio = new Date(ultimaMembresia.FechaInicio);
+      fechaFin = new Date(ultimaMembresia.FechaFin);
+      fechaFin.setDate(fechaFin.getDate() + tipo.DuracionDias);
     } else {
-      fechaInicio = new Date(); // hoy
+      fechaInicio = new Date();
+      fechaFin = new Date();
+      fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
     }
 
-    const fechaFin = new Date(fechaInicio);
-    fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
-
-    // ✅ Crear nueva membresía vinculada al cliente
     const nuevaMembresia = this.membresiaRepository.create({
       FechaInicio: fechaInicio,
       FechaFin: fechaFin,
@@ -177,42 +237,35 @@ export class StripeService {
 
     await this.membresiaRepository.save(nuevaMembresia);
 
-    // 🧾 Crear y guardar el detalle del pago vinculado a la nueva membresía
     const detalle = this.detallePagoRepository.create({
       IDPago: pagoGuardado.NroPago,
       IDMembresia: nuevaMembresia.IDMembresia,
+      IDClase: tipo.ID === 2 ? idClase : null, // Solo Gold incluye clase
       MontoTotal: amount / 100,
       IDPromo: null,
     });
+
     await this.detallePagoRepository.save(detalle);
 
-    // ✅ Activar cliente si no lo estaba
     cliente.IDEstado = 1;
     await this.clienteRepository.save(cliente);
 
-    // 📝 Registrar renovación o adquisición en bitácora
     const mensajeAccion = ultimaMembresia
-      ? `Renovó su membresía. Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`
+      ? mismaMembresia
+        ? `Renovó su membresía "${tipo.NombreTipo}". Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`
+        : `Cambiaron su membresía a "${tipo.NombreTipo}". Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`
       : `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`;
 
     await this.bitacoraRepository.save({
       idUsuario: usuario.id,
-      accion: `Cliente CI ${usuario.id} realizó un pago con Stripe de $${(amount / 100).toFixed(2)}. ${mensajeAccion}.`,
+      accion: `Cliente CI ${usuario.id} realizó un pago de $${(amount / 100).toFixed(2)}. ${mensajeAccion}`,
       tablaAfectada: 'membresia / pago / detalle_pago',
       ipMaquina: 'web-stripe',
+      IDPago: pagoGuardado.NroPago,
     });
 
-    cliente.IDEstado = 1;
-    await this.clienteRepository.save(cliente);
-
-    // 📝 Registrar en Bitácora
-    await this.bitacoraRepository.save({
-      idUsuario: usuario.id,
-      accion: `Cliente CI ${usuario.id} realizó un pago con Stripe de $${(amount / 100).toFixed(2)} por la membresía "${descripcion}".`,
-      tablaAfectada: 'pago / detalle_pago',
-      ipMaquina: 'web-stripe',
-    });
-    console.log('📝 Registro en bitácora guardado.');
+    await this.pagosService.enviarComprobantePorCorreo(pagoGuardado.NroPago);
+    console.log('📧 Comprobante generado y enviado por pagosService.');
   }
 
   async obtenerPagosPorCliente(ci: string): Promise<Pago[]> {
@@ -220,5 +273,28 @@ export class StripeService {
       where: { CIPersona: ci },
       order: { Fecha: 'DESC' },
     });
+  }
+
+  //SE ANADIO ESTA FUNCION PARA OBTENER INFO DEL PAGO PARA LUEGO GENERAR EL COMPROBANTE DESDE FRONT
+  async obtenerInfoPagoDesdeSession(
+    sessionId: string,
+  ): Promise<{ nroPago: number; correo: string }> {
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+
+    const paymentIntentId = session.payment_intent as string;
+    //const eventId = session.id; // En este caso se puede usar `id` como StripeEventId si es necesario
+
+    const pago = await this.pagoRepository.findOne({
+      where: { StripePaymentIntentId: paymentIntentId },
+    });
+
+    if (!pago) {
+      throw new Error('No se encontró el pago asociado a este session_id');
+    }
+
+    return {
+      nroPago: pago.NroPago,
+      correo: pago.CIPersona, // Alternativamente puedes usar usuario.correo si lo relacionas mejor
+    };
   }
 }
