@@ -255,13 +255,16 @@ await claseInstructorRepo.save(nuevaRelacion);
       .getMany();
 
     return clases.map((clase) => ({
-      IDClase: clase.IDClase,
-      Nombre: clase.Nombre,
-      Estado: clase.Estado,
-      Horarios: clase.horarios.map(
-        (h) => `${h.diaSemana?.Dia}: ${h.HoraIni} a ${h.HoraFin}`,
-      ),
-    }));
+  IDClase: clase.IDClase,
+  Nombre: clase.Nombre,
+  Estado: clase.Estado,
+  Horarios: clase.horarios.map((h) => ({
+    horaInicio: h.HoraIni,
+    horaFin: h.HoraFin,
+    dia: h.diaSemana?.Dia ?? null
+  }))
+}));
+
   }
 
   // ✅ Clases disponibles para cliente (vista reducida)
