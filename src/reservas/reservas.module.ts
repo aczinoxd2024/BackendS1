@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ReservasController } from './reservas.controller';
 import { ReservasService } from './reservas.service';
-
+import { UsuariosModule } from '../usuarios/usuarios.module'; 
 import { Reserva } from './reserva.entity';
 import { Clase } from '../clases/clase.entity';
 import { Cliente } from '../clientes/cliente.entity';
@@ -20,6 +20,7 @@ import { Bitacora } from '../bitacora/bitacora.entity';
       Horario,
       Bitacora,
     ]),
+    UsuariosModule
   ],
   controllers: [ReservasController],
   providers: [ReservasService],

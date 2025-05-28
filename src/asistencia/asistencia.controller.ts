@@ -69,28 +69,16 @@ export class AsistenciaController {
 
     return this.asistenciaService.findByCIPersona(ci);
   }
-
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('hoy')
+  @Roles('recepcionista')
+  async getAsistenciasDelDia() {
+  const hoy = new Date();
+  return this.asistenciaService.findAsistenciasPorDia(hoy);
+} 
   // ───────────────────────────────────────────────
   // 🔹 4. Estadísticas
   // ───────────────────────────────────────────────
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('estadisticas/total')
-  @Roles('administrador', 'recepcionista')
-  async totalAsistencias() {
-    return {
-      total: await this.asistenciaService.contarTotalAsistencias(),
-    };
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('estadisticas/hoy')
-  @Roles('administrador', 'recepcionista')
-  async asistenciasHoy() {
-    return {
-      hoy: await this.asistenciaService.contarAsistenciasHoy(),
-    };
-  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('estadisticas/por-cliente')

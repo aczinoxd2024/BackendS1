@@ -9,6 +9,8 @@ import {
 import { Persona } from '../personas/persona.entity';
 import { UsuarioPerfil } from './usuario-perfil.entity';
 import { Bitacora } from '../bitacora/bitacora.entity';
+import { Cliente } from '../clientes/cliente.entity';
+
 
 @Entity('usuario')
 export class Usuario {

@@ -11,20 +11,17 @@ import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
 import { Patch } from '@nestjs/common';        // asegúrate que este archivo exista
-import { BitacoraService } from 'src/bitacora/bitacora.service';
+import { ParseIntPipe } from '@nestjs/common';
+import { DeleteClaseDto } from './dto/delete-clase.dto';
 
-     
+   
   // asegúrate que este archivo exista
 
 
 
 @Controller('clases')
 export class ClasesController {
-  constructor(
-  private readonly clasesService: ClasesService,
-  private readonly bitacoraService: BitacoraService, // 👈 AÑADIDO
-) {}
-
+  constructor(private readonly clasesService: ClasesService) {}
 
 @Post()
 create(@Body() claseDto: CreateClaseDto): Promise<Clase> {
@@ -83,7 +80,7 @@ async getDisponibles() {
   return this.clasesService.obtenerClasesDisponibles();
 }
 @Get('permitidas')
-@Roles('cliente')
+@Roles('cliente','administrador')
 @UseGuards(JwtAuthGuard, RolesGuard)
 async getPermitidas(@Req() req: Request) {
   const ci = (req.user as any)?.ci;
@@ -111,21 +108,30 @@ async getPermitidas(@Req() req: Request) {
 
   }
 
-  @Patch(':id/suspender')
+  @Delete(':id')
 @Roles('administrador')
-suspenderClase(@Param('id') id: number, @Req() req: Request) {
-  const usuario = (req.user as any)?.idUsuario ?? 'admin'; // o extraído del token
-  const ip = this.bitacoraService.getClientIp(req);
-  return this.clasesService.suspenderClase(+id, usuario, ip);
+async eliminarClase(
+  @Param('id', ParseIntPipe) id: number,
+  @Body() deleteDto: DeleteClaseDto
+) {
+  return this.clasesService.eliminarClase(id, deleteDto);
 }
 
 
-  @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    const idNum = Number(id);
-    if (isNaN(idNum)) {
-      throw new BadRequestException('El ID de clase debe ser un número válido');
-    }
-    return this.clasesService.remove(idNum);
-  }
+  @Patch(':id/suspender')
+// Puedes protegerlo después con @Roles y @UseGuards si lo deseas
+suspenderClase(@Param('id') id: string, @Req() req: Request) {
+  const usuario = (req.user as any)?.idUsuario ?? 'admin'; // por ahora usa "admin"
+  const ip = req.ip ?? '127.0.0.1'; // usa IP por defecto si no se obtiene
+  return this.clasesService.suspenderClase(Number(id), usuario, ip);
+}
+
+@Patch(':id/reactivar')
+// Puedes protegerlo después con @Roles y @UseGuards si lo deseas
+reactivarClase(@Param('id') id: string, @Req() req: Request) {
+  const usuario = (req.user as any)?.idUsuario ?? 'admin';
+  const ip = req.ip ?? '127.0.0.1';
+  return this.clasesService.reactivarClase(Number(id), usuario, ip);
+}
+
 }

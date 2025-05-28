@@ -23,16 +23,25 @@ export class AsistenciaService {
     private personaRepo: Repository<Persona>,
   ) {}
 async registrarAsistencia(ci: string): Promise<Asistencia> {
-  const ahora = new Date();
-  const fechaHoy = ahora.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+  const ahora = new Date(); // Fecha y hora actuales
 
+  // Obtener solo la parte 'YYYY-MM-DD' como objeto Date (sin zona horaria)
+  const fechaHoy = new Date(
+    ahora.getFullYear(),
+    ahora.getMonth(),
+    ahora.getDate()
+  );
+
+  // Buscar persona
   const persona = await this.personaRepo.findOne({ where: { CI: ci } });
   if (!persona) {
     throw new BadRequestException('Persona no encontrada con CI: ' + ci);
   }
 
-  const fechaInicio = new Date(`${fechaHoy}T00:00:00.000Z`);
-  const fechaFin = new Date(`${fechaHoy}T23:59:59.999Z`);
+  // Definir el rango del día para evitar múltiples registros en el mismo día
+  const fechaInicio = new Date(fechaHoy);
+  const fechaFin = new Date(fechaHoy);
+  fechaFin.setHours(23, 59, 59, 999);
 
   const asistenciaExistente = await this.asistenciaRepo.findOne({
     where: {
@@ -45,15 +54,37 @@ async registrarAsistencia(ci: string): Promise<Asistencia> {
     throw new BadRequestException('Ya registraste tu asistencia hoy');
   }
 
+  // Hora de entrada en formato 'HH:mm:ss'
+  const horaEntrada = ahora.toLocaleTimeString('en-GB', { hour12: false });
+
+  // Crear nueva asistencia
   const nuevaAsistencia = this.asistenciaRepo.create({
-    fecha: ahora, // Guardar fecha completa con hora
+    fecha: fechaHoy,        // solo la parte de la fecha
+    horaEntrada,            // string en formato HH:mm:ss
     persona,
-    idTipoPer: 1,
+    idTipoPer: 1,           // ajusta si tienes lógica dinámica
   });
 
   return this.asistenciaRepo.save(nuevaAsistencia);
 }
-  
+
+async findAsistenciasPorDia(fecha: Date): Promise<Asistencia[]> {
+  const inicio = new Date(fecha);
+  inicio.setHours(0, 0, 0, 0);
+
+  const fin = new Date(inicio);
+  fin.setDate(inicio.getDate() + 1);
+
+  return this.asistenciaRepo.find({
+    where: {
+      fecha: Between(inicio, fin),
+    },
+    relations: ['persona'],
+    order: {
+      fecha: 'ASC',
+    },
+  });
+}
 async generarHistorialExcel(ci: string): Promise<Buffer> {
   const asistencias = await this.findByCIPersona(ci);
 
@@ -199,20 +230,6 @@ async generarHistorialPDFTodos(): Promise<Buffer> {
     });
   });
 }
-async contarTotalAsistencias(): Promise<number> {
-    return this.asistenciaRepo.count();
-  }
-
-  async contarAsistenciasHoy(): Promise<number> {
-  const inicioDelDia = moment().startOf('day').toDate();
-  const finDelDia = moment().endOf('day').toDate();
-
-  return this.asistenciaRepo.count({
-    where: {
-      fecha: Between(inicioDelDia, finDelDia),
-    },
-  });
-}
 
   async asistenciasPorCliente(): Promise<{ ci: string; cantidad: number }[]> {
   const raw = await this.asistenciaRepo
@@ -232,7 +249,7 @@ async contarTotalAsistencias(): Promise<number> {
   return this.asistenciaRepo.find({
     where: { persona: { CI: ci } },
     relations: ['persona'],
-    order: { horaEntrada: 'DESC' },
+    order: { fecha: 'DESC' },
   });
   }
 

@@ -13,7 +13,7 @@ import { DiaSemana } from '../dia-semana/dia-semana.entity';
 import { CreateClaseDto } from './dto/create-clase.dto'; // 👈 asegúrate de importar
 import { UpdateClaseDto } from './dto/update-clase.dto';
 import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
-
+import { DeleteClaseDto } from './dto/delete-clase.dto';
 import { BitacoraService } from '../bitacora/bitacora.service';
 
 
@@ -27,9 +27,11 @@ export class ClasesService {
 ) {}
 
 
-  findAll(): Promise<Clase[]> {
-    return this.clasesRepository.find();
-  }
+ findAll(): Promise<Clase[]> {
+  return this.clasesRepository.find({
+    relations: ['sala'], // ✅ Esto carga la sala relacionada
+  });
+}
 
   async findOne(id: number): Promise<Clase> {
     const clase = await this.clasesRepository.findOneBy({ IDClase: id });
@@ -49,10 +51,6 @@ export class ClasesService {
   return this.clasesRepository.save(clase); // Guarda los cambios
 }
 
-
-  async remove(id: number): Promise<void> {
-    await this.clasesRepository.delete(id);
-  }
 
 async create(data: CreateClaseDto): Promise<Clase> {
   const horarioRepo = this.dataSource.getRepository(Horario);
@@ -257,13 +255,16 @@ await claseInstructorRepo.save(nuevaRelacion);
       .getMany();
 
     return clases.map((clase) => ({
-      IDClase: clase.IDClase,
-      Nombre: clase.Nombre,
-      Estado: clase.Estado,
-      Horarios: clase.horarios.map(
-        (h) => `${h.diaSemana?.Dia}: ${h.HoraIni} a ${h.HoraFin}`,
-      ),
-    }));
+  IDClase: clase.IDClase,
+  Nombre: clase.Nombre,
+  Estado: clase.Estado,
+  Horarios: clase.horarios.map((h) => ({
+    horaInicio: h.HoraIni,
+    horaFin: h.HoraFin,
+    dia: h.diaSemana?.Dia ?? null
+  }))
+}));
+
   }
 
   // ✅ Clases disponibles para cliente (vista reducida)
@@ -295,10 +296,14 @@ async obtenerClasesPermitidas(ci: string): Promise<Clase[]> {
     .createQueryBuilder('clase')
     .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
     .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
+    .leftJoinAndSelect('clase.horarios', 'horarios') // ✅ alias correcto
+    .leftJoinAndSelect('clase.claseInstructores', 'claseInstructores')
+    .leftJoinAndSelect('clase.sala', 'sala')
+    .leftJoinAndSelect('horarios.diaSemana', 'diaSemana') // ✅ corregido alias
     .where('p.CIPersona = :ci', { ci })
-    .andWhere('dp.IDClase IS NOT NULL')
     .getMany();
 }
+
 
 async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
   const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
@@ -308,10 +313,26 @@ async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> 
 
   clase.Estado = 'Suspendida';
   await this.clasesRepository.save(clase);
+   await this.bitacoraService.registrar(
+     idUsuario,
+     AccionBitacora.SUSPENDER,
+     'clase',
+     ip,
+    );
+    return clase;
+  }
 
+  async reactivarClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
+  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
+  if (!clase) {
+    throw new NotFoundException('Clase no encontrada');
+  }
+
+  clase.Estado = 'Activo';
+  await this.clasesRepository.save(clase);
   await this.bitacoraService.registrar(
-    idUsuario,
-    AccionBitacora.SUSPENDER, // debe estar definido en el enum
+    idUsuario || 'admin',
+    AccionBitacora.REACTIVAR,
     'clase',
     ip,
   );
@@ -319,6 +340,14 @@ async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> 
   return clase;
 }
 
+async eliminarClase(id: number, deleteDto: DeleteClaseDto) {
+  const clase = await this.clasesRepository.findOneBy({ IDClase: id });
+  if (!clase) throw new NotFoundException('Clase no encontrada');
+
+  clase.Estado = 'Suspendida';
+  // registrar en bitácora si es necesario usando deleteDto.eliminadoPor y deleteDto.motivo
+  return this.clasesRepository.save(clase);
+}
 
 
 }
