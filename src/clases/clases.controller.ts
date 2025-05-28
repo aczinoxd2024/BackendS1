@@ -108,7 +108,6 @@ async getPermitidas(@Req() req: Request) {
 
   }
 
-
   @Delete(':id')
 @Roles('administrador')
 async eliminarClase(
@@ -119,7 +118,7 @@ async eliminarClase(
 }
 
 
-  @Patch('suspender/:id')
+  @Patch(':id/suspender')
 // Puedes protegerlo después con @Roles y @UseGuards si lo deseas
 suspenderClase(@Param('id') id: string, @Req() req: Request) {
   const usuario = (req.user as any)?.idUsuario ?? 'admin'; // por ahora usa "admin"
@@ -127,7 +126,7 @@ suspenderClase(@Param('id') id: string, @Req() req: Request) {
   return this.clasesService.suspenderClase(Number(id), usuario, ip);
 }
 
-@Patch('reactivar/:id')
+@Patch(':id/reactivar')
 // Puedes protegerlo después con @Roles y @UseGuards si lo deseas
 reactivarClase(@Param('id') id: string, @Req() req: Request) {
   const usuario = (req.user as any)?.idUsuario ?? 'admin';
