@@ -11,7 +11,10 @@ import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
 import { RolesGuard } from 'src/auth/roles/roles.guard';
 import { Patch } from '@nestjs/common';        // asegúrate que este archivo exista
-     
+import { ParseIntPipe } from '@nestjs/common';
+import { DeleteClaseDto } from './dto/delete-clase.dto';
+
+   
   // asegúrate que este archivo exista
 
 
@@ -107,15 +110,16 @@ async getPermitidas(@Req() req: Request) {
 
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    const idNum = Number(id);
-    if (isNaN(idNum)) {
-      throw new BadRequestException('El ID de clase debe ser un número válido');
-    }
-    return this.clasesService.remove(idNum);
-  }
+@Roles('administrador')
+async eliminarClase(
+  @Param('id', ParseIntPipe) id: number,
+  @Body() deleteDto: DeleteClaseDto
+) {
+  return this.clasesService.eliminarClase(id, deleteDto);
+}
 
-  @Patch(':id/suspender')
+
+  @Patch('suspender/:id')
 // Puedes protegerlo después con @Roles y @UseGuards si lo deseas
 suspenderClase(@Param('id') id: string, @Req() req: Request) {
   const usuario = (req.user as any)?.idUsuario ?? 'admin'; // por ahora usa "admin"
@@ -123,7 +127,7 @@ suspenderClase(@Param('id') id: string, @Req() req: Request) {
   return this.clasesService.suspenderClase(Number(id), usuario, ip);
 }
 
-@Patch(':id/reactivar')
+@Patch('reactivar/:id')
 // Puedes protegerlo después con @Roles y @UseGuards si lo deseas
 reactivarClase(@Param('id') id: string, @Req() req: Request) {
   const usuario = (req.user as any)?.idUsuario ?? 'admin';

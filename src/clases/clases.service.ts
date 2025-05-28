@@ -13,7 +13,7 @@ import { DiaSemana } from '../dia-semana/dia-semana.entity';
 import { CreateClaseDto } from './dto/create-clase.dto'; // 👈 asegúrate de importar
 import { UpdateClaseDto } from './dto/update-clase.dto';
 import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
-
+import { DeleteClaseDto } from './dto/delete-clase.dto';
 import { BitacoraService } from '../bitacora/bitacora.service';
 
 
@@ -51,10 +51,6 @@ export class ClasesService {
   return this.clasesRepository.save(clase); // Guarda los cambios
 }
 
-
-  async remove(id: number): Promise<void> {
-    await this.clasesRepository.delete(id);
-  }
 
 async create(data: CreateClaseDto): Promise<Clase> {
   const horarioRepo = this.dataSource.getRepository(Horario);
@@ -340,5 +336,15 @@ async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> 
 
   return clase;
 }
+
+async eliminarClase(id: number, deleteDto: DeleteClaseDto) {
+  const clase = await this.clasesRepository.findOneBy({ IDClase: id });
+  if (!clase) throw new NotFoundException('Clase no encontrada');
+
+  clase.Estado = 'Suspendida';
+  // registrar en bitácora si es necesario usando deleteDto.eliminadoPor y deleteDto.motivo
+  return this.clasesRepository.save(clase);
+}
+
 
 }
