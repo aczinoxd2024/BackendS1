@@ -10,11 +10,11 @@ export class ClaseInstructor {
   @PrimaryColumn()
   CI: string;
 
-  @ManyToOne(() => Clase, clase => clase.claseInstructores)
+  @ManyToOne(() => Clase, (clase) => clase.claseInstructores)
   @JoinColumn({ name: 'IDClase' })
   clase: Clase;
 
-  @ManyToOne(() => Personal, personal => personal.clases)
+  @ManyToOne(() => Personal, (personal) => personal.clases)
   @JoinColumn({ name: 'CI' })
   instructor: Personal;
 }
