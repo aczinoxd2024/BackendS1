@@ -16,22 +16,20 @@ import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
 import { DeleteClaseDto } from './dto/delete-clase.dto';
 import { BitacoraService } from '../bitacora/bitacora.service';
 
-
 @Injectable()
 export class ClasesService {
   constructor(
-  @InjectRepository(Clase)
-  private readonly clasesRepository: Repository<Clase>,
-  private readonly dataSource: DataSource,
-  private readonly bitacoraService: BitacoraService, // 👈 AÑADIDO
-) {}
+    @InjectRepository(Clase)
+    private readonly clasesRepository: Repository<Clase>,
+    private readonly dataSource: DataSource,
+    private readonly bitacoraService: BitacoraService, // 👈 AÑADIDO
+  ) {}
 
-
- findAll(): Promise<Clase[]> {
-  return this.clasesRepository.find({
-    relations: ['sala'], // ✅ Esto carga la sala relacionada
-  });
-}
+  findAll(): Promise<Clase[]> {
+    return this.clasesRepository.find({
+      relations: ['sala'], // ✅ Esto carga la sala relacionada
+    });
+  }
 
   async findOne(id: number): Promise<Clase> {
     const clase = await this.clasesRepository.findOneBy({ IDClase: id });
@@ -40,110 +38,105 @@ export class ClasesService {
     }
     return clase;
   }
-  
 
   async update(id: number, dto: UpdateClaseDto): Promise<Clase> {
-  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
-  if (!clase) throw new NotFoundException('Clase no encontrada');
+    const clase = await this.clasesRepository.findOne({
+      where: { IDClase: id },
+    });
+    if (!clase) throw new NotFoundException('Clase no encontrada');
 
-  Object.assign(clase, dto); // ✅ Copia los campos válidos del DTO
+    Object.assign(clase, dto); // ✅ Copia los campos válidos del DTO
 
-  return this.clasesRepository.save(clase); // Guarda los cambios
-}
-
-
-async create(data: CreateClaseDto): Promise<Clase> {
-  const horarioRepo = this.dataSource.getRepository(Horario);
-  const diaRepo = this.dataSource.getRepository(DiaSemana);
-
-  // Obtener día
-  const dia = await diaRepo.findOne({ where: { Dia: data.Dia } });
-  if (!dia) throw new NotFoundException('Día inválido');
-
-  // Validar conflicto de horario en la misma sala
-  const horariosEnSala = await horarioRepo
-    .createQueryBuilder('horario')
-    .leftJoin('horario.clase', 'clase')
-    .where('clase.IDSalaa = :sala', { sala: data.IDSalaa })
-    .andWhere('horario.IDDia = :dia', { dia: dia.ID })
-    .getMany();
-
-  for (const h of horariosEnSala) {
-    const conflicto =
-      (data.HoraIni >= h.HoraIni && data.HoraIni < h.HoraFin) ||
-      (data.HoraFin > h.HoraIni && data.HoraFin <= h.HoraFin) ||
-      (data.HoraIni <= h.HoraIni && data.HoraFin >= h.HoraFin);
-
-    if (conflicto) {
-      throw new ConflictException(
-        `⛔ Conflicto de horario en la sala: ya existe una clase entre ${h.HoraIni} y ${h.HoraFin}`
-      );
-    }
+    return this.clasesRepository.save(clase); // Guarda los cambios
   }
 
-// Validar conflicto de horario del instructor (usando ClaseInstructor)
-const clasesDelInstructor = await this.clasesRepository
-  .createQueryBuilder('clase')
-  .leftJoin('clase.claseInstructores', 'ci')
-  .leftJoinAndSelect('clase.horarios', 'horario')
-  .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
-  .where('ci.instructor.CI = :ci', { ci: data.CIInstructor })
-  .getMany();
+  async create(data: CreateClaseDto): Promise<Clase> {
+    const horarioRepo = this.dataSource.getRepository(Horario);
+    const diaRepo = this.dataSource.getRepository(DiaSemana);
 
+    // Obtener día
+    const dia = await diaRepo.findOne({ where: { Dia: data.Dia } });
+    if (!dia) throw new NotFoundException('Día inválido');
 
-  for (const clase of clasesDelInstructor) {
-    for (const h of clase.horarios) {
-      const mismoDia = h.diaSemana?.Dia === data.Dia;
+    // Validar conflicto de horario en la misma sala
+    const horariosEnSala = await horarioRepo
+      .createQueryBuilder('horario')
+      .leftJoin('horario.clase', 'clase')
+      .where('clase.IDSalaa = :sala', { sala: data.IDSalaa })
+      .andWhere('horario.IDDia = :dia', { dia: dia.ID })
+      .getMany();
+
+    for (const h of horariosEnSala) {
       const conflicto =
         (data.HoraIni >= h.HoraIni && data.HoraIni < h.HoraFin) ||
         (data.HoraFin > h.HoraIni && data.HoraFin <= h.HoraFin) ||
         (data.HoraIni <= h.HoraIni && data.HoraFin >= h.HoraFin);
 
-      if (mismoDia && conflicto) {
+      if (conflicto) {
         throw new ConflictException(
-          `⛔ El instructor ya tiene una clase el ${data.Dia} entre ${h.HoraIni} y ${h.HoraFin}`
+          `⛔ Conflicto de horario en la sala: ya existe una clase entre ${h.HoraIni} y ${h.HoraFin}`,
         );
       }
     }
+
+    // Validar conflicto de horario del instructor (usando ClaseInstructor)
+    const clasesDelInstructor = await this.clasesRepository
+      .createQueryBuilder('clase')
+      .leftJoin('clase.claseInstructores', 'ci')
+      .leftJoinAndSelect('clase.horarios', 'horario')
+      .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
+      .where('ci.instructor.CI = :ci', { ci: data.CIInstructor })
+      .getMany();
+
+    for (const clase of clasesDelInstructor) {
+      for (const h of clase.horarios) {
+        const mismoDia = h.diaSemana?.Dia === data.Dia;
+        const conflicto =
+          (data.HoraIni >= h.HoraIni && data.HoraIni < h.HoraFin) ||
+          (data.HoraFin > h.HoraIni && data.HoraFin <= h.HoraFin) ||
+          (data.HoraIni <= h.HoraIni && data.HoraFin >= h.HoraFin);
+
+        if (mismoDia && conflicto) {
+          throw new ConflictException(
+            `⛔ El instructor ya tiene una clase el ${data.Dia} entre ${h.HoraIni} y ${h.HoraFin}`,
+          );
+        }
+      }
+    }
+
+    // Crear la clase
+    const nuevaClase = this.clasesRepository.create({
+      Nombre: data.Nombre,
+      IDSalaa: data.IDSalaa,
+      CupoMaximo: data.CupoMaximo,
+      Estado: 'Pendiente',
+      NumInscritos: 0,
+    });
+
+    const claseGuardada = await this.clasesRepository.save(nuevaClase);
+
+    // Crear horario asociado
+    const nuevoHorario = horarioRepo.create({
+      clase: claseGuardada, // 👈 relación ManyToOne
+      HoraIni: data.HoraIni,
+      HoraFin: data.HoraFin,
+      diaSemana: dia, // 👈 relación ManyToOne
+    });
+
+    await horarioRepo.save(nuevoHorario);
+
+    // Registrar relación clase-instructor
+    const claseInstructorRepo = this.dataSource.getRepository(ClaseInstructor);
+
+    const nuevaRelacion = claseInstructorRepo.create({
+      IDClase: claseGuardada.IDClase,
+      CI: data.CIInstructor,
+    });
+
+    await claseInstructorRepo.save(nuevaRelacion);
+
+    return claseGuardada;
   }
-
-  // Crear la clase
-  const nuevaClase = this.clasesRepository.create({
-  Nombre: data.Nombre,
-  IDSalaa: data.IDSalaa,
-  CupoMaximo: data.CupoMaximo,
-  Estado: 'Pendiente',
-  NumInscritos: 0,
-});
-
-
-  const claseGuardada = await this.clasesRepository.save(nuevaClase);
-
-  // Crear horario asociado
-  const nuevoHorario = horarioRepo.create({
-  clase: claseGuardada,     // 👈 relación ManyToOne
-  HoraIni: data.HoraIni,
-  HoraFin: data.HoraFin,
-  diaSemana: dia            // 👈 relación ManyToOne
-});
-
-
-  await horarioRepo.save(nuevoHorario);
-
-  // Registrar relación clase-instructor
-const claseInstructorRepo = this.dataSource.getRepository(ClaseInstructor);
-
-const nuevaRelacion = claseInstructorRepo.create({
-  IDClase: claseGuardada.IDClase,
-  CI: data.CIInstructor
-});
-
-await claseInstructorRepo.save(nuevaRelacion);
-
-
-  return claseGuardada;
-}
-
 
   // ✅ Clases activas con detalles completos (para admin/recepción)
   async obtenerClasesActivas() {
@@ -256,16 +249,15 @@ await claseInstructorRepo.save(nuevaRelacion);
       .getMany();
 
     return clases.map((clase) => ({
-  IDClase: clase.IDClase,
-  Nombre: clase.Nombre,
-  Estado: clase.Estado,
-  Horarios: clase.horarios.map((h) => ({
-    horaInicio: h.HoraIni,
-    horaFin: h.HoraFin,
-    dia: h.diaSemana?.Dia ?? null
-  }))
-}));
-
+      IDClase: clase.IDClase,
+      Nombre: clase.Nombre,
+      Estado: clase.Estado,
+      Horarios: clase.horarios.map((h) => ({
+        horaInicio: h.HoraIni,
+        horaFin: h.HoraFin,
+        dia: h.diaSemana?.Dia ?? null,
+      })),
+    }));
   }
 
   // ✅ Clases disponibles para cliente (vista reducida)
@@ -285,70 +277,78 @@ await claseInstructorRepo.save(nuevaRelacion);
     }));
   }
   async obtenerClasesDisponibles(): Promise<any[]> {
-  return this.clasesRepository.find({
-  select: ['IDClase', 'Nombre', 'CupoMaximo', 'NumInscritos', 'Estado'],
-  where: { Estado: 'Activo' },
-  order: { Nombre: 'ASC' }, 
-});
-
-}
-async obtenerClasesPermitidas(ci: string): Promise<Clase[]> {
-  return this.clasesRepository
-    .createQueryBuilder('clase')
-    .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
-    .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
-    .leftJoinAndSelect('clase.horarios', 'horarios') // ✅ alias correcto
-    .leftJoinAndSelect('clase.claseInstructores', 'claseInstructores')
-    .leftJoinAndSelect('clase.sala', 'sala')
-    .leftJoinAndSelect('horarios.diaSemana', 'diaSemana') // ✅ corregido alias
-    .where('p.CIPersona = :ci', { ci })
-    .getMany();
-}
-
-
-async suspenderClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
-  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
-  if (!clase) {
-    throw new NotFoundException('Clase no encontrada');
+    return this.clasesRepository.find({
+      select: ['IDClase', 'Nombre', 'CupoMaximo', 'NumInscritos', 'Estado'],
+      where: { Estado: 'Activo' },
+      order: { Nombre: 'ASC' },
+    });
+  }
+  async obtenerClasesPermitidas(ci: string): Promise<Clase[]> {
+    return this.clasesRepository
+      .createQueryBuilder('clase')
+      .innerJoin('detalle_pago', 'dp', 'dp.IDClase = clase.IDClase')
+      .innerJoin('pago', 'p', 'p.NroPago = dp.IDPago')
+      .leftJoinAndSelect('clase.horarios', 'horarios') // ✅ alias correcto
+      .leftJoinAndSelect('clase.claseInstructores', 'claseInstructores')
+      .leftJoinAndSelect('clase.sala', 'sala')
+      .leftJoinAndSelect('horarios.diaSemana', 'diaSemana') // ✅ corregido alias
+      .where('p.CIPersona = :ci', { ci })
+      .getMany();
   }
 
-  clase.Estado = 'Suspendida';
-  await this.clasesRepository.save(clase);
-   await this.bitacoraService.registrar(
-     idUsuario,
-     AccionBitacora.SUSPENDER,
-     'clase',
-     ip,
+  async suspenderClase(
+    id: number,
+    idUsuario: string,
+    ip: string,
+  ): Promise<Clase> {
+    const clase = await this.clasesRepository.findOne({
+      where: { IDClase: id },
+    });
+    if (!clase) {
+      throw new NotFoundException('Clase no encontrada');
+    }
+
+    clase.Estado = 'Suspendida';
+    await this.clasesRepository.save(clase);
+    await this.bitacoraService.registrar(
+      idUsuario,
+      AccionBitacora.SUSPENDER,
+      'clase',
+      ip,
     );
     return clase;
   }
 
-  async reactivarClase(id: number, idUsuario: string, ip: string): Promise<Clase> {
-  const clase = await this.clasesRepository.findOne({ where: { IDClase: id } });
-  if (!clase) {
-    throw new NotFoundException('Clase no encontrada');
+  async reactivarClase(
+    id: number,
+    idUsuario: string,
+    ip: string,
+  ): Promise<Clase> {
+    const clase = await this.clasesRepository.findOne({
+      where: { IDClase: id },
+    });
+    if (!clase) {
+      throw new NotFoundException('Clase no encontrada');
+    }
+
+    clase.Estado = 'Activo';
+    await this.clasesRepository.save(clase);
+    await this.bitacoraService.registrar(
+      idUsuario || 'admin',
+      AccionBitacora.REACTIVAR,
+      'clase',
+      ip,
+    );
+
+    return clase;
   }
 
-  clase.Estado = 'Activo';
-  await this.clasesRepository.save(clase);
-  await this.bitacoraService.registrar(
-    idUsuario || 'admin',
-    AccionBitacora.REACTIVAR,
-    'clase',
-    ip,
-  );
+  async eliminarClase(id: number, deleteDto: DeleteClaseDto) {
+    const clase = await this.clasesRepository.findOneBy({ IDClase: id });
+    if (!clase) throw new NotFoundException('Clase no encontrada');
 
-  return clase;
-}
-
-async eliminarClase(id: number, deleteDto: DeleteClaseDto) {
-  const clase = await this.clasesRepository.findOneBy({ IDClase: id });
-  if (!clase) throw new NotFoundException('Clase no encontrada');
-
-  clase.Estado = 'Suspendida';
-  // registrar en bitácora si es necesario usando deleteDto.eliminadoPor y deleteDto.motivo
-  return this.clasesRepository.save(clase);
-}
-
-
+    clase.Estado = 'Suspendida';
+    // registrar en bitácora si es necesario usando deleteDto.eliminadoPor y deleteDto.motivo
+    return this.clasesRepository.save(clase);
+  }
 }

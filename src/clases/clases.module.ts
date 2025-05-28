@@ -7,12 +7,14 @@ import { Sala } from 'src/salas/sala.entity';
 import { ClaseInstructor } from './clase-instructor.entity';
 import { BitacoraModule } from '../bitacora/bitacora.module';
 
-
 @Module({
-  imports: [TypeOrmModule.forFeature([Clase, Sala, ClaseInstructor]), BitacoraModule,],
-  
+  imports: [
+    TypeOrmModule.forFeature([Clase, Sala, ClaseInstructor]),
+    BitacoraModule,
+  ],
+
   controllers: [ClasesController],
   providers: [ClasesService],
-  exports: [TypeOrmModule.forFeature([Clase])] // ✅ exportar explícitamente el repositorio de Clase
+  exports: [TypeOrmModule.forFeature([Clase])], // ✅ exportar explícitamente el repositorio de Clase
 })
 export class ClasesModule {}

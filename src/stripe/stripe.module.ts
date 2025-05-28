@@ -13,6 +13,9 @@ import { Membresia } from 'src/membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
 import { BitacoraModule } from 'src/bitacora/bitacora.module';
 
+//comprobantePago
+import { PagosModule } from 'src/pagos/pagos.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -24,6 +27,7 @@ import { BitacoraModule } from 'src/bitacora/bitacora.module';
       TipoMembresia,
     ]),
     BitacoraModule,
+    PagosModule,
   ],
   controllers: [StripeController],
   providers: [StripeService],

@@ -13,7 +13,7 @@ import { Bitacora } from '../bitacora/bitacora.entity';
 import { Membresia } from '../membresias/menbresia.entity';
 import { TipoMembresiaModule } from 'src/membresias/Tipos/tipo-menbresia.module';
 import { MetodoPagoModule } from 'src/pagos/metodo-pago/metodo-pago.module';
-import { PagoModule } from 'src/pagos/pagos.module';
+import { PagosModule } from 'src/pagos/pagos.module';
 import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
 // ✅ AÑADIDO ESTE
 
@@ -31,7 +31,7 @@ import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
     PersonasModule,
     TipoMembresiaModule,
     MetodoPagoModule, // ✅ Correcto
-    PagoModule, // ✅ AÑADIDO → Esto es lo único que faltaba
+    PagosModule, // ✅ AÑADIDO → Esto es lo único que faltaba
   ],
   controllers: [ClientesController],
   providers: [ClientesService],
