@@ -20,6 +20,8 @@ import { MailerService } from '@nestjs-modules/mailer';
 
 import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+
 
 //(pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
 (pdfMake as any).vfs = (pdfFonts as any).vfs;
@@ -137,88 +139,76 @@ export class PagosService {
 
   const metodoNombre =
     pago.MetodoPago === 1
-      ? 'Efectivo'
+      ? 'Tarjeta'
       : pago.MetodoPago === 2
+      ? 'Transferencia'
+      : pago.MetodoPago === 3
       ? 'Pago en línea'
       : 'Otro';
 
   const fechaInicio = membresia?.FechaInicio ?? new Date();
   const fechaFin = membresia?.FechaFin ?? new Date();
 
-  const docDefinition: any = {
-  content: [
-    {
-      text: '🧾 COMPROBANTE DE PAGO',
-      style: 'title',
-      alignment: 'center'
+ const docDefinition: TDocumentDefinitions = {
+    content: [
+      { text: '🏋️‍ GoFit GYM - Comprobante de Pago', style: 'header' },
+      '\n',
+      { text: `📅 Fecha de emisión: ${new Date().toLocaleDateString()}` },
+      '\n\n',
+      { text: '👤 Datos del Cliente', style: 'subheader' },
+      {
+        ul: [
+          `Nombre: ${persona.Nombre} ${persona.Apellido}`,
+          `CI: ${persona.CI}`,
+          `Correo: ${usuario?.correo ?? 'No disponible'}`,
+        ],
+      },
+      '\n',
+      { text: '💳 Datos del Pago', style: 'subheader' },
+      {
+        ul: [
+          `Nro de Comprobante: ${pago.NroPago}`,
+          `Monto Pagado: $${(+pago.Monto).toFixed(2)} USD`,
+          `Método de Pago: ${metodoNombre}`,
+          `Fecha del Pago: ${pago.Fecha.toLocaleDateString()}`,
+        ],
+      },
+      '\n',
+      { text: '🎟️ Membresía Adquirida', style: 'subheader' },
+      {
+        ul: [
+          `Tipo de Membresía: ${tipo?.NombreTipo ?? 'N/A'}`,
+          `Duración: ${tipo?.DuracionDias ?? 'N/A'} días`,
+          `Fecha Inicio: ${fechaInicio.toLocaleDateString()}`,
+          `Fecha Fin: ${fechaFin.toLocaleDateString()}`,
+          `Clase Incluida: ${clase?.Nombre ?? 'Ninguna'}`,
+          `Plataforma: ${membresia?.PlataformaWeb ?? 'Web'}`,
+        ],
+      },
+      '\n\n',
+      { text: '¡Gracias por confiar en GoFit GYM! 💪', style: 'footer' },
+    ],
+    styles: {
+      header: {
+        fontSize: 18,
+        bold: true,
+        alignment: 'center',
+        color: '#ef4444',
+      },
+      subheader: {
+        fontSize: 14,
+        bold: true,
+        margin: [0, 10, 0, 4],
+        color: '#ef4444',
+      },
+      footer: {
+        fontSize: 12,
+        alignment: 'center',
+        italics: true,
+        color: '#6b7280',
+      },
     },
-    '\n\n',
-    {
-      text: '📌 Información del Cliente',
-      style: 'sectionHeader',
-    },
-    {
-      ul: [
-        `Nombre: ${persona.Nombre} ${persona.Apellido}`,
-        `CI: ${persona.CI}`,
-        `Correo: ${usuario?.correo ?? 'N/D'}`,
-      ],
-    },
-    '\n',
-    {
-      text: '💳 Detalles del Pago',
-      style: 'sectionHeader',
-    },
-    {
-      ul: [
-        `Fecha del Pago: ${new Date(pago.Fecha).toLocaleDateString()}`,
-        `Monto Pagado: $${(+pago.Monto).toFixed(2)} USD`,
-        `Método de Pago: ${pago.MetodoPago}`,
-        `Nro Comprobante: #${pago.NroPago}`,
-      ],
-    },
-    '\n',
-    {
-      text: '📦 Detalles de Membresía',
-      style: 'sectionHeader',
-    },
-    {
-      ul: [
-        `Tipo de Membresía: ${tipo?.NombreTipo ?? 'Sin definir'}`,
-        `Duración: ${tipo?.DuracionDias ?? '-'} días`,
-        `Fecha Inicio: ${membresia?.FechaInicio.toLocaleDateString() ?? '-'}`,
-        `Fecha Fin: ${membresia?.FechaFin.toLocaleDateString() ?? '-'}`,
-        `Clase incluida: ${clase?.Nombre ?? 'Ninguna'}`,
-        `Plataforma: ${membresia?.PlataformaWeb ?? 'N/A'}`,
-      ],
-    },
-    '\n\n',
-    {
-      text: 'Gracias por ser parte de GoFit GYM 💪',
-      style: 'thanks',
-    },
-  ],
-  styles: {
-    title: {
-      fontSize: 18,
-      bold: true,
-      color: '#ef4444',
-    },
-    sectionHeader: {
-      fontSize: 14,
-      bold: true,
-      margin: [0, 10, 0, 4],
-      color: '#ef4444',
-    },
-    thanks: {
-      fontSize: 12,
-      italics: true,
-      alignment: 'center',
-      color: '#6b7280',
-    },
-  },
-};
-
+  };
 
   return new Promise((resolve) => {
     const pdfDoc = pdfMake.createPdf(docDefinition);
