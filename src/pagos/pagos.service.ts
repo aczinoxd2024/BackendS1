@@ -20,6 +20,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 
 import * as pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 
 //(pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
 (pdfMake as any).vfs = (pdfFonts as any).vfs;
@@ -151,7 +152,7 @@ export class PagosService {
       },
     };
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const pdfDoc = pdfMake.createPdf(docDefinition);
       pdfDoc.getBuffer((buffer: Buffer) => {
         resolve(buffer);

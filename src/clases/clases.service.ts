@@ -31,13 +31,33 @@ export class ClasesService {
     });
   }
 
-  async findOne(id: number): Promise<Clase> {
-    const clase = await this.clasesRepository.findOneBy({ IDClase: id });
-    if (!clase) {
-      throw new NotFoundException(`No se encontró la clase con ID ${id}`);
-    }
-    return clase;
+  async findOne(id: number): Promise<any> {
+  const clase = await this.clasesRepository.findOne({
+    where: { IDClase: id },
+    relations: [
+      'sala',
+      'horarios',
+      'horarios.diaSemana',
+      'claseInstructores',
+      'claseInstructores.instructor'
+    ]
+  });
+
+  if (!clase) {
+    throw new NotFoundException(`No se encontró la clase con ID ${id}`);
   }
+
+  return {
+    IDClase: clase.IDClase,
+    Nombre: clase.Nombre,
+    IDSalaa: clase.sala?.IDSala || null,
+    CIInstructor: clase.claseInstructores?.[0]?.instructor?.CI || '',
+    CupoMaximo: clase.CupoMaximo,
+    Dia: clase.horarios?.[0]?.diaSemana?.Dia || '',
+    HoraIni: clase.horarios?.[0]?.HoraIni || '',
+    HoraFin: clase.horarios?.[0]?.HoraFin || ''
+  };
+}
 
   async update(id: number, dto: UpdateClaseDto): Promise<Clase> {
     const clase = await this.clasesRepository.findOne({
@@ -244,6 +264,7 @@ export class ClasesService {
       .leftJoinAndSelect('ci_rel.instructor', 'instructor')
       .leftJoinAndSelect('clase.horarios', 'horario')
       .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
+      .leftJoinAndSelect('clase.sala', 'sala') // ⚠️ Agrega esta línea si no está
       .where('instructor.CI = :ci', { ci })
       .getMany();
 
