@@ -240,10 +240,8 @@ export class StripeService {
     const detalle = this.detallePagoRepository.create({
       IDPago: pagoGuardado.NroPago,
       IDMembresia: nuevaMembresia.IDMembresia,
-
       IDClase: tipo.ID === 2 ? idClase : null, // Solo Gold incluye clase
       //IDClase: tipo.ID === 2 || tipo.ID === 3 ? idClase : null,
-
       MontoTotal: amount / 100,
       IDPromo: null,
     });
