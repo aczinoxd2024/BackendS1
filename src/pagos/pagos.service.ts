@@ -98,81 +98,136 @@ export class PagosService {
 
   //generar comprobante pago
   async generarComprobantePDF(nroPago: number): Promise<Buffer> {
-    const pago = await this.pagosRepository.findOne({
-      where: { NroPago: nroPago },
-    });
-    if (!pago) throw new NotFoundException('Pago no encontrado');
+  const pago = await this.pagosRepository.findOne({
+    where: { NroPago: nroPago },
+  });
+  if (!pago) throw new NotFoundException('Pago no encontrado');
 
-    const detalle = await this.detallePagoRepository.findOne({
-      where: { IDPago: nroPago },
-    });
-    if (!detalle) throw new NotFoundException('Detalle de pago no encontrado');
+  const detalle = await this.detallePagoRepository.findOne({
+    where: { IDPago: nroPago },
+  });
+  if (!detalle) throw new NotFoundException('Detalle de pago no encontrado');
 
-    const persona = await this.personaRepository.findOne({
-      where: { CI: pago.CIPersona },
-    });
-    if (!persona) throw new NotFoundException('Persona no encontrada');
+  const persona = await this.personaRepository.findOne({
+    where: { CI: pago.CIPersona },
+  });
+  if (!persona) throw new NotFoundException('Persona no encontrada');
 
-    const usuario = await this.usuarioRepository.findOne({
-      where: { idPersona: { CI: persona.CI } },
-    });
+  const usuario = await this.usuarioRepository.findOne({
+    where: { idPersona: { CI: persona.CI } },
+  });
 
-    const membresia = detalle.IDMembresia
-      ? await this.membresiaRepository.findOne({
-          where: { IDMembresia: detalle.IDMembresia },
-        })
-      : null;
+  const membresia = detalle.IDMembresia
+    ? await this.membresiaRepository.findOne({
+        where: { IDMembresia: detalle.IDMembresia },
+      })
+    : null;
 
-    const tipo = membresia?.TipoMembresiaID
-      ? await this.tipoMembresiaRepository.findOne({
-          where: { ID: membresia.TipoMembresiaID },
-        })
-      : null;
+  const tipo = membresia?.TipoMembresiaID
+    ? await this.tipoMembresiaRepository.findOne({
+        where: { ID: membresia.TipoMembresiaID },
+      })
+    : null;
 
-    const clase = detalle.IDClase
-      ? await this.claseRepository.findOne({
-          where: { IDClase: detalle.IDClase },
-        })
-      : null;
+  const clase = detalle.IDClase
+    ? await this.claseRepository.findOne({
+        where: { IDClase: detalle.IDClase },
+      })
+    : null;
 
-    const docDefinition = {
-      content: [
-        { text: '🏋️‍ Comprobante de Pago - GoFit GYM', style: 'header' },
-        '\n',
-        { text: `Cliente: ${persona.Nombre} ${persona.Apellido}` },
-        { text: `CI: ${persona.CI}` },
-        { text: `Correo: ${usuario?.correo ?? 'N/D'}` },
-        {
-          text: `Fecha del Pago: ${new Date(pago.Fecha).toLocaleDateString()}`,
-        },
-        { text: `Monto Pagado: $${Number(pago.Monto).toFixed(2)} USD` },
-        { text: `Método de Pago: ${pago.MetodoPago}` },
-        { text: `Número de Comprobante: #${pago.NroPago}` },
-        '\n',
-        { text: '🧾 Detalles:' },
-        { text: `Membresía: ${tipo?.NombreTipo ?? 'Sin membresía'}` },
-        { text: `Plataforma: ${membresia?.PlataformaWeb ?? 'N/A'}` },
-        {
-          text: `Vigencia: ${membresia ? new Date(membresia.FechaInicio).toLocaleDateString() : 'N/A'} a ${membresia ? new Date(membresia.FechaFin).toLocaleDateString() : 'N/A'}`,
-        },
-        { text: `Clase incluida: ${clase?.Nombre ?? 'Ninguna'}` },
+  const metodoNombre =
+    pago.MetodoPago === 1
+      ? 'Efectivo'
+      : pago.MetodoPago === 2
+      ? 'Pago en línea'
+      : 'Otro';
+
+  const fechaInicio = membresia?.FechaInicio ?? new Date();
+  const fechaFin = membresia?.FechaFin ?? new Date();
+
+  const docDefinition: any = {
+  content: [
+    {
+      text: '🧾 COMPROBANTE DE PAGO',
+      style: 'title',
+      alignment: 'center'
+    },
+    '\n\n',
+    {
+      text: '📌 Información del Cliente',
+      style: 'sectionHeader',
+    },
+    {
+      ul: [
+        `Nombre: ${persona.Nombre} ${persona.Apellido}`,
+        `CI: ${persona.CI}`,
+        `Correo: ${usuario?.correo ?? 'N/D'}`,
       ],
-      styles: {
-        header: {
-          fontSize: 18,
-          bold: true,
-          alignment: 'center' as const,
-        },
-      },
-    };
+    },
+    '\n',
+    {
+      text: '💳 Detalles del Pago',
+      style: 'sectionHeader',
+    },
+    {
+      ul: [
+        `Fecha del Pago: ${new Date(pago.Fecha).toLocaleDateString()}`,
+        `Monto Pagado: $${(+pago.Monto).toFixed(2)} USD`,
+        `Método de Pago: ${pago.MetodoPago}`,
+        `Nro Comprobante: #${pago.NroPago}`,
+      ],
+    },
+    '\n',
+    {
+      text: '📦 Detalles de Membresía',
+      style: 'sectionHeader',
+    },
+    {
+      ul: [
+        `Tipo de Membresía: ${tipo?.NombreTipo ?? 'Sin definir'}`,
+        `Duración: ${tipo?.DuracionDias ?? '-'} días`,
+        `Fecha Inicio: ${membresia?.FechaInicio.toLocaleDateString() ?? '-'}`,
+        `Fecha Fin: ${membresia?.FechaFin.toLocaleDateString() ?? '-'}`,
+        `Clase incluida: ${clase?.Nombre ?? 'Ninguna'}`,
+        `Plataforma: ${membresia?.PlataformaWeb ?? 'N/A'}`,
+      ],
+    },
+    '\n\n',
+    {
+      text: 'Gracias por ser parte de GoFit GYM 💪',
+      style: 'thanks',
+    },
+  ],
+  styles: {
+    title: {
+      fontSize: 18,
+      bold: true,
+      color: '#ef4444',
+    },
+    sectionHeader: {
+      fontSize: 14,
+      bold: true,
+      margin: [0, 10, 0, 4],
+      color: '#ef4444',
+    },
+    thanks: {
+      fontSize: 12,
+      italics: true,
+      alignment: 'center',
+      color: '#6b7280',
+    },
+  },
+};
 
-    return new Promise((resolve, reject) => {
-      const pdfDoc = pdfMake.createPdf(docDefinition);
-      pdfDoc.getBuffer((buffer: Buffer) => {
-        resolve(buffer);
-      });
+
+  return new Promise((resolve) => {
+    const pdfDoc = pdfMake.createPdf(docDefinition);
+    pdfDoc.getBuffer((buffer: Buffer) => {
+      resolve(buffer);
     });
-  }
+  });
+}
+
 
   // ✅ enviarComprobantePorCorreo (sin cambios, pero por consistencia)
   async enviarComprobantePorCorreo(nroPago: number): Promise<void> {
