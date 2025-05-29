@@ -77,7 +77,7 @@ export class StripeService {
 
     return { url: session.url };
   }
-
+  //////////////////////////////////////////////////////////////
   constructEvent(payload: Buffer, sig: string, secret: string): Stripe.Event {
     return this.stripe.webhooks.constructEvent(payload, sig, secret);
   }
@@ -240,12 +240,16 @@ export class StripeService {
     const detalle = this.detallePagoRepository.create({
       IDPago: pagoGuardado.NroPago,
       IDMembresia: nuevaMembresia.IDMembresia,
+
       IDClase: tipo.ID === 2 ? idClase : null, // Solo Gold incluye clase
+      //IDClase: tipo.ID === 2 || tipo.ID === 3 ? idClase : null,
+
       MontoTotal: amount / 100,
       IDPromo: null,
     });
 
     await this.detallePagoRepository.save(detalle);
+    console.log('🧾 Detalle guardado para pago', pagoGuardado.NroPago);
 
     cliente.IDEstado = 1;
     await this.clienteRepository.save(cliente);
@@ -282,7 +286,6 @@ export class StripeService {
     const session = await this.stripe.checkout.sessions.retrieve(sessionId);
 
     const paymentIntentId = session.payment_intent as string;
-    //const eventId = session.id; // En este caso se puede usar `id` como StripeEventId si es necesario
 
     const pago = await this.pagoRepository.findOne({
       where: { StripePaymentIntentId: paymentIntentId },
@@ -292,9 +295,14 @@ export class StripeService {
       throw new Error('No se encontró el pago asociado a este session_id');
     }
 
+    // ✅ Buscar correo real
+    const usuario = await this.usuarioRepository.findOne({
+      where: { idPersona: { CI: pago.CIPersona } },
+    });
+
     return {
       nroPago: pago.NroPago,
-      correo: pago.CIPersona, // Alternativamente puedes usar usuario.correo si lo relacionas mejor
+      correo: usuario?.correo ?? 'correo no encontrado',
     };
   }
 }

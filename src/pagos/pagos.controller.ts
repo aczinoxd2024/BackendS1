@@ -15,11 +15,11 @@ export class PagosController {
   constructor(private readonly pagosService: PagosService) {}
 
   // ✅ Solo recepcionista puede registrar pagos en caso de ser presencial
-  @Roles('recepcionista')
+  /*@Roles('recepcionista')
   @Post('registrar')
   async registrarPago(@Body() data: RegistroPagoDto) {
     return await this.pagosService.registrarPago(data);
-  }
+  }*/
 
   //logica nueva para comprobante de pago
   @Get('comprobante/:nroPago')
@@ -39,5 +39,12 @@ export class PagosController {
     });
 
     res.send(buffer);
+  }
+
+  //obtener comprobante clientes para recepcion
+  // En pagos.controller.ts
+  @Get('cliente/:ci')
+  findPagosPorCI(@Param('ci') ci: string) {
+    return this.pagosService.obtenerPagosPorCI(ci);
   }
 }

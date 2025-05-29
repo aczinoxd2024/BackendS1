@@ -1,6 +1,9 @@
 export class RegistroPagoDto {
-  ciCliente: string;
-  idMembresia: number;
+  ci: string;
   monto: number;
-  metodoPagoId: number;
+  metodoPago: number;
+  tipoMembresiaId: number;
+  idClase?: number;
+  idUsuario: string;
+  ip: string;
 }

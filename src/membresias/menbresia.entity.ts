@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
 import { Cliente } from 'src/clientes/cliente.entity';
+import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
 
 @Entity('membresia')
 export class Membresia {
@@ -25,6 +26,10 @@ export class Membresia {
 
   @Column({ name: 'TipoMembresiaID' })
   TipoMembresiaID: number;
+
+  @ManyToOne(() => TipoMembresia)
+  @JoinColumn({ name: 'TipoMembresiaID' })
+  tipo: TipoMembresia;
 
   @Column({ name: 'CICliente', nullable: true })
   CICliente: string;

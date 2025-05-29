@@ -10,6 +10,7 @@ import { Cliente } from 'src/clientes/cliente.entity';
 import { Clase } from 'src/clases/clase.entity';
 import { PagosService } from './pagos.service';
 import { PagosController } from './pagos.controller';
+import { BitacoraModule } from 'src/bitacora/bitacora.module'; //
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PagosController } from './pagos.controller';
       Usuario,
       Cliente,
       Clase,
+      BitacoraModule,
     ]),
   ],
   providers: [PagosService],
