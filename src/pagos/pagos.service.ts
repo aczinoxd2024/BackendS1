@@ -105,9 +105,10 @@ export class PagosService {
   });
   if (!pago) throw new NotFoundException('Pago no encontrado');
 
-  const detalle = await this.detallePagoRepository.findOne({
-    where: { IDPago: nroPago },
-  });
+ const detalle = await this.detallePagoRepository.findOne({
+  where: { IDPago: nroPago },
+});
+
   if (!detalle) throw new NotFoundException('Detalle de pago no encontrado');
 
   const persona = await this.personaRepository.findOne({
