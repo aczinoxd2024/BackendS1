@@ -1,5 +1,20 @@
-import {Controller,Get,Post,Put,Body,Param,Req,Delete,UseGuards,} from '@nestjs/common';
-import {Injectable,NotFoundException,InternalServerErrorException,BadRequestException} from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  Req,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ClientesService } from './clientes.service';
 import { UserRequest } from '../auth/user-request.interface';
 import { Roles } from 'src/auth/roles/roles.decorator';
@@ -90,7 +105,9 @@ export class ClientesController {
     } catch (error) {
       console.error('❌ Error al obtener cliente desde el controlador:', error);
       if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('No se pudo recuperar la información del cliente.');
+      throw new InternalServerErrorException(
+        'No se pudo recuperar la información del cliente.',
+      );
     }
   }
 }

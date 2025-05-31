@@ -2,8 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsuariosService } from '../usuarios/usuarios.service';
-//import { Usuario } from '../usuarios/usuario.entity';
-//import { UnauthorizedException } from '@nestjs/common';  logica de excepcio
+
+// ✅ Interfaz con los campos esperados del token
+interface JwtPayload {
+  ci: string;
+  correo: string;
+  rol: string;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -11,17 +16,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'fallbackSecretKey', // Usa una clave secreta segura
+      secretOrKey: process.env.JWT_SECRET || 'fallbackSecretKey',
     });
   }
 
-  // Método 'validate' con tipo de retorno 'Usuario' o 'null'
-  async validate(payload: any) {
+  // ✅ Ya no es async (no se usa await) y se usa tipado correcto
+  validate(payload: JwtPayload) {
     return {
-      sub: payload.sub || payload.id, // ID del usuario
+      id: payload.ci, // 👈 ID del usuario (es el CI en tu app)
       correo: payload.correo,
       rol: payload.rol,
-      ci: payload.ci, // Este es el campo CLAVE
     };
   }
 }

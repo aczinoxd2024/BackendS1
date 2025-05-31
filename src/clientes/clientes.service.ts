@@ -1,8 +1,15 @@
-import {Injectable,ForbiddenException,BadRequestException,} from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import {NotFoundException,InternalServerErrorException} from '@nestjs/common';
+import {
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Cliente } from './cliente.entity';
 import { Persona } from '../personas/persona.entity';
 import { Usuario } from '../usuarios/usuario.entity';
@@ -283,38 +290,38 @@ export class ClientesService {
   // ------------------------------
   // OBTENER CLIENTE POR CI
   // ------------------------------
-async obtenerClientePorCI(ci: string) {
-  try {
-    const cliente = await this.clientesRepository.findOneBy({ CI: ci });
-    const persona = await this.personasRepository.findOneBy({ CI: ci });
+  async obtenerClientePorCI(ci: string) {
+    try {
+      const cliente = await this.clientesRepository.findOneBy({ CI: ci });
+      const persona = await this.personasRepository.findOneBy({ CI: ci });
 
-    if (!cliente) {
-      console.warn(`⚠️ Cliente no encontrado: ${ci}`);
-    }
-    if (!persona) {
-      console.warn(`⚠️ Persona no encontrada: ${ci}`);
-    }
+      if (!cliente) {
+        console.warn(`⚠️ Cliente no encontrado: ${ci}`);
+      }
+      if (!persona) {
+        console.warn(`⚠️ Persona no encontrada: ${ci}`);
+      }
 
-    if (!cliente || !persona) {
-      throw new NotFoundException(`No se encontró el cliente con CI ${ci}`);
-    }
+      if (!cliente || !persona) {
+        throw new NotFoundException(`No se encontró el cliente con CI ${ci}`);
+      }
 
-    return {
-      ci: cliente.CI,
-      nombre: persona.Nombre ?? '',
-      apellido: persona.Apellido ?? '',
-      telefono: persona.Telefono ?? '',
-      direccion: persona.Direccion ?? '',
-      observacion: cliente.Observacion ?? '',
-      estado: cliente.IDEstado ?? 'Desconocido',
-    };
-  } catch (error) {
-    console.error('❌ Error al obtener cliente por CI:', error);
-    throw new InternalServerErrorException('Error interno al obtener cliente.');
+      return {
+        ci: cliente.CI,
+        nombre: persona.Nombre ?? '',
+        apellido: persona.Apellido ?? '',
+        telefono: persona.Telefono ?? '',
+        direccion: persona.Direccion ?? '',
+        observacion: cliente.Observacion ?? '',
+        estado: cliente.IDEstado ?? 'Desconocido',
+      };
+    } catch (error) {
+      console.error('❌ Error al obtener cliente por CI:', error);
+      throw new InternalServerErrorException(
+        'Error interno al obtener cliente.',
+      );
+    }
   }
-}
-
-
 
   // Eliminar (desactivar) Cliente + Usuario relacionado
   async eliminarCliente(ci: string, idUsuario: string, ip: string) {
