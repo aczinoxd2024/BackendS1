@@ -11,18 +11,11 @@ import { Request, Response, NextFunction } from 'express';
 import { RawBodyRequest } from './stripe/raw-body-request.interface';
 
 // Módulos funcionales
-import { UsuariosModule } from './usuarios/usuarios.module';
-import { ClientesModule } from './clientes/clientes.module';
-import { PersonasModule } from './personas/personas.module';
-import { TipoPersonaModule } from './tipo-persona/tipo-persona.module';
-import { PersonaTipoModule } from './persona-tipo/persona-tipo.module';
-import { AuthModule } from './auth/auth.module';
 import { MembresiasModule } from './membresias/membresias.module';
 import { SalaModule } from './salas/sala.module';
 import { ClasesModule } from './clases/clases.module';
 import { ReservasModule } from './reservas/reservas.module';
 import { DashboardModule } from './dashboard/dashboard.module';
-import { BitacoraModule } from './bitacora/bitacora.module';
 import { TipoMembresiaModule } from './membresias/Tipos/tipo-menbresia.module';
 import { MetodoPagoModule } from './pagos/metodo-pago/metodo-pago.module';
 import { PersonalModule } from './personal/personal.module';
@@ -31,10 +24,17 @@ import { HorariosModule } from './horarios/horarios.module';
 import { AsistenciaModule } from './asistencia/asistencia.module';
 import { StripeModule } from './stripe/stripe.module';
 
+import { AuthModule } from './paquete-1-usuarios-accesos/auth/auth.module';
+import { UsuariosModule } from './paquete-1-usuarios-accesos/usuarios/usuarios.module';
+import { ClientesModule } from './paquete-1-usuarios-accesos/clientes/clientes.module';
+import { PersonasModule } from './paquete-1-usuarios-accesos/personas/personas.module';
+import { TipoPersonaModule } from './paquete-1-usuarios-accesos/tipo-persona/tipo-persona.module';
+import { PersonaTipoModule } from './paquete-1-usuarios-accesos/persona-tipo/persona-tipo.module';
+import { BitacoraModule } from './paquete-1-usuarios-accesos/bitacora/bitacora.module';
+
 // Seguridad global
 import { APP_GUARD } from '@nestjs/core';
-import { RolesGuard } from './auth/roles/roles.guard';
-
+import { RolesGuard } from './paquete-1-usuarios-accesos/auth/roles/roles.guard';
 // Correo con templates
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
