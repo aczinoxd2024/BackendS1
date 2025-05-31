@@ -3,17 +3,17 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport'; // ✅ Añadido
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { UsuariosModule } from '../usuarios/usuarios.module';
-import { BitacoraModule } from 'src/bitacora/bitacora.module';
+import { UsuariosModule } from 'src/paquete-1-usuarios-accesos/usuarios/usuarios.module';
+import { BitacoraModule } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { RolesGuard } from 'src/auth/roles/roles.guard';
+import { RolesGuard } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.guard';
 import { JwtStrategy } from './jwt.strategy'; // ✅ Añadido
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 
 // ✅ Se mantiene porque tú lo usas
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity';
+import { EstadoCliente } from 'src/paquete-1-usuarios-accesos/clientes/estado-cliente/estado-cliente.entity';
 
 @Module({
   imports: [

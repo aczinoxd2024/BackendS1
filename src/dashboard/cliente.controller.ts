@@ -1,7 +1,7 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { Roles } from 'src/auth/roles/roles.decorator';
-import { RolesGuard } from 'src/auth/roles/roles.guard';
-import { User } from 'src/auth/user.decorator';
+import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
+import { RolesGuard } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.guard';
+import { User } from 'src/paquete-1-usuarios-accesos/auth/user.decorator';
 
 @UseGuards(RolesGuard)
 @Controller('cliente')

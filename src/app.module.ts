@@ -24,17 +24,17 @@ import { HorariosModule } from './horarios/horarios.module';
 import { AsistenciaModule } from './asistencia/asistencia.module';
 import { StripeModule } from './stripe/stripe.module';
 
-import { AuthModule } from './paquete-1-usuarios-accesos/auth/auth.module';
-import { UsuariosModule } from './paquete-1-usuarios-accesos/usuarios/usuarios.module';
-import { ClientesModule } from './paquete-1-usuarios-accesos/clientes/clientes.module';
-import { PersonasModule } from './paquete-1-usuarios-accesos/personas/personas.module';
-import { TipoPersonaModule } from './paquete-1-usuarios-accesos/tipo-persona/tipo-persona.module';
-import { PersonaTipoModule } from './paquete-1-usuarios-accesos/persona-tipo/persona-tipo.module';
-import { BitacoraModule } from './paquete-1-usuarios-accesos/bitacora/bitacora.module';
+import { AuthModule } from 'src/paquete-1-usuarios-accesos/auth/auth.module';
+import { UsuariosModule } from 'src/paquete-1-usuarios-accesos/usuarios/usuarios.module';
+import { ClientesModule } from 'src/paquete-1-usuarios-accesos/clientes/clientes.module';
+import { PersonasModule } from 'src/paquete-1-usuarios-accesos/personas/personas.module';
+import { TipoPersonaModule } from 'src/paquete-1-usuarios-accesos/tipo-persona/tipo-persona.module';
+import { PersonaTipoModule } from 'src/paquete-1-usuarios-accesos/persona-tipo/persona-tipo.module';
+import { BitacoraModule } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.module';
 
 // Seguridad global
 import { APP_GUARD } from '@nestjs/core';
-import { RolesGuard } from './paquete-1-usuarios-accesos/auth/roles/roles.guard';
+import { RolesGuard } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.guard';
 // Correo con templates
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';

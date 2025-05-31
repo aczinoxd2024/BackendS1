@@ -17,10 +17,10 @@ import { UpdateClaseDto } from './dto/update-clase.dto';
 import { plainToInstance } from 'class-transformer';
 import { AsignarInstructorDto } from './dto/asignar-instructor.dto';
 import { Request } from 'express';
-import { Roles } from 'src/auth/roles/roles.decorator';
+import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
-import { RolesGuard } from 'src/auth/roles/roles.guard';
+import { JwtAuthGuard } from 'src/paquete-1-usuarios-accesos/auth/jwt.auth.guard';
+import { RolesGuard } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.guard';
 import { Patch } from '@nestjs/common'; // asegúrate que este archivo exista
 import { ParseIntPipe } from '@nestjs/common';
 import { DeleteClaseDto } from './dto/delete-clase.dto';

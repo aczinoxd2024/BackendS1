@@ -1,4 +1,4 @@
-// src/auth/dto/reset-password.dto.ts
+// ../paquete-1-usuarios-accesos/auth/dto/reset-password.dto.ts
 import { IsString, IsNotEmpty, MinLength } from 'class-validator';
 
 export class ResetPasswordDto {

@@ -6,12 +6,12 @@ import { StripeService } from './stripe.service';
 
 // Entidades relacionadas con pagos y clientes
 import { Pago } from 'src/pagos/pagos.entity';
-import { Usuario } from 'src/usuarios/usuario.entity';
-import { Cliente } from 'src/clientes/cliente.entity';
+import { Usuario } from 'src/paquete-1-usuarios-accesos/usuarios/usuario.entity';
+import { Cliente } from 'src/paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
 import { Membresia } from 'src/membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
-import { BitacoraModule } from 'src/bitacora/bitacora.module';
+import { BitacoraModule } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.module';
 
 //comprobantePago
 import { PagosModule } from 'src/pagos/pagos.module';

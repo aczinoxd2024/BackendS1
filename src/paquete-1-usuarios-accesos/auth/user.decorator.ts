@@ -1,4 +1,4 @@
-// src/auth/decorators/user.decorator.ts
+// ../paquete-1-usuarios-accesos/auth/decorators/user.decorator.ts
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export const User = createParamDecorator(

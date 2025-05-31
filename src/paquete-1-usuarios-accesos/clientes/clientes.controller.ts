@@ -16,12 +16,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ClientesService } from './clientes.service';
-import { UserRequest } from '../auth/user-request.interface';
-import { Roles } from 'src/auth/roles/roles.decorator';
+import { UserRequest } from 'src/paquete-1-usuarios-accesos/auth/user-request.interface';
+import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 import { Request } from 'express';
-import { ClienteCrearDto } from 'src/auth/dto/clienteCrear.dto';
-import { ClienteActualizarDto } from 'src/auth/dto/clienteActualizar.dto';
-import { JwtAuthGuard } from 'src/auth/jwt.auth.guard';
+import { ClienteCrearDto } from 'src/paquete-1-usuarios-accesos/auth/dto/clienteCrear.dto';
+import { ClienteActualizarDto } from 'src/paquete-1-usuarios-accesos/auth/dto/clienteActualizar.dto';
+import { JwtAuthGuard } from 'src/paquete-1-usuarios-accesos/auth/jwt.auth.guard';
 
 @Controller('clientes')
 export class ClientesController {

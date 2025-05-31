@@ -11,18 +11,18 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Cliente } from './cliente.entity';
-import { Persona } from '../personas/persona.entity';
-import { Usuario } from '../usuarios/usuario.entity';
-import { UsuarioPerfil } from '../usuarios/usuario-perfil.entity';
-import { Perfil } from '../usuarios/perfil.entity';
-import { Bitacora } from '../bitacora/bitacora.entity';
-import { Membresia } from '../membresias/menbresia.entity';
+import { Persona } from 'src/paquete-1-usuarios-accesos/personas/persona.entity';
+import { Usuario } from 'src/paquete-1-usuarios-accesos/usuarios/usuario.entity';
+import { UsuarioPerfil } from 'src/paquete-1-usuarios-accesos/usuarios/usuario-perfil.entity';
+import { Perfil } from 'src/paquete-1-usuarios-accesos/usuarios/perfil.entity';
+import { Bitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.entity';
+import { Membresia } from 'src/membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
 import { MetodoPago } from 'src/pagos/metodo-pago/metodo-pago.entity';
 import { Pago } from 'src/pagos/pagos.entity';
-import { ClienteActualizarDto } from 'src/auth/dto/clienteActualizar.dto';
+import { ClienteActualizarDto } from 'src/paquete-1-usuarios-accesos/auth/dto/clienteActualizar.dto';
 import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
-import { ClienteCrearDto } from 'src/auth/dto/clienteCrear.dto';
+import { ClienteCrearDto } from 'src/paquete-1-usuarios-accesos/auth/dto/clienteCrear.dto';
 
 @Injectable()
 export class ClientesService {

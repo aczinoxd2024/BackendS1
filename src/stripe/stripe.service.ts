@@ -5,12 +5,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Pago } from 'src/pagos/pagos.entity';
-import { Usuario } from 'src/usuarios/usuario.entity';
-import { Cliente } from 'src/clientes/cliente.entity';
+import { Usuario } from 'src/paquete-1-usuarios-accesos/usuarios/usuario.entity';
+import { Cliente } from 'src/paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
 import { Membresia } from 'src/membresias/menbresia.entity';
 import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
-import { Bitacora } from 'src/bitacora/bitacora.entity';
+import { Bitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 
 import { PagosService } from 'src/pagos/pagos.service';
 

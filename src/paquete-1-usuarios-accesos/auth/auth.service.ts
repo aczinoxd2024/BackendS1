@@ -3,19 +3,19 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UsuariosService } from '../usuarios/usuarios.service';
-import { Usuario } from '../usuarios/usuario.entity';
+import { UsuariosService } from 'src/paquete-1-usuarios-accesos/usuarios/usuarios.service';
+import { Usuario } from 'src/paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { BitacoraService } from 'src/bitacora/bitacora.service';
+import { BitacoraService } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.service';
 import { Request } from 'express';
-import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
+import { AccionBitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
 import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
-import { EstadoCliente } from 'src/clientes/estado-cliente/estado-cliente.entity';
+import { EstadoCliente } from 'src/paquete-1-usuarios-accesos/clientes/estado-cliente/estado-cliente.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CambiarPasswordDto } from './dto/cambiar-password.dto';

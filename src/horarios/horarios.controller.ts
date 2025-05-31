@@ -13,8 +13,8 @@ import { HorariosService } from './horarios.service';
 import { Horario } from './horario.entity';
 import { CreateHorarioDto } from './dto/create-horario.dto';
 import { UpdateHorarioDto } from './dto/update-horario.dto';
-import { RolesGuard } from 'src/auth/roles/roles.guard';
-import { Roles } from 'src/auth/roles/roles.decorator';
+import { RolesGuard } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.guard';
+import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 
 @UseGuards(RolesGuard)
 @Controller('horarios')

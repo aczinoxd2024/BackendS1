@@ -5,7 +5,7 @@ import { UsuariosController } from './usuarios.controller';
 import { Usuario } from './usuario.entity';
 import { Perfil } from './perfil.entity';
 import { UsuarioPerfil } from './usuario-perfil.entity';
-import { BitacoraModule } from 'src/bitacora/bitacora.module'; // ✅ Importar BitacoraModule
+import { BitacoraModule } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.module'; // ✅ Importar BitacoraModule
 
 @Module({
   imports: [

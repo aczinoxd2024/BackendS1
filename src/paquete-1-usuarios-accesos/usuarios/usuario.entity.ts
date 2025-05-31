@@ -6,10 +6,10 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
-import { Persona } from '../personas/persona.entity';
+import { Persona } from 'src/paquete-1-usuarios-accesos/personas/persona.entity';
 import { UsuarioPerfil } from './usuario-perfil.entity';
-import { Bitacora } from '../bitacora/bitacora.entity';
-import { Cliente } from '../clientes/cliente.entity';
+import { Bitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.entity';
+import { Cliente } from 'src/paquete-1-usuarios-accesos/clientes/cliente.entity';
 
 
 @Entity('usuario')

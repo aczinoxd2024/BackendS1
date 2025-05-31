@@ -6,7 +6,7 @@ import { MembresiasController } from './membresias.controller';
 
 // ✅ Importar correctamente desde la carpeta Tipos
 
-import { Cliente } from '../clientes/cliente.entity';
+import { Cliente } from 'src/paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { TipoMembresiaModule } from './Tipos/tipo-menbresia.module';
 
 @Module({

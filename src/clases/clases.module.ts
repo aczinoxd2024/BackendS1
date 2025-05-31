@@ -5,7 +5,7 @@ import { ClasesController } from './clases.controller';
 import { Clase } from './clase.entity';
 import { Sala } from 'src/salas/sala.entity';
 import { ClaseInstructor } from './clase-instructor.entity';
-import { BitacoraModule } from '../bitacora/bitacora.module';
+import { BitacoraModule } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.module';
 
 @Module({
   imports: [

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { UsuariosService } from '../usuarios/usuarios.service';
+import { UsuariosService } from 'src/paquete-1-usuarios-accesos/usuarios/usuarios.service';
 
 // ✅ Interfaz con los campos esperados del token
 interface JwtPayload {

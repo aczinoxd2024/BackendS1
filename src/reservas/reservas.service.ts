@@ -9,11 +9,11 @@ import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { Reserva } from './reserva.entity';
 import { Clase } from '../clases/clase.entity';
-import { Cliente } from '../clientes/cliente.entity';
+import { Cliente } from 'src/paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { EstadoReserva } from '../estado-reserva/estado-reserva.entity';
 import { Horario } from '../horarios/horario.entity';
-import { Bitacora } from '../bitacora/bitacora.entity';
-import { Usuario } from '../usuarios/usuario.entity'; // ✅ Correcto
+import { Bitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.entity';
+import { Usuario } from 'src/paquete-1-usuarios-accesos/usuarios/usuario.entity'; // ✅ Correcto
 
 
 @Injectable()

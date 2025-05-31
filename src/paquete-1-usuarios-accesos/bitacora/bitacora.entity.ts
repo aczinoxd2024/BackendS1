@@ -6,7 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Usuario } from '../usuarios/usuario.entity';
+import { Usuario } from 'src/paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { Pago } from 'src/pagos/pagos.entity';
 
 @Entity('bitacora')

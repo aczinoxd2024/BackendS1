@@ -12,9 +12,9 @@ import {
 import { AsistenciaService } from './asistencia.service';
 import { Response } from 'express';
 
-import { JwtAuthGuard } from '../auth/jwt.auth.guard';
-import { RolesGuard } from '../auth/roles/roles.guard';
-import { Roles } from '../auth/roles/roles.decorator';
+import { JwtAuthGuard } from 'src/paquete-1-usuarios-accesos/auth/jwt.auth.guard';
+import { RolesGuard } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.guard';
+import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 
 @Controller('asistencia')
 export class AsistenciaController {

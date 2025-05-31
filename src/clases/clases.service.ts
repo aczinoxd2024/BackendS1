@@ -12,9 +12,9 @@ import { Horario } from '../horarios/horario.entity';
 import { DiaSemana } from '../dia-semana/dia-semana.entity';
 import { CreateClaseDto } from './dto/create-clase.dto'; // 👈 asegúrate de importar
 import { UpdateClaseDto } from './dto/update-clase.dto';
-import { AccionBitacora } from '../bitacora/bitacora-actions.enum';
+import { AccionBitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
 import { DeleteClaseDto } from './dto/delete-clase.dto';
-import { BitacoraService } from '../bitacora/bitacora.service';
+import { BitacoraService } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.service';
 
 @Injectable()
 export class ClasesService {

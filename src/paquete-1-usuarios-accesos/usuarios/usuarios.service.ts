@@ -3,9 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from './usuario.entity';
 import * as bcrypt from 'bcryptjs';
-import { BitacoraService } from 'src/bitacora/bitacora.service';
-import { AccionBitacora } from 'src/bitacora/bitacora-actions.enum';
-import { UserRequest } from 'src/auth/user-request.interface';
+import { BitacoraService } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.service';
+import { AccionBitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
+import { UserRequest } from 'src/paquete-1-usuarios-accesos/auth/user-request.interface';
 
 @Injectable()
 export class UsuariosService {

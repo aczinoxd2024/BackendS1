@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { Usuario } from './usuario.entity';
-import { UserRequest } from 'src/auth/user-request.interface';
-import { Roles } from 'src/auth/roles/roles.decorator';
+import { UserRequest } from 'src/paquete-1-usuarios-accesos/auth/user-request.interface';
+import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('usuarios')

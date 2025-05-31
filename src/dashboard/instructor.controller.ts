@@ -2,7 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { Personal } from 'src/personal/personal.entity';
-import { Persona } from 'src/personas/persona.entity';
+import { Persona } from 'src/paquete-1-usuarios-accesos/personas/persona.entity';
 
 @Controller('instructores')
 export class InstructorController {
