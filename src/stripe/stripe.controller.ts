@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Query, Req, Res } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { ConfigService } from '@nestjs/config';
-import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
+import { Roles } from 'paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 import { Response } from 'express';
 import { Request as ExpressRequest } from 'express';
 import Stripe from 'stripe';

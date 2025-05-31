@@ -11,18 +11,18 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Cliente } from './cliente.entity';
-import { Persona } from 'src/paquete-1-usuarios-accesos/personas/persona.entity';
-import { Usuario } from 'src/paquete-1-usuarios-accesos/usuarios/usuario.entity';
-import { UsuarioPerfil } from 'src/paquete-1-usuarios-accesos/usuarios/usuario-perfil.entity';
-import { Perfil } from 'src/paquete-1-usuarios-accesos/usuarios/perfil.entity';
-import { Bitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.entity';
-import { Membresia } from 'src/membresias/menbresia.entity';
-import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
-import { MetodoPago } from 'src/pagos/metodo-pago/metodo-pago.entity';
-import { Pago } from 'src/pagos/pagos.entity';
-import { ClienteActualizarDto } from 'src/paquete-1-usuarios-accesos/auth/dto/clienteActualizar.dto';
+import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
+import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
+import { UsuarioPerfil } from 'paquete-1-usuarios-accesos/usuarios/usuario-perfil.entity';
+import { Perfil } from 'paquete-1-usuarios-accesos/usuarios/perfil.entity';
+import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
+import { Membresia } from 'membresias/menbresia.entity';
+import { TipoMembresia } from 'membresias/Tipos/menbresia.entity';
+import { MetodoPago } from 'pagos/metodo-pago/metodo-pago.entity';
+import { Pago } from 'pagos/pagos.entity';
+import { ClienteActualizarDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteActualizar.dto';
 import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
-import { ClienteCrearDto } from 'src/paquete-1-usuarios-accesos/auth/dto/clienteCrear.dto';
+import { ClienteCrearDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteCrear.dto';
 
 @Injectable()
 export class ClientesService {

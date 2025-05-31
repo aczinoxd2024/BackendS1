@@ -1,6 +1,6 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { PagosService } from './pagos.service';
-import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
+import { Roles } from 'paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 import { RegistroPagoDto } from './registro-pago/registro-pago.dto';
 
 //Para comprobante de pago

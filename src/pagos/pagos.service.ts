@@ -8,12 +8,12 @@ import { Repository } from 'typeorm';
 
 import { Pago } from './pagos.entity';
 import { DetallePago } from './detalle-pago/detalle-pago.entity';
-import { Membresia } from 'src/membresias/menbresia.entity';
-import { Cliente } from 'src/paquete-1-usuarios-accesos/clientes/cliente.entity';
-import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
-import { Persona } from 'src/paquete-1-usuarios-accesos/personas/persona.entity';
-import { Usuario } from 'src/paquete-1-usuarios-accesos/usuarios/usuario.entity';
-import { Clase } from '../clases/clase.entity';
+import { Membresia } from 'membresias/menbresia.entity';
+import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
+import { TipoMembresia } from 'membresias/Tipos/menbresia.entity';
+import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
+import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
+import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
 
 import { RegistroPagoDto } from './registro-pago/registro-pago.dto';
 import { MailerService } from '@nestjs-modules/mailer';

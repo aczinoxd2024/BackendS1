@@ -1,7 +1,7 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { RolesGuard } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.guard';
+import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
 import { BitacoraService } from './bitacora.service';
-import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
+import { Roles } from 'paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 
 @Controller('bitacora')
 @UseGuards(RolesGuard)

@@ -6,7 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Clase } from '../clases/clase.entity';
-import { Cliente } from 'src/paquete-1-usuarios-accesos/clientes/cliente.entity';
+import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { EstadoReserva } from '../estado-reserva/estado-reserva.entity';
 import { Horario } from '../horarios/horario.entity';
 

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Horario } from 'src/horarios/horario.entity';
+import { Horario } from 'horarios/horario.entity';
 
 @Entity('dia_semana')
 export class DiaSemana {

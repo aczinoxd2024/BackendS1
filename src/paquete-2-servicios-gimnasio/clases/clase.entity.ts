@@ -6,13 +6,13 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Sala } from 'src/salas/sala.entity';
+import { Sala } from 'salas/sala.entity';
 import { OneToMany } from 'typeorm';
-import { Horario } from 'src/horarios/horario.entity'; // crearás esta entidad
+import { Horario } from 'horarios/horario.entity'; // crearás esta entidad
 import { ClaseInstructor } from './clase-instructor.entity';
 
 //comprobante pago
-import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
+import { DetallePago } from 'pagos/detalle-pago/detalle-pago.entity';
 
 @Entity('clase')
 export class Clase {

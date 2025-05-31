@@ -6,7 +6,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { DetallePago } from './detalle-pago/detalle-pago.entity';
-import { Bitacora } from 'src/paquete-1-usuarios-accesos/bitacora/bitacora.entity';
+import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 
 @Entity('pago')
 export class Pago {

@@ -6,9 +6,9 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { DetallePago } from 'src/pagos/detalle-pago/detalle-pago.entity';
-import { Cliente } from 'src/paquete-1-usuarios-accesos/clientes/cliente.entity';
-import { TipoMembresia } from 'src/membresias/Tipos/menbresia.entity';
+import { DetallePago } from 'pagos/detalle-pago/detalle-pago.entity';
+import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
+import { TipoMembresia } from 'membresias/Tipos/menbresia.entity';
 
 @Entity('membresia')
 export class Membresia {

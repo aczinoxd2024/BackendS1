@@ -5,7 +5,7 @@ import { AdminController } from './admin.controller';
 import { ClienteController } from './cliente.controller';
 import { InstructorController } from './instructor.controller';
 import { RecepcionistaController } from './recepcionista.controller';
-import { Personal } from '../personal/personal.entity'; // ✅ entidad necesaria
+import { Personal } from 'paquete-2-servicios-gimnasio/personal/personal.entity';
 
 @Module({
   imports: [

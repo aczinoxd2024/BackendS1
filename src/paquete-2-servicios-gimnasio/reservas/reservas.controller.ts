@@ -3,9 +3,9 @@ import { ReservasService } from './reservas.service';
 import { Reserva } from './reserva.entity';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { Request } from 'express';
-import { Roles } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.decorator';
-import { JwtAuthGuard } from 'src/paquete-1-usuarios-accesos/auth/jwt.auth.guard';
-import { RolesGuard } from 'src/paquete-1-usuarios-accesos/auth/roles/roles.guard';
+import { Roles } from 'paquete-1-usuarios-accesos/auth/roles/roles.decorator';
+import { JwtAuthGuard } from 'paquete-1-usuarios-accesos/auth/jwt.auth.guard';
+import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
 
 @Controller('reservas')
 export class ReservasController {

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { Persona } from 'src/paquete-1-usuarios-accesos/personas/persona.entity';
+import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 
 @Entity('asistencia_general')
 export class Asistencia {
