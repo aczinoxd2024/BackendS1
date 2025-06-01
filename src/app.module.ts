@@ -32,6 +32,10 @@ import { TipoPersonaModule } from 'paquete-1-usuarios-accesos/tipo-persona/tipo-
 import { PersonaTipoModule } from 'paquete-1-usuarios-accesos/persona-tipo/persona-tipo.module';
 import { BitacoraModule } from 'paquete-1-usuarios-accesos/bitacora/bitacora.module';
 
+import { SeguimientoModule } from 'paquete-3-control-progreso/seguimiento/seguimiento.module';
+
+
+
 // Seguridad global
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
@@ -107,6 +111,7 @@ import { PagosModule } from './pagos/pagos.module';
     AsistenciaModule,
     SalaModule,
     PagosModule,
+    SeguimientoModule,
   ],
   providers: [
     {

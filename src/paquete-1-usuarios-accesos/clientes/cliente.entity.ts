@@ -1,6 +1,8 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { ManyToOne, JoinColumn } from 'typeorm';
+import { SeguimientoCliente } from 'paquete-3-control-progreso/seguimiento/seguimiento.entity';
+
 
 
 @Entity()
@@ -13,6 +15,9 @@ export class Cliente {
 
   @Column('text')
   Observacion: string;
+
+  @OneToMany(() => SeguimientoCliente, (s) => s.cliente)
+seguimientos: SeguimientoCliente[];
 
 
 }
