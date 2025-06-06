@@ -6,8 +6,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Pago } from '../pagos.entity';
-import { Membresia } from 'src/membresias/menbresia.entity';
-import { Clase } from 'src/clases/clase.entity'; // ✅ Importación agregada
+import { Membresia } from 'membresias/menbresia.entity';
+import { Clase } from 'clases/clase.entity'; // ✅ Importación agregada
 
 @Entity('detalle_pago')
 export class DetallePago {

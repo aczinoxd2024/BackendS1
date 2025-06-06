@@ -9,7 +9,33 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    "baseUrl": "./src",
+    "paths": {
+      // Paquete 1 – Administración de Usuarios y Accesos
+      "paquete-1-usuarios-accesos/*": ["paquete-1-usuarios-accesos/*"],
+
+      // Paquete 2 – Servicios del Gimnasio
+      "paquete-2-servicios-gimnasio/*": ["paquete-2-servicios-gimnasio/*"],
+      "membresias/*": ["paquete-2-servicios-gimnasio/membresias/*"],
+      "salas/*": ["paquete-2-servicios-gimnasio/salas/*"],
+      "clases/*": ["paquete-2-servicios-gimnasio/clases/*"],
+      "horarios/*": ["paquete-2-servicios-gimnasio/horarios/*"],
+      "personal/*": ["paquete-2-servicios-gimnasio/personal/*"],
+      "asistencia/*": ["paquete-2-servicios-gimnasio/asistencia/*"],
+      "reservas/*": ["paquete-2-servicios-gimnasio/reservas/*"],
+      "dia-semana/*": ["paquete-2-servicios-gimnasio/dia-semana/*"],
+
+      // Paquete 3 – Control Comercial (antes llamado "control-progreso")
+      "paquete-3-control-comercial/*": ["paquete-3-control-comercial/*"],
+
+      // Paquete 4 – Gestión Administrativa y Técnica
+      "paquete-4-gestion-administrativa/*": ["paquete-4-gestion-administrativa/*"],
+
+      // Otros módulos
+      "dashboard/*": ["dashboard/*"],
+      "pagos/*": ["pagos/*"],
+      "stripe/*": ["stripe/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
