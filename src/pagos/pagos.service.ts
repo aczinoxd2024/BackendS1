@@ -65,16 +65,16 @@ export class PagosService {
 
     if (!pago) throw new NotFoundException('Pago no encontrado');
 
-    const detalle = await this.detallePagoRepository.findOne({
+    const detalles = await this.detallePagoRepository.find({
       where: { IDPago: nroPago },
       relations: ['membresia', 'clase'],
     });
 
-    if (!detalle) {
-      const lista = await this.detallePagoRepository.find();
-      console.error('❌ Detalle de pago no encontrado. Lista actual:', lista);
+    if (!detalles || detalles.length === 0) {
       throw new NotFoundException('Detalle de pago no encontrado');
     }
+
+    const detalle = detalles[0]; // o hacer un loop si hay varios
 
     console.log('🧾 Detalle encontrado para el comprobante:', detalle);
 

@@ -159,6 +159,8 @@ export class StripeService {
 
     // Crear membresía para disciplina también
     if (esDisciplina) {
+      console.log('🟩 Procesando tipo DISCIPLINA...');
+
       const fechaInicio = new Date();
       const fechaFin = new Date();
       fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
@@ -171,10 +173,18 @@ export class StripeService {
         CICliente: cliente.CI,
       });
 
+      console.log(
+        '📄 Nueva membresía a guardar (Disciplina):',
+        nuevaDisciplina,
+      );
       await this.membresiaRepository.save(nuevaDisciplina);
+      console.log(
+        '✅ Membresía de disciplina guardada con ID:',
+        nuevaDisciplina.IDMembresia,
+      );
 
       //mensaje para asegurarme de que hay un idClase
-      console.log('Clase asignada:', idClase);
+      console.log('Clase asignada para disciplina:', idClase);
       const detalleDisciplina = this.detallePagoRepository.create({
         IDPago: pagoGuardado.NroPago,
         IDMembresia: nuevaDisciplina.IDMembresia,
@@ -185,8 +195,12 @@ export class StripeService {
 
       //para probar si se esta guardando disciplina en pagos:
       //await this.detallePagoRepository.save(detalleDisciplina);
+      console.log(
+        '📝 Detalle de pago DISCIPLINA antes de guardar:',
+        detalleDisciplina,
+      );
       const guardado = await this.detallePagoRepository.save(detalleDisciplina);
-      console.log('🧾 Detalle de disciplina guardado:', guardado);
+      console.log('🧾 Detalle de disciplina guardado en DB:', guardado);
 
       await this.bitacoraRepository.save({
         idUsuario: usuario.id,
@@ -240,13 +254,14 @@ export class StripeService {
     const detalle = this.detallePagoRepository.create({
       IDPago: pagoGuardado.NroPago,
       IDMembresia: nuevaMembresia.IDMembresia,
-      IDClase: tipo.ID === 2 ? idClase : null, // Solo Gold incluye clase
-      //IDClase: tipo.ID === 2 || tipo.ID === 3 ? idClase : null,
+      //IDClase: tipo.ID === 2 ? idClase : null, // Solo Gold incluye clase
+      IDClase: tipo.ID === 2 || esDisciplina ? idClase : null,
       MontoTotal: amount / 100,
       IDPromo: null,
     });
 
     await this.detallePagoRepository.save(detalle);
+    console.log('🧾 Detalle guardado:', detalle);
     console.log('🧾 Detalle guardado para pago', pagoGuardado.NroPago);
 
     cliente.IDEstado = 1;

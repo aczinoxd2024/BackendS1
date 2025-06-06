@@ -37,7 +37,7 @@ async function bootstrap() {
       'http://localhost:4200',
       'https://backends1-production.up.railway.app',
       'http://backends1-production.up.railway.app',
-      'https://proyectosis12025.netlify.app',
+      'https://proyectosis120252.netlify.app',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
