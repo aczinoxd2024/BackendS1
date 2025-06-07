@@ -24,4 +24,5 @@ export class Persona {
   @OneToOne(() => Usuario, (usuario) => usuario.idPersona)
   @JoinColumn({ name: 'CI' })
   usuario: Usuario;
+
 }

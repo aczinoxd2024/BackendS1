@@ -143,5 +143,6 @@ export class SeguimientoClienteService {
     const seguimiento = await this.obtenerPorClienteYFecha(ci, fecha);
     await this.seguimientoRepo.remove(seguimiento);
     return { mensaje: 'Seguimiento eliminado correctamente.' };
+    console.log('✅ Asistencia registrada correctamente');
   }
 }
