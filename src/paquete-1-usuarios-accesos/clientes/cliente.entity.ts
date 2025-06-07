@@ -1,9 +1,5 @@
-import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
-import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
-import { ManyToOne, JoinColumn } from 'typeorm';
 import { SeguimientoCliente } from 'paquete-3-control-comercial/seguimiento/seguimiento.entity';
-
-
+import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
 
 @Entity()
 export class Cliente {
@@ -17,7 +13,5 @@ export class Cliente {
   Observacion: string;
 
   @OneToMany(() => SeguimientoCliente, (s) => s.cliente)
-seguimientos: SeguimientoCliente[];
-
-
+  seguimientos: SeguimientoCliente[];
 }

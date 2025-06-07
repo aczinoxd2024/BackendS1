@@ -10,19 +10,19 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Cliente } from './cliente.entity';
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { UsuarioPerfil } from 'paquete-1-usuarios-accesos/usuarios/usuario-perfil.entity';
 import { Perfil } from 'paquete-1-usuarios-accesos/usuarios/perfil.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
-import { Membresia } from 'membresias/menbresia.entity';
-import { TipoMembresia } from 'membresias/Tipos/menbresia.entity';
+import { Cliente } from './cliente.entity';
+import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/menbresia.entity';
+import { Membresia } from 'paquete-2-servicios-gimnasio/membresias/menbresia.entity';
 import { MetodoPago } from 'pagos/metodo-pago/metodo-pago.entity';
 import { Pago } from 'pagos/pagos.entity';
-import { ClienteActualizarDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteActualizar.dto';
 import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
 import { ClienteCrearDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteCrear.dto';
+import { ClienteActualizarDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteActualizar.dto';
 
 @Injectable()
 export class ClientesService {

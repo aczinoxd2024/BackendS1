@@ -10,11 +10,12 @@ import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { UsuarioPerfil } from 'paquete-1-usuarios-accesos/usuarios/usuario-perfil.entity';
 import { Perfil } from 'paquete-1-usuarios-accesos/usuarios/perfil.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
-import { Membresia } from 'membresias/menbresia.entity';
-import { TipoMembresiaModule } from 'membresias/Tipos/tipo-menbresia.module';
+import { Membresia } from 'paquete-2-servicios-gimnasio/membresias/menbresia.entity';
+import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
+import { TipoMembresiaModule } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo-menbresia.module';
 import { MetodoPagoModule } from 'pagos/metodo-pago/metodo-pago.module';
 import { PagosModule } from 'pagos/pagos.module';
-import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
+
 // ✅ AÑADIDO ESTE
 
 @Module({
