@@ -32,7 +32,7 @@ import { TipoPersonaModule } from 'paquete-1-usuarios-accesos/tipo-persona/tipo-
 import { PersonaTipoModule } from 'paquete-1-usuarios-accesos/persona-tipo/persona-tipo.module';
 import { BitacoraModule } from 'paquete-1-usuarios-accesos/bitacora/bitacora.module';
 
-import { SeguimientoModule } from 'paquete-3-control-comercial/seguimiento/seguimiento.module';
+import { SeguimientoClienteModule } from 'paquete-3-control-comercial/seguimiento-cliente/seguimiento-cliente.module';
 
 
 
@@ -112,8 +112,8 @@ import { GpersonalModule } from 'paquete-1-usuarios-accesos/gestion-personal/gpe
     AsistenciaModule,
     SalaModule,
     PagosModule,
-    SeguimientoModule,
     GpersonalModule, 
+    SeguimientoClienteModule,
   ],
   providers: [
     {
