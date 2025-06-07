@@ -46,6 +46,7 @@ import { join } from 'path';
 
 // comprobantePago
 import { PagosModule } from './pagos/pagos.module';
+import { GpersonalModule } from 'paquete-1-usuarios-accesos/gestion-personal/gpersonal.module';
 
 @Module({
   imports: [
@@ -112,6 +113,7 @@ import { PagosModule } from './pagos/pagos.module';
     SalaModule,
     PagosModule,
     SeguimientoModule,
+    GpersonalModule, 
   ],
   providers: [
     {

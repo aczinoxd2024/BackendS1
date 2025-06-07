@@ -39,7 +39,6 @@ export class AuthService {
     private estadoClienteRepository: Repository<EstadoCliente>,
   ) {}
 
-  // ✅ Verifica credenciales
   async validateUser(correo: string, password: string): Promise<Usuario> {
     const usuario = await this.usuariosService.findOneByCorreo(correo);
     if (!usuario || !(await this.verifyPassword(usuario, password))) {
@@ -48,7 +47,6 @@ export class AuthService {
     return usuario;
   }
 
-  // ✅ Verifica contraseña
   private async verifyPassword(
     usuario: Usuario,
     password: string,
@@ -61,7 +59,6 @@ export class AuthService {
     return bcrypt.compare(password, usuario.contrasena);
   }
 
-  // ✅ Obtener IP de la petición
   private getClientIp(req: Request): string {
     const ip =
       req.headers['x-forwarded-for'] ||
@@ -71,7 +68,6 @@ export class AuthService {
     return Array.isArray(ip) ? ip[0] : ip.toString();
   }
 
-  // ✅ LOGIN
   async login(
     loginDto: LoginDto,
     req: Request,
@@ -90,7 +86,6 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    // 🚨 ✅ VERIFICAR ESTADO DEL USUARIO (bloquear si está inactivo)
     const estadoInactivo: EstadoCliente | null =
       await this.estadoClienteRepository.findOneBy({
         Estado: 'Inactivo',
@@ -99,11 +94,10 @@ export class AuthService {
     if (estadoInactivo && usuario.idEstadoU === estadoInactivo.ID) {
       console.log('🚨 Usuario inactivo intentando ingresar:', usuario);
       throw new UnauthorizedException(
-        'Este usuario está inactivo. Contacte al administrador.',
+        'Este usuario ha sido desactivado por un administrador. Comuníquese con recepción para más detalles.',
       );
     }
 
-    // ✅ Verificar perfiles (roles)
     const perfiles = usuario.usuarioPerfil.map((up) => up.perfil?.nombrePerfil);
     if (!perfiles || perfiles.length === 0) {
       throw new UnauthorizedException('El usuario no tiene un rol asignado.');
@@ -112,7 +106,7 @@ export class AuthService {
     if (!perfiles.includes(rol)) {
       throw new UnauthorizedException('Rol no coincide con el usuario');
     }
-    // ✅ Agrega esto justo antes de crear el payload
+
     const rolesInternos: Record<string, string> = {
       Administrador: 'administrador',
       Instructor: 'instructor',
@@ -122,18 +116,16 @@ export class AuthService {
 
     const rolNormalizado = rolesInternos[rol.trim()] ?? rol.toLowerCase();
 
-    // ✅ Preparar JWT
     const payload: JwtPayload = {
-      id: usuario.id, // <-- Este es el ID real del usuario -> para bitácora (y logout)
+      id: usuario.id,
       correo: usuario.correo,
       rol: rolNormalizado,
-      ci: usuario.idPersona?.CI, // <-- Este solo para vista en frontend si quieres
+      ci: usuario.idPersona?.CI,
     };
 
     const accessToken = this.jwtService.sign(payload);
     const ip = this.getClientIp(req);
 
-    // ✅ Registrar en bitácora
     await this.bitacoraService.registrar(
       usuario.id,
       AccionBitacora.LOGIN,
@@ -155,7 +147,6 @@ export class AuthService {
     };
   }
 
-  // ✅ LOGOUT
   async logout(req: Request): Promise<{ message: string }> {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -176,7 +167,6 @@ export class AuthService {
     return { message: 'Cierre de sesión registrado correctamente.' };
   }
 
-  // ✅ ENVÍA CORREO DE RECUPERACIÓN
   async forgotPassword(
     forgotPasswordDto: ForgotPasswordDto,
   ): Promise<{ message: string }> {
@@ -216,10 +206,9 @@ export class AuthService {
     };
   }
 
-  // ✅ RESET PASSWORD + BITÁCORA
   async resetPassword(
     resetPasswordDto: ResetPasswordDto,
-    req: Request, // ✅ Para obtener IP
+    req: Request,
   ): Promise<{ message: string }> {
     const { token, newPassword } = resetPasswordDto;
 
@@ -247,6 +236,7 @@ export class AuthService {
 
     return { message: 'Contraseña actualizada correctamente.' };
   }
+
   async cambiarPasswordCliente(
     idUsuario: string,
     nuevaPassword: string,
@@ -266,7 +256,6 @@ export class AuthService {
   ): Promise<{ message: string }> {
     const { passwordActual, nuevaContrasena, confirmarContrasena } = body;
 
-    // Validar que la nueva y la confirmación coincidan
     if (nuevaContrasena !== confirmarContrasena) {
       throw new UnauthorizedException('Las nuevas contraseñas no coinciden.');
     }
@@ -286,7 +275,6 @@ export class AuthService {
     const usuario = await this.usuariosService.findOneById(payload.id);
     if (!usuario) throw new NotFoundException('Usuario no encontrado.');
 
-    // Verificar que la contraseña actual sea correcta
     const passwordValida = await bcrypt.compare(
       passwordActual,
       usuario.contrasena,
@@ -295,14 +283,13 @@ export class AuthService {
       throw new UnauthorizedException('La contraseña actual es incorrecta.');
     }
 
-    // Cambiar la contraseña
     usuario.contrasena = await bcrypt.hash(nuevaContrasena, 10);
     await this.usuariosService.update(usuario);
 
     const ip = this.getClientIp(req);
     await this.bitacoraService.registrar(
       usuario.id,
-      AccionBitacora.RECUPERACION_CONTRASENA, // o ACTUALIZACION_CONTRASENA si defines esa acción
+      AccionBitacora.RECUPERACION_CONTRASENA,
       'usuario',
       ip,
     );
