@@ -142,6 +142,37 @@ export class PersonalService {
       hora: horaActual,
     };
   }
+  // 📌 Mostrar todas las asistencias registradas de un personal
+  async obtenerAsistenciasDelPersonal(ci: string) {
+    const asistencias = await this.asistenciaRepo.find({
+      where: { CI: ci },
+      order: { fecha: 'DESC' },
+    });
+
+    if (!asistencias || asistencias.length === 0) {
+      throw new NotFoundException(
+        'Este personal no tiene asistencias registradas',
+      );
+    }
+
+    return asistencias;
+  }
+  async obtenerAsistenciasDelDia() {
+    const hoy = new Date();
+    const fechaHoy = hoy.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const asistencias = await this.asistenciaRepo
+      .createQueryBuilder('asis')
+      .where('asis.fecha = :fecha', { fecha: fechaHoy })
+      .orderBy('asis.horaEntrada', 'ASC')
+      .getMany();
+
+    if (!asistencias || asistencias.length === 0) {
+      throw new NotFoundException('No hay asistencias registradas hoy');
+    }
+
+    return asistencias;
+  }
 
   // ✅ Registrar salida
   async registrarSalidaDesdeQR(ci: string) {

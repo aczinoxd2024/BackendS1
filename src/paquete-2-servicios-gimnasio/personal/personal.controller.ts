@@ -53,4 +53,16 @@ export class PersonalController {
   registrarSalida(@Body() dto: AsistenciaEscanearDto) {
     return this.personalService.registrarSalidaDesdeQR(dto.ci);
   }
+  // ✅ Consultar asistencias por CI (administrador o recepcionista)
+  @Get(':ci/asistencias')
+  @Roles('administrador', 'recepcionista')
+  obtenerAsistencias(@Param('ci') ci: string) {
+    return this.personalService.obtenerAsistenciasDelPersonal(ci);
+  }
+  // ✅ Obtener asistencias del día actual (rol administrador o recepcionista)
+  @Get('asistencias/hoy')
+  @Roles('administrador', 'recepcionista')
+  obtenerAsistenciasHoy() {
+    return this.personalService.obtenerAsistenciasDelDia();
+  }
 }
