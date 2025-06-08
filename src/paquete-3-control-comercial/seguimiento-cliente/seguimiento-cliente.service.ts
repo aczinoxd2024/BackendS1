@@ -21,7 +21,7 @@ export class SeguimientoClienteService {
    * - Tiene membresía tipo Gold activa
    * - No se registró otro seguimiento en los últimos 15 días
    */
-  async registrarSeguimiento(dto: CreateSeguimientoDto): Promise<SeguimientoCliente> {
+  async registrarSeguimiento(dto: CreateSeguimientoDto, ciInstructor: string): Promise<SeguimientoCliente>{
     // 1. Validar que el cliente tenga una membresía tipo Gold activa
     const [membresia] = await this.dataSource.query(`
       SELECT tm.NombreTipo, m.FechaFin
@@ -37,7 +37,7 @@ export class SeguimientoClienteService {
         'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.'
       );
     }
-
+/*
     // 2. Validar que no tenga otro seguimiento en los últimos 15 días
     const ultimo = await this.seguimientoRepo.findOne({
       where: { IDCliente: dto.ciCliente },
@@ -57,7 +57,7 @@ export class SeguimientoClienteService {
         );
       }
     }
-
+*/
     // 3. IMC: usar el proporcionado o calcularlo automáticamente
     const imcCalculado = dto.peso / (dto.altura * dto.altura);
     const imcFinal = dto.imc ?? parseFloat(imcCalculado.toFixed(2));
@@ -65,7 +65,7 @@ export class SeguimientoClienteService {
     // 4. Crear y guardar el seguimiento
     const nuevoSeguimiento = this.seguimientoRepo.create({
       IDCliente: dto.ciCliente,
-      CIInstructor: dto.ciInstructor,
+       CIInstructor: ciInstructor,
       Peso: dto.peso,
       Altura: dto.altura,
       IMC: imcFinal,
@@ -123,7 +123,6 @@ export class SeguimientoClienteService {
 
     seguimiento.Peso = dto.peso;
     seguimiento.Altura = dto.altura;
-    seguimiento.CIInstructor = dto.ciInstructor;
     seguimiento.Pecho = dto.pecho;
     seguimiento.Abdomen = dto.abdomen;
     seguimiento.Cintura = dto.cintura;
@@ -143,6 +142,5 @@ export class SeguimientoClienteService {
     const seguimiento = await this.obtenerPorClienteYFecha(ci, fecha);
     await this.seguimientoRepo.remove(seguimiento);
     return { mensaje: 'Seguimiento eliminado correctamente.' };
-    console.log('✅ Asistencia registrada correctamente');
   }
 }
