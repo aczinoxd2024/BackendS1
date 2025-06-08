@@ -21,23 +21,29 @@ export class SeguimientoClienteService {
    * - Tiene membresía tipo Gold activa
    * - No se registró otro seguimiento en los últimos 15 días
    */
-  async registrarSeguimiento(dto: CreateSeguimientoDto, ciInstructor: string): Promise<SeguimientoCliente>{
+  async registrarSeguimiento(
+    dto: CreateSeguimientoDto,
+    ciInstructor: string,
+  ): Promise<SeguimientoCliente> {
     // 1. Validar que el cliente tenga una membresía tipo Gold activa
-    const [membresia] = await this.dataSource.query(`
+    const [membresia] = await this.dataSource.query(
+      `
       SELECT tm.NombreTipo, m.FechaFin
       FROM membresia m
       JOIN tipo_membresia tm ON m.TipoMembresiaID = tm.ID
       WHERE m.CICliente = ? AND m.FechaFin >= CURDATE()
       ORDER BY m.FechaFin DESC
       LIMIT 1
-    `, [dto.ciCliente]);
+    `,
+      [dto.ciCliente],
+    );
 
     if (!membresia || membresia.NombreTipo.toLowerCase() !== 'gold') {
       throw new BadRequestException(
-        'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.'
+        'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.',
       );
     }
-/*
+    /*
     // 2. Validar que no tenga otro seguimiento en los últimos 15 días
     const ultimo = await this.seguimientoRepo.findOne({
       where: { IDCliente: dto.ciCliente },
@@ -65,7 +71,7 @@ export class SeguimientoClienteService {
     // 4. Crear y guardar el seguimiento
     const nuevoSeguimiento = this.seguimientoRepo.create({
       IDCliente: dto.ciCliente,
-       CIInstructor: ciInstructor,
+      CIInstructor: ciInstructor,
       Peso: dto.peso,
       Altura: dto.altura,
       IMC: imcFinal,
@@ -99,21 +105,23 @@ export class SeguimientoClienteService {
     return ultimo;
   }
 
-async obtenerPorClienteYFecha(ci: string, fecha: string): Promise<SeguimientoCliente> {
-  const resultado = await this.seguimientoRepo
-    .createQueryBuilder('seguimiento')
-    .where('seguimiento.IDCliente = :ci', { ci })
-    .andWhere('DATE(seguimiento.Fecha) = :fecha', { fecha }) // búsqueda por día, no datetime exacto
-    .orderBy('seguimiento.Fecha', 'DESC')
-    .getOne();
+  async obtenerPorClienteYFecha(
+    ci: string,
+    fecha: string,
+  ): Promise<SeguimientoCliente> {
+    const resultado = await this.seguimientoRepo
+      .createQueryBuilder('seguimiento')
+      .where('seguimiento.IDCliente = :ci', { ci })
+      .andWhere('DATE(seguimiento.Fecha) = :fecha', { fecha }) // búsqueda por día, no datetime exacto
+      .orderBy('seguimiento.Fecha', 'DESC')
+      .getOne();
 
-  if (!resultado) {
-    throw new NotFoundException('No se encontró seguimiento para esa fecha.');
+    if (!resultado) {
+      throw new NotFoundException('No se encontró seguimiento para esa fecha.');
+    }
+
+    return resultado;
   }
-
-  return resultado;
-}
-
 
   async actualizarSeguimiento(
     ci: string,
@@ -139,7 +147,10 @@ async obtenerPorClienteYFecha(ci: string, fecha: string): Promise<SeguimientoCli
     return await this.seguimientoRepo.save(seguimiento);
   }
 
-  async eliminarSeguimiento(ci: string, fecha: string): Promise<{ mensaje: string }> {
+  async eliminarSeguimiento(
+    ci: string,
+    fecha: string,
+  ): Promise<{ mensaje: string }> {
     const seguimiento = await this.obtenerPorClienteYFecha(ci, fecha);
     await this.seguimientoRepo.remove(seguimiento);
     return { mensaje: 'Seguimiento eliminado correctamente.' };
