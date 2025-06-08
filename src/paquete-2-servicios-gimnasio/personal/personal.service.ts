@@ -11,6 +11,7 @@ import { Persona } from '../../paquete-1-usuarios-accesos/personas/persona.entit
 import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
 import { Asistencia } from 'paquete-2-servicios-gimnasio/asistencia/asistencia.entity';
+import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 
 @Injectable()
 export class PersonalService {
@@ -31,6 +32,9 @@ export class PersonalService {
 
     @InjectRepository(Asistencia)
     private readonly asistenciaRepo: Repository<Asistencia>,
+
+    @InjectRepository(Bitacora)
+    private readonly bitacoraRepo: Repository<Bitacora>,
   ) {}
 
   // ✅ Listar todo el personal
@@ -79,28 +83,37 @@ export class PersonalService {
     };
   }
 
-  // ✅ Registrar asistencia automática por escaneo QR
+  // ✅ Registrar entrada
   async registrarAsistenciaDesdeQR(ci: string) {
     const now = new Date();
     const dia = now.getDay();
     const idDia = dia === 0 ? 7 : dia;
     const horaActual = now.toTimeString().split(' ')[0]; // HH:MM:SS
 
+    const yaRegistrado = await this.asistenciaRepo.findOne({
+      where: {
+        CI: ci,
+        fecha: new Date(now.toDateString()),
+      },
+    });
+
+    if (yaRegistrado) {
+      this.logger.warn(`❌ Asistencia ya registrada hoy para CI ${ci}`);
+      throw new UnauthorizedException('Ya registraste tu asistencia hoy');
+    }
+
     const coincidencias = await this.horarioTrabajoRepo
       .createQueryBuilder('ht')
       .innerJoin(HoraLaboral, 'hl', 'ht.IDHora = hl.ID')
-
       .where('ht.IDPersona = :ci AND ht.IDDia = :idDia', { ci, idDia })
-
       .andWhere(':horaActual BETWEEN hl.HoraInicio AND hl.HoraFinal', {
         horaActual,
       })
-
       .getCount();
 
     if (coincidencias === 0) {
       this.logger.warn(
-        `Intento de asistencia fuera de horario para CI ${ci} a las ${horaActual}`,
+        `⛔ Intento de asistencia fuera de horario para CI ${ci} a las ${horaActual}`,
       );
       throw new UnauthorizedException(
         'No estás dentro de tu horario laboral para registrar asistencia',
@@ -111,14 +124,63 @@ export class PersonalService {
       CI: ci,
       fecha: now,
       horaEntrada: horaActual,
-      idTipoPer: 2, // 2 = personal
+      idTipoPer: 2, // Personal
     });
 
     await this.asistenciaRepo.save(nuevaAsistencia);
 
+    await this.bitacoraRepo.save({
+      idUsuario: ci,
+      accion: 'Registro de entrada por QR',
+      tablaAfectada: 'asistencia',
+      ipMaquina: '127.0.0.1',
+    });
+
     this.logger.log(`✅ Asistencia registrada correctamente para CI ${ci}`);
     return {
       mensaje: '✅ Asistencia registrada correctamente',
+      hora: horaActual,
+    };
+  }
+
+  // ✅ Registrar salida
+  async registrarSalidaDesdeQR(ci: string) {
+    const now = new Date();
+    const horaActual = now.toTimeString().split(' ')[0];
+    const fechaHoy = new Date(now.toDateString());
+
+    const asistencia = await this.asistenciaRepo.findOne({
+      where: {
+        CI: ci,
+        fecha: fechaHoy,
+      },
+    });
+
+    if (!asistencia) {
+      this.logger.warn(
+        `⛔ No se encontró asistencia previa para salida de CI ${ci}`,
+      );
+      throw new NotFoundException('No se encontró asistencia registrada hoy');
+    }
+
+    if (asistencia.horaSalida) {
+      this.logger.warn(`⚠️ El personal con CI ${ci} ya registró su salida`);
+      throw new UnauthorizedException('Ya registraste tu salida hoy');
+    }
+
+    asistencia.horaSalida = horaActual;
+    await this.asistenciaRepo.save(asistencia);
+
+    await this.bitacoraRepo.save({
+      idUsuario: ci,
+      accion: 'Registro de salida por QR',
+      tablaAfectada: 'asistencia',
+      ipMaquina: '127.0.0.1',
+    });
+
+    this.logger.log(`✅ Salida registrada correctamente para CI ${ci}`);
+    return {
+      mensaje: '✅ Salida registrada correctamente',
       hora: horaActual,
     };
   }

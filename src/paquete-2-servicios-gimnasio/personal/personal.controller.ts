@@ -47,4 +47,10 @@ export class PersonalController {
   registrarAsistenciaQR(@Body() dto: AsistenciaEscanearDto) {
     return this.personalService.registrarAsistenciaDesdeQR(dto.ci);
   }
+  // ✅ Registrar salida del personal
+  @Post('asistencia-salida')
+  @Roles('recepcionista')
+  registrarSalida(@Body() dto: AsistenciaEscanearDto) {
+    return this.personalService.registrarSalidaDesdeQR(dto.ci);
+  }
 }
