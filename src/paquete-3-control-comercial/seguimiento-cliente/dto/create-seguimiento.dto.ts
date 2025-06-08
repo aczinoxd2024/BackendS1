@@ -13,10 +13,6 @@ export class CreateSeguimientoDto {
   @IsNotEmpty({ message: 'El CI del cliente es obligatorio' })
   ciCliente: string;
 
-  @IsString()
-  @IsNotEmpty({ message: 'El CI del instructor es obligatorio' })
-  ciInstructor: string;
-
   @IsNumber()
   @IsPositive({ message: 'El peso debe ser mayor a 0' })
   @Min(30)
