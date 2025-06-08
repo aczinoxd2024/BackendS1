@@ -99,20 +99,21 @@ export class SeguimientoClienteService {
     return ultimo;
   }
 
-  async obtenerPorClienteYFecha(ci: string, fecha: string): Promise<SeguimientoCliente> {
-    const seguimiento = await this.seguimientoRepo.findOne({
-      where: {
-        IDCliente: ci,
-        Fecha: new Date(fecha),
-      },
-    });
+async obtenerPorClienteYFecha(ci: string, fecha: string): Promise<SeguimientoCliente> {
+  const resultado = await this.seguimientoRepo
+    .createQueryBuilder('seguimiento')
+    .where('seguimiento.IDCliente = :ci', { ci })
+    .andWhere('DATE(seguimiento.Fecha) = :fecha', { fecha }) // búsqueda por día, no datetime exacto
+    .orderBy('seguimiento.Fecha', 'DESC')
+    .getOne();
 
-    if (!seguimiento) {
-      throw new NotFoundException('Seguimiento no encontrado para la fecha proporcionada.');
-    }
-
-    return seguimiento;
+  if (!resultado) {
+    throw new NotFoundException('No se encontró seguimiento para esa fecha.');
   }
+
+  return resultado;
+}
+
 
   async actualizarSeguimiento(
     ci: string,
