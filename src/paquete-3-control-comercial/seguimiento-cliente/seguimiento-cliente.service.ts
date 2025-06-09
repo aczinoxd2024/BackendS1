@@ -14,64 +14,60 @@ export class SeguimientoClienteService {
     @InjectRepository(SeguimientoCliente)
     private readonly seguimientoRepo: Repository<SeguimientoCliente>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   /**
    * Registra un nuevo seguimiento físico si:
    * - Tiene membresía tipo Gold activa
    * - No se registró otro seguimiento en los últimos 15 días
    */
-  async registrarSeguimiento(
-    dto: CreateSeguimientoDto,
-    ciInstructor: string,
-  ): Promise<SeguimientoCliente> {
-    // 1. Validar que el cliente tenga una membresía tipo Gold activa
+  async registrarSeguimiento(dto: CreateSeguimientoDto): Promise<SeguimientoCliente> {
+    // 1. Validar membresía GOLD activa
     const [membresia] = await this.dataSource.query(
       `
-      SELECT tm.NombreTipo, m.FechaFin
-      FROM membresia m
-      JOIN tipo_membresia tm ON m.TipoMembresiaID = tm.ID
-      WHERE m.CICliente = ? AND m.FechaFin >= CURDATE()
-      ORDER BY m.FechaFin DESC
-      LIMIT 1
-    `,
+    SELECT tm.NombreTipo, m.FechaFin
+    FROM membresia m
+    JOIN tipo_membresia tm ON m.TipoMembresiaID = tm.ID
+    WHERE m.CICliente = ? AND m.FechaFin >= CURDATE()
+    ORDER BY m.FechaFin DESC
+    LIMIT 1
+  `,
       [dto.ciCliente],
     );
 
     if (!membresia || membresia.NombreTipo.toLowerCase() !== 'gold') {
       throw new BadRequestException(
-        'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.',
+        'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.'
       );
     }
+
+    // 2. Validación temporal desactivada (seguimiento cada 15 días)
     /*
-    // 2. Validar que no tenga otro seguimiento en los últimos 15 días
     const ultimo = await this.seguimientoRepo.findOne({
       where: { IDCliente: dto.ciCliente },
       order: { Fecha: 'DESC' },
     });
-
+  
     if (ultimo) {
       const fechaUltimo = new Date(ultimo.Fecha);
       const hoy = new Date();
-      const diferenciaDias = Math.floor(
-        (hoy.getTime() - fechaUltimo.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
+      const diferenciaDias = Math.floor((hoy.getTime() - fechaUltimo.getTime()) / (1000 * 60 * 60 * 24));
       if (diferenciaDias < 15) {
         throw new BadRequestException(
           `Debe esperar ${15 - diferenciaDias} día(s) para registrar un nuevo seguimiento.`
         );
       }
     }
-*/
-    // 3. IMC: usar el proporcionado o calcularlo automáticamente
+    */
+
+    // 3. Calcular IMC si no se proporciona
     const imcCalculado = dto.peso / (dto.altura * dto.altura);
     const imcFinal = dto.imc ?? parseFloat(imcCalculado.toFixed(2));
 
-    // 4. Crear y guardar el seguimiento
+    // 4. Crear y guardar seguimiento
     const nuevoSeguimiento = this.seguimientoRepo.create({
       IDCliente: dto.ciCliente,
-      CIInstructor: ciInstructor,
+      CIInstructor: dto.ciInstructor, // ✅ desde el dto directamente
       Peso: dto.peso,
       Altura: dto.altura,
       IMC: imcFinal,
@@ -86,6 +82,7 @@ export class SeguimientoClienteService {
 
     return await this.seguimientoRepo.save(nuevoSeguimiento);
   }
+
 
   async obtenerHistorialCliente(ci: string): Promise<SeguimientoCliente[]> {
     return await this.seguimientoRepo.find({
