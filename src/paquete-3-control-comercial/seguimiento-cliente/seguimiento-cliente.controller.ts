@@ -24,7 +24,7 @@ export class SeguimientoClienteController {
 @UseGuards(AuthGuard('jwt'))
 async crearSeguimiento(@Body() dto: CreateSeguimientoDto, @Req() req) {
   const ciInstructor = req.user.ci; // o req.user.idPersona
-  return this.service.registrarSeguimiento(dto, ciInstructor);
+  return this.service.registrarSeguimiento(dto);
 }
 
 
