@@ -13,7 +13,7 @@ export class CreateSeguimientoDto {
   @IsNotEmpty({ message: 'El CI del cliente es obligatorio' })
   ciCliente: string;
 
-  @IsString()
+   @IsString()
   @IsNotEmpty({ message: 'El CI del instructor es obligatorio' })
   ciInstructor: string;
 

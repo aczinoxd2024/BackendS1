@@ -34,8 +34,6 @@ import { BitacoraModule } from 'paquete-1-usuarios-accesos/bitacora/bitacora.mod
 
 import { SeguimientoClienteModule } from 'paquete-3-control-comercial/seguimiento-cliente/seguimiento-cliente.module';
 
-
-
 // Seguridad global
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
