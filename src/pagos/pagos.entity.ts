@@ -4,9 +4,12 @@ import {
   Column,
   CreateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { DetallePago } from './detalle-pago/detalle-pago.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
+import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 
 @Entity('pago')
 export class Pago {
@@ -30,6 +33,11 @@ export class Pago {
 
   @Column({ nullable: true })
   StripePaymentIntentId?: string;
+
+  // 🔁 Relación con Cliente (necesaria para evitar el error)
+  @ManyToOne(() => Cliente, (cliente) => cliente.pagos)
+  @JoinColumn({ name: 'CIPersona', referencedColumnName: 'CI' })
+  cliente: Cliente;
 
   @OneToMany(() => DetallePago, (detalle) => detalle.pago)
   detalles: DetallePago[];

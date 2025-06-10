@@ -5,13 +5,12 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Sala } from 'salas/sala.entity';
-import { OneToMany } from 'typeorm';
-import { Horario } from 'horarios/horario.entity'; // crearás esta entidad
+import { Horario } from 'horarios/horario.entity';
 import { ClaseInstructor } from './clase-instructor.entity';
-
-//comprobante pago
+import { Rutina } from 'paquete-2-servicios-gimnasio/rutinas/entidades/rutina.entity';
 import { DetallePago } from 'pagos/detalle-pago/detalle-pago.entity';
 
 @Entity('clase')
@@ -28,17 +27,21 @@ export class Clase {
   @Column({ length: 30 })
   Estado: string;
 
-  // @Column({ type: 'varchar', length: 20 })
-  //CIInstructor: string;
+  @Column({ nullable: true })
+  IDRutina?: number;
+
+  @Column({ type: 'varchar', length: 20 })
+  CIInstructor: string;
 
   @Column({ type: 'int' })
   CupoMaximo: number;
 
-  //@Column({ length: 100 })
-  //Horario: string;
-
   @Column()
   IDSalaa: number;
+
+  @ManyToOne(() => Rutina, { nullable: true })
+  @JoinColumn({ name: 'IDRutina' })
+  rutina?: Rutina;
 
   @ManyToOne(() => Sala, (sala) => sala.clases)
   @JoinColumn({ name: 'IDSalaa' })
@@ -50,7 +53,6 @@ export class Clase {
   @OneToMany(() => ClaseInstructor, (ci) => ci.clase)
   claseInstructores: ClaseInstructor[];
 
-  // ✅ Nueva relación hacia detalle_pago
   @OneToMany(() => DetallePago, (detallePago) => detallePago.clase)
   detallesPago: DetallePago[];
 }

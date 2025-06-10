@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Clase } from './clase.entity';
@@ -15,14 +16,16 @@ import { UpdateClaseDto } from './dto/update-clase.dto';
 import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
 import { DeleteClaseDto } from './dto/delete-clase.dto';
 import { BitacoraService } from 'paquete-1-usuarios-accesos/bitacora/bitacora.service';
+import { Rutina } from '../rutinas/entidades/rutina.entity';
 
 @Injectable()
 export class ClasesService {
   constructor(
-    @InjectRepository(Clase)
-    private readonly clasesRepository: Repository<Clase>,
+    @InjectRepository(Clase) private readonly clasesRepository: Repository<Clase>,
     private readonly dataSource: DataSource,
-    private readonly bitacoraService: BitacoraService, // 👈 AÑADIDO
+    private readonly bitacoraService: BitacoraService,
+    @InjectRepository(Rutina) private readonly rutinaRepository: Repository<Rutina>,
+
   ) {}
 
   findAll(): Promise<Clase[]> {
@@ -371,4 +374,41 @@ export class ClasesService {
     // registrar en bitácora si es necesario usando deleteDto.eliminadoPor y deleteDto.motivo
     return this.clasesRepository.save(clase);
   }
+
+async asignarRutinaAClase(idClase: number, idRutina: number) {
+  const clase = await this.clasesRepository.findOne({
+    where: { IDClase: idClase },
+    relations: ['rutina'],
+  });
+
+  if (!clase) {
+    throw new NotFoundException('Clase no encontrada');
+  }
+
+  const rutina = await this.rutinaRepository.findOne({
+    where: { id: idRutina }, // Asegúrate que sea el campo correcto en tu entidad Rutina
+  });
+
+  if (!rutina) {
+    throw new NotFoundException('Rutina no encontrada');
+  }
+
+  if (rutina.tipoAcceso !== 'clase') {
+    throw new BadRequestException('La rutina debe ser del tipo "clase"');
+  }
+
+  clase.rutina = rutina;
+  await this.clasesRepository.save(clase);
+
+  await this.bitacoraService.registrar(
+    clase.CIInstructor, // ID del instructor que asignó
+    AccionBitacora.ASIGNAR_RUTINA_CLASE,
+    'clase',
+    `Asignó la rutina ${rutina.nombre} a la clase ${clase.Nombre}`
+  );
+
+  return { mensaje: 'Rutina asignada correctamente a la clase', clase };
+}
+
+
 }

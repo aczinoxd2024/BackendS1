@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Bitacora } from './bitacora.entity';
 import { Request } from 'express';
-import { AccionBitacora } from './bitacora-actions.enum'; // ✅ Importar enum
+import { AccionBitacora } from './bitacora-actions.enum';
+
 
 @Injectable()
 export class BitacoraService {
@@ -17,7 +18,7 @@ export class BitacoraService {
    */
   async obtenerTodos(): Promise<Bitacora[]> {
     return await this.bitacoraRepository.find({
-      relations: ['usuario', 'usuario.idPersona'], // ✅ Para traer nombre
+      relations: ['usuario', 'usuario.idPersona'],
       order: { fechaHora: 'DESC' },
     });
   }
@@ -39,8 +40,9 @@ export class BitacoraService {
           tabla,
           ip,
         });
-        return; // Evita que se rompa si falta algo
+        return;
       }
+
       const registro = this.bitacoraRepository.create({
         idUsuario,
         accion,
@@ -55,6 +57,29 @@ export class BitacoraService {
     }
   }
 
+  /**
+   * Registra en la bitácora extrayendo info desde el request JWT
+   */
+async registrarDesdeRequest(
+  req: Request,
+  accion: AccionBitacora,
+  tabla: string,
+): Promise<void> {
+  const user = req.user as { id?: string }; // 👈 tipado seguro
+  const idUsuario = user?.id;
+
+  if (!idUsuario) {
+    console.warn('⚠️ No se pudo extraer el ID del usuario desde el token JWT');
+    return;
+  }
+
+  const ip = this.getClientIp(req);
+  await this.registrar(idUsuario, accion, tabla, ip);
+}
+
+  /**
+   * Extrae IP del request
+   */
   getClientIp(request: Request): string {
     const forwarded = request.headers['x-forwarded-for'];
 
@@ -68,7 +93,6 @@ export class BitacoraService {
       ip = request.socket.remoteAddress || 'IP no detectada';
     }
 
-    // Formatear IP localhost
     if (ip === '::1' || ip === '127.0.0.1') {
       return 'localhost';
     }

@@ -47,6 +47,8 @@ import { join } from 'path';
 // comprobantePago
 import { PagosModule } from './pagos/pagos.module';
 import { GpersonalModule } from 'paquete-1-usuarios-accesos/gestion-personal/gpersonal.module';
+//import { RutinasModule } from './paquete-2-servicios-instructor/rutinas/rutinas.module';
+import { RutinasModule } from './paquete-2-servicios-gimnasio/rutinas/rutinas.module';
 
 @Module({
   imports: [
@@ -113,7 +115,7 @@ import { GpersonalModule } from 'paquete-1-usuarios-accesos/gestion-personal/gpe
     SalaModule,
     PagosModule,
     GpersonalModule, 
-    SeguimientoClienteModule,
+    SeguimientoClienteModule, RutinasModule,
   ],
   providers: [
     {
