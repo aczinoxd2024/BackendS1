@@ -31,7 +31,6 @@ export class SeguimientoClienteController {
     return this.service.obtenerHistorialCliente(ci);
   }
 
-
   @Get(':ci/:fecha')
   obtenerUno(@Param('ci') ci: string, @Param('fecha') fecha: string) {
     return this.service.obtenerPorClienteYFecha(ci, fecha);
