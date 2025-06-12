@@ -12,7 +12,6 @@ import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-labora
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
 import { Asistencia } from 'paquete-2-servicios-gimnasio/asistencia/asistencia.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
-import { Length } from 'class-validator';
 
 @Injectable()
 export class PersonalService {
