@@ -17,11 +17,10 @@ import { RolesGuard } from '@auth/roles/roles.guard';
 import { Roles } from '@auth/roles/roles.decorator';
 
 @Controller('seguimiento')
-@UseGuards(AuthGuard('jwt'), RolesGuard) // Protege todos los endpoints con JWT + Roles
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class SeguimientoClienteController {
   constructor(private readonly service: SeguimientoClienteService) {}
 
-  // Crear seguimiento (solo INSTRUCTOR)
   @Post()
   @Roles('Instructor')
   async crearSeguimiento(@Body() dto: CreateSeguimientoDto, @Req() req) {
@@ -30,43 +29,41 @@ export class SeguimientoClienteController {
     return this.service.registrarSeguimiento(dto);
   }
 
-  // Cliente puede ver su historial
   @Get('cliente/:ci')
-  @Roles('Cliente', 'Instructor') // Instructor también puede ver de cualquier cliente
+  @Roles('Cliente', 'Instructor')
   historial(@Param('ci') ci: string) {
     return this.service.obtenerHistorialCliente(ci);
   }
 
-  // Instructor puede obtener uno por CI + fecha
+  @Get(':id')
+  @Roles('Instructor')
+  obtenerUno(@Param('id', ParseIntPipe) id: number) {
+    return this.service.obtenerPorId(id);
+  }
+
   @Get('cliente/:ci/:fecha')
-  @Roles('Cliente', 'Instructor')
-  obtenerPorFecha(
-    @Param('ci') ci: string,
-    @Param('fecha') fecha: string,
-  ) {
+  @Roles('Instructor')
+  obtenerPorFecha(@Param('ci') ci: string, @Param('fecha') fecha: string) {
     return this.service.obtenerPorClienteYFecha(ci, fecha);
   }
 
-  // Actualizar seguimiento por CI + fecha
-@Put('cliente/:ci/:fecha')
+ @Put('cliente/:ci/:fecha')
 @Roles('Instructor')
-actualizarPorFecha(
+actualizar(
   @Param('ci') ci: string,
   @Param('fecha') fecha: string,
-  @Body() dto: CreateSeguimientoDto,
+  @Body() dto: CreateSeguimientoDto
 ) {
-  return this.service.actualizarSeguimiento(ci, fecha, dto); // 
+  return this.service.actualizarSeguimiento(ci, fecha, dto);
 }
 
-
-  // Eliminar seguimiento por CI + fecha
-  @Delete('cliente/:ci/:fecha')
-  @Roles('Instructor')
-  eliminarPorFecha(
-    @Param('ci') ci: string,
-    @Param('fecha') fecha: string,
-  ) {
-    return this.service.eliminarSeguimiento(ci, fecha);
-  }
+@Delete('cliente/:ci/:fecha')
+@Roles('Instructor')
+eliminar(
+  @Param('ci') ci: string,
+  @Param('fecha') fecha: string
+) {
+  return this.service.eliminarSeguimiento(ci, fecha);
 }
 
+}
