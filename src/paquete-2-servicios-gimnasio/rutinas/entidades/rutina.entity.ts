@@ -10,8 +10,8 @@ export class Rutina {
   @Column({ length: 100 })
   nombre: string;
 
-  @Column({ length: 255 })
-  descripcion: string;
+  //@Column({ length: 255 })
+  //descripcion: string;
 
   @Column()
   objetivo: string;
