@@ -12,6 +12,7 @@ import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-labora
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
 import { Asistencia } from 'paquete-2-servicios-gimnasio/asistencia/asistencia.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
+import { Length } from 'class-validator';
 
 @Injectable()
 export class PersonalService {
@@ -63,9 +64,12 @@ export class PersonalService {
       throw new NotFoundException('Datos de personal no encontrados');
     }
 
-    const dia = new Date().getDay(); // Domingo = 0
+    const hoy = new Date();
+    const dia = hoy.getDay(); // Domingo = 0
     const idDia = dia === 0 ? 7 : dia;
+    const horaActual = hoy.toTimeString().split(' ')[0]; // HH:MM:SS
 
+    // 1. Buscar horarios laborales normales
     const horarios = await this.horarioTrabajoRepo
       .createQueryBuilder('ht')
       .innerJoin(HoraLaboral, 'hl', 'ht.IDHora = hl.ID')
@@ -73,12 +77,32 @@ export class PersonalService {
       .select(['hl.HoraInicio as horaInicio', 'hl.HoraFinal as horaFin'])
       .getRawMany();
 
+    // 2. Verificar si tiene clase hoy dentro del margen de 30 min
+    const clase = await this.personalRepo.query(
+      `
+    SELECT c.Nombre AS clase, h.HoraIni
+    FROM clase_instructor ci
+    JOIN clase c ON c.IDClase = ci.IDClase
+    JOIN horario h ON h.IDClases = c.IDClase
+    JOIN dia_semana ds ON h.IDDia = ds.ID
+    WHERE ci.CI = ?
+      AND ds.Dia = ELT(WEEKDAY(CURDATE())+1, 'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo')
+      AND TIME(NOW()) BETWEEN SUBTIME(h.HoraIni, '00:30:00') AND h.HoraIni
+    LIMIT 1
+    `,
+      [ci],
+    );
+
+    const asistenciaHabilitada = clase.Length > 0;
+
     return {
       ci: persona.CI,
       nombre: `${persona.Nombre} ${persona.Apellido}`,
       cargo: personal.Cargo,
-      fecha: new Date().toLocaleDateString('es-BO'),
+      fecha: hoy.toLocaleDateString('es-BO'),
       horarioHoy: horarios,
+      asistenciaHabilitada,
+      claseAsignada: asistenciaHabilitada ? clase[0].clase : null,
       qrData: persona.CI,
     };
   }

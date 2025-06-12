@@ -15,18 +15,16 @@ import { SeguimientoClienteService } from './seguimiento-cliente.service';
 import { CreateSeguimientoDto } from './dto/create-seguimiento.dto';
 import { AuthGuard } from '@nestjs/passport';
 
-
 @Controller('seguimiento')
 export class SeguimientoClienteController {
   constructor(private readonly service: SeguimientoClienteService) {}
 
- @Post()
-@UseGuards(AuthGuard('jwt'))
-async crearSeguimiento(@Body() dto: CreateSeguimientoDto, @Req() req) {
-  const ciInstructor = req.user.ci; // o req.user.idPersona
-  return this.service.registrarSeguimiento(dto);
-}
-
+  @Post()
+  @UseGuards(AuthGuard('jwt'))
+  async crearSeguimiento(@Body() dto: CreateSeguimientoDto, @Req() req) {
+    const ciInstructor = req.user.ci; // o req.user.idPersona
+    return this.service.registrarSeguimiento(dto);
+  }
 
   @Get('cliente/:ci')
   historial(@Param('ci') ci: string) {

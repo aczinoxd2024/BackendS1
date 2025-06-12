@@ -14,14 +14,16 @@ export class SeguimientoClienteService {
     @InjectRepository(SeguimientoCliente)
     private readonly seguimientoRepo: Repository<SeguimientoCliente>,
     private readonly dataSource: DataSource,
-  ) { }
+  ) {}
 
   /**
    * Registra un nuevo seguimiento físico si:
    * - Tiene membresía tipo Gold activa
    * - No se registró otro seguimiento en los últimos 15 días
    */
-  async registrarSeguimiento(dto: CreateSeguimientoDto): Promise<SeguimientoCliente> {
+  async registrarSeguimiento(
+    dto: CreateSeguimientoDto,
+  ): Promise<SeguimientoCliente> {
     // 1. Validar membresía GOLD activa
     const [membresia] = await this.dataSource.query(
       `
@@ -37,7 +39,7 @@ export class SeguimientoClienteService {
 
     if (!membresia || membresia.NombreTipo.toLowerCase() !== 'gold') {
       throw new BadRequestException(
-        'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.'
+        'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.',
       );
     }
 
@@ -82,7 +84,6 @@ export class SeguimientoClienteService {
 
     return await this.seguimientoRepo.save(nuevoSeguimiento);
   }
-
 
   async obtenerHistorialCliente(ci: string): Promise<SeguimientoCliente[]> {
     return await this.seguimientoRepo.find({
