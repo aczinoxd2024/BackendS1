@@ -76,6 +76,7 @@ export class SeguimientoClienteService {
       Cintura: dto.cintura,
       Cadera: dto.cadera,
       Pierna: dto.pierna,
+      
       Biceps: dto.biceps,
       Espalda: dto.espalda,
     });
@@ -84,23 +85,24 @@ export class SeguimientoClienteService {
   }
 
 
-  async obtenerHistorialCliente(ci: string): Promise<SeguimientoCliente[]> {
+  /*async obtenerHistorialCliente(ci: string): Promise<SeguimientoCliente[]> {
     return await this.seguimientoRepo.find({
       where: { IDCliente: ci },
       order: { Fecha: 'DESC' },
     });
-  }
+  }*/
 
-  async obtenerUltimoSeguimiento(ci: string): Promise<SeguimientoCliente> {
-    const ultimo = await this.seguimientoRepo.findOne({
-      where: { IDCliente: ci },
-      order: { Fecha: 'DESC' },
-    });
-    if (!ultimo) {
-      throw new NotFoundException('No hay seguimientos para este cliente.');
-    }
-    return ultimo;
-  }
+   async obtenerHistorialCliente(ci: string): Promise<SeguimientoCliente[]> {
+  const resultados = await this.seguimientoRepo.find({
+    where: { IDCliente: ci },
+    order: { Fecha: 'DESC' },
+  });
+
+  console.log(`Seguimientos encontrados para ${ci}:`, resultados.length); // ← Añadir esto
+
+  return resultados;
+}
+ 
 
   async obtenerPorClienteYFecha(
     ci: string,

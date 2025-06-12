@@ -10,8 +10,11 @@ export class SeguimientoCliente {
   @PrimaryColumn()
   IDCliente: string;
 
-  @PrimaryColumn({ type: 'datetime' })
+ /* @PrimaryColumn({ type: 'datetime' })
   @CreateDateColumn({ type: 'datetime', name: 'Fecha', default: () => 'CURRENT_TIMESTAMP' })
+  Fecha: Date;*/
+
+  @PrimaryColumn({ type: 'datetime', name: 'Fecha', default: () => 'CURRENT_TIMESTAMP' })
   Fecha: Date;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })

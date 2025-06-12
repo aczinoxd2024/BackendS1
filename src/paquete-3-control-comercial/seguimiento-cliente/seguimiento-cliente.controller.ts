@@ -33,10 +33,6 @@ async crearSeguimiento(@Body() dto: CreateSeguimientoDto, @Req() req) {
     return this.service.obtenerHistorialCliente(ci);
   }
 
-  @Get('cliente/:ci/ultimo')
-  ultimo(@Param('ci') ci: string) {
-    return this.service.obtenerUltimoSeguimiento(ci);
-  }
 
   @Get(':ci/:fecha')
   obtenerUno(@Param('ci') ci: string, @Param('fecha') fecha: string) {
