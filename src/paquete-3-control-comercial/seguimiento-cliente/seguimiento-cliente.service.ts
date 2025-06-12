@@ -81,7 +81,10 @@ export class SeguimientoClienteService {
       Espalda: dto.espalda,
     });
 
-    return await this.seguimientoRepo.save(nuevoSeguimiento);
+    //return await this.seguimientoRepo.save(nuevoSeguimiento);
+    await this.seguimientoRepo.insert(nuevoSeguimiento);
+    return nuevoSeguimiento;
+
   }
 
 
