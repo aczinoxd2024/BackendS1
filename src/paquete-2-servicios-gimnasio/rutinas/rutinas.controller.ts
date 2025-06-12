@@ -17,7 +17,7 @@ import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
 import { Roles } from 'paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 import { Request } from 'express';
 
-@Controller('api/rutinas')
+@Controller('rutinas')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class RutinasController {
   constructor(private readonly rutinasService: RutinasService) {
