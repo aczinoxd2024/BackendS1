@@ -31,7 +31,6 @@ activo: boolean;
 @Column({ nullable: true })
   CICliente?: string;
 
-
   @OneToMany(() => DetalleRutina, detalle => detalle.rutina, { cascade: true })
   detalles: DetalleRutina[];
 
@@ -42,7 +41,7 @@ tipoAcceso: string;
   @JoinColumn({ name: 'CICliente' })
   cliente?: Cliente;
 
-  
+
 
 @Column({ default: false })
 esBasica: boolean;
