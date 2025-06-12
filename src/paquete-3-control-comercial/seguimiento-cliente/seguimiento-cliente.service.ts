@@ -120,8 +120,9 @@ async eliminarSeguimiento(ci: string, fecha: string): Promise<{ mensaje: string 
   const resultado = await this.seguimientoRepo
     .createQueryBuilder('seguimiento')
     .where('seguimiento.IDCliente = :ci', { ci })
-    .andWhere('DATE(seguimiento.Fecha) = :fecha', { fecha }) // ← compara solo por la fecha, sin hora
-    .orderBy('seguimiento.Fecha', 'DESC')
+   // .andWhere('DATE(seguimiento.Fecha) = :fecha', { fecha }) // ← compara solo por la fecha, sin hora
+   .andWhere('DATE(seguimiento.Fecha) = DATE(:fecha)', { fecha }) 
+   .orderBy('seguimiento.Fecha', 'DESC')
     .getOne();
 
   if (!resultado) {
