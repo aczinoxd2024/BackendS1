@@ -113,6 +113,17 @@ export class ClasesController {
     return this.clasesService.update(idNum, claseDto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+@Put(':idClase/asignar-rutina/:idRutina')
+@Roles('instructor')
+async asignarRutina(
+  @Param('idClase') idClase: number,
+  @Param('idRutina') idRutina: number
+) {
+  return this.clasesService.asignarRutinaAClase(idClase, idRutina);
+}
+
+
   @Delete(':id')
   @Roles('administrador')
   async eliminarClase(

@@ -4,6 +4,7 @@ import { BitacoraService } from './bitacora.service';
 import { Bitacora } from './bitacora.entity';
 import { BitacoraController } from './bitacora.controller';
 
+
 @Module({
   imports: [TypeOrmModule.forFeature([Bitacora])],
   controllers: [BitacoraController],
