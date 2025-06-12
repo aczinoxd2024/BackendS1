@@ -28,8 +28,8 @@ export class Rutina {
    @Column({ default: true })
 activo: boolean;
 
-@Column({ nullable: true })
-  CICliente?: string;
+//@Column({ nullable: true })
+  //CICliente?: string;
 
   @OneToMany(() => DetalleRutina, detalle => detalle.rutina, { cascade: true })
   detalles: DetalleRutina[];
@@ -37,9 +37,9 @@ activo: boolean;
  @Column({ type: 'enum', enum: ['general', 'gold', 'personalizada', 'clase'], default: 'general' })
 tipoAcceso: string;
 
- @ManyToOne(() => Cliente, (cliente) => cliente.rutinas, { nullable: true })
-  @JoinColumn({ name: 'CICliente' })
-  cliente?: Cliente;
+ //@ManyToOne(() => Cliente, (cliente) => cliente.rutinas, { nullable: true })
+  //@JoinColumn({ name: 'CICliente' })
+  //cliente?: Cliente;
 
 
 
