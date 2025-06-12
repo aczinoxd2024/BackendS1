@@ -23,7 +23,7 @@ export class Cliente {
   @OneToMany(() => Pago, pago => pago.cliente)
 pagos: Pago[];
 
-//@OneToMany(() => Rutina, rutina => rutina.cliente)
-//rutinas: Rutina[];
+@OneToMany(() => Rutina, rutina => rutina.cliente)
+rutinas: Rutina[];
 
 }
