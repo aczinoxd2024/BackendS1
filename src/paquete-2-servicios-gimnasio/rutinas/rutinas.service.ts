@@ -12,6 +12,8 @@ import { BitacoraService } from 'paquete-1-usuarios-accesos/bitacora/bitacora.se
 import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
 import { Request } from 'express';
 import { ClienteRutina } from './entidades/cliente-rutina.entity';
+import { InternalServerErrorException } from '@nestjs/common';
+
 
 @Injectable()
 export class RutinasService {
@@ -52,12 +54,17 @@ export class RutinasService {
     return rutinaGuardada;
   }
 
-  findAll(): Promise<Rutina[]> {
-    return this.rutinaRepo.find({
+  async findAll(): Promise<Rutina[]> {
+  try {
+    return await this.rutinaRepo.find({
       where: { activo: true },
       relations: ['detalles', 'detalles.ejercicio', 'detalles.dia'],
     });
+  } catch (error) {
+    console.error('❌ Error en findAll:', error);
+    throw new InternalServerErrorException('Error al cargar rutinas');
   }
+}
 
   async getRutinasGenerales(): Promise<Rutina[]> {
     return this.rutinaRepo.find({
@@ -185,4 +192,7 @@ export class RutinasService {
     await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.ASIGNAR_RUTINA_PERSONALIZADA, 'cliente_rutina');
     return 'Rutina personalizada asignada correctamente';
   }
+
+  
+
 }
