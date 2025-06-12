@@ -15,17 +15,17 @@ import { BitacoraModule } from 'paquete-1-usuarios-accesos/bitacora/bitacora.mod
   imports: [
     TypeOrmModule.forFeature([
       Rutina,
-      DetalleRutina,
-      Ejercicio,
-      Cliente,
-      DiaSemana,
-      ClienteRutina,
-      GrupoMuscular
+      //DetalleRutina,
+      //Ejercicio,
+      //Cliente,
+      //DiaSemana,
+      //ClienteRutina,
+      //GrupoMuscular
     ]),
     BitacoraModule
   ],
   controllers: [RutinasController],
   providers: [RutinasService],
-   exports: [RutinasService],
+   //exports: [RutinasService],
 })
 export class RutinasModule {}
