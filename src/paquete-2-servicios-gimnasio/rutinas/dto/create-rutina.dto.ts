@@ -51,8 +51,10 @@ export class CreateRutinaDto {
   @IsNotEmpty()
   ciInstructor: string;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => DetalleRutinaDto)
-  detalles: DetalleRutinaDto[];
+  @IsOptional()
+@IsArray()
+@ValidateNested({ each: true })
+@Type(() => DetalleRutinaDto)
+detalles?: DetalleRutinaDto[];
+
 }

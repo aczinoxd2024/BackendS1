@@ -15,6 +15,7 @@ export class SeguimientoClienteService {
     private readonly seguimientoRepo: Repository<SeguimientoCliente>,
     private readonly dataSource: DataSource,
   ) {}
+  ) {}
 
   async registrarSeguimiento(dto: CreateSeguimientoDto): Promise<SeguimientoCliente> {
   // 1. Validar membresía GOLD activa

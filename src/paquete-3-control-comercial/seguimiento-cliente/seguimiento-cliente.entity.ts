@@ -31,14 +31,18 @@ export class SeguimientoCliente {
   CIInstructor: string;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   Pecho?: number;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   Abdomen?: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   Cintura?: number;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   Cadera?: number;
 
@@ -49,5 +53,7 @@ export class SeguimientoCliente {
   Biceps?: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   Espalda?: number;
 }
+

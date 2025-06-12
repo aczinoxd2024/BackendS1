@@ -12,6 +12,8 @@ import { BitacoraService } from 'paquete-1-usuarios-accesos/bitacora/bitacora.se
 import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
 import { Request } from 'express';
 import { ClienteRutina } from './entidades/cliente-rutina.entity';
+import { InternalServerErrorException } from '@nestjs/common';
+
 
 @Injectable()
 export class RutinasService {
@@ -26,38 +28,57 @@ export class RutinasService {
   ) {}
 
   async create(dto: CreateRutinaDto, req: Request): Promise<Rutina> {
-    const detalles = await Promise.all(
+  let detalles: DetalleRutina[] = [];
+
+  if (dto.detalles && dto.detalles.length > 0) {
+    detalles = await Promise.all(
       dto.detalles.map(async (d) => {
         const ejercicio = await this.ejercicioRepo.findOne({ where: { id: d.idEjercicio } });
         const dia = await this.diaRepo.findOne({ where: { ID: d.idDia } });
-        if (!ejercicio || !dia) throw new NotFoundException('Ejercicio o día inválido');
-        return this.detalleRepo.create({ ejercicio, dia, series: d.series, repeticiones: d.repeticiones });
+
+        if (!ejercicio || !dia) {
+          throw new NotFoundException('Ejercicio o día inválido');
+        }
+
+        return this.detalleRepo.create({
+          ejercicio,
+          dia,
+          series: d.series,
+          repeticiones: d.repeticiones,
+        });
       })
     );
-
-    const rutina = this.rutinaRepo.create({
-      nombre: dto.nombre,
-      objetivo: dto.objetivo,
-      nivel: dto.nivel,
-      tipoAcceso: dto.tipoAcceso,
-      esBasica: dto.esBasica || false,
-      generoObjetivo: dto.generoObjetivo,
-      ciInstructor: dto.ciInstructor,
-      detalles,
-      activo: true,
-    });
-
-    const rutinaGuardada = await this.rutinaRepo.save(rutina);
-    await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.CREAR_RUTINA, 'rutina');
-    return rutinaGuardada;
   }
 
-  findAll(): Promise<Rutina[]> {
-    return this.rutinaRepo.find({
+  const rutina = this.rutinaRepo.create({
+    nombre: dto.nombre,
+    objetivo: dto.objetivo,
+    nivel: dto.nivel,
+    tipoAcceso: dto.tipoAcceso,
+    esBasica: dto.esBasica || false,
+    generoObjetivo: dto.generoObjetivo,
+    ciInstructor: dto.ciInstructor,
+    detalles,
+    activo: true,
+  });
+
+  const rutinaGuardada = await this.rutinaRepo.save(rutina);
+  await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.CREAR_RUTINA, 'rutina');
+  return rutinaGuardada;
+}
+
+
+  async findAll(): Promise<Rutina[]> {
+  try {
+    return await this.rutinaRepo.find({
       where: { activo: true },
       relations: ['detalles', 'detalles.ejercicio', 'detalles.dia'],
     });
+  } catch (error) {
+    console.error('❌ Error en findAll:', error);
+    throw new InternalServerErrorException('Error al cargar rutinas');
   }
+}
 
   async getRutinasGenerales(): Promise<Rutina[]> {
     return this.rutinaRepo.find({
@@ -185,4 +206,7 @@ export class RutinasService {
     await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.ASIGNAR_RUTINA_PERSONALIZADA, 'cliente_rutina');
     return 'Rutina personalizada asignada correctamente';
   }
+
+  
+
 }

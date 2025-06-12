@@ -69,3 +69,4 @@ actualizarPorFecha(
     return this.service.eliminarSeguimiento(ci, fecha);
   }
 }
+

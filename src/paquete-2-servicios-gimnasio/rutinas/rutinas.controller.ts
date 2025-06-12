@@ -17,10 +17,12 @@ import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
 import { Roles } from 'paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 import { Request } from 'express';
 
-@Controller('api/rutinas')
+@Controller('rutinas')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class RutinasController {
-  constructor(private readonly rutinasService: RutinasService) {}
+  constructor(private readonly rutinasService: RutinasService) {
+    console.log('✅ RutinasController CARGADO');
+  }
 
   @Post()
   @Roles('Instructor')
@@ -89,4 +91,12 @@ export class RutinasController {
   ) {
     return this.rutinasService.asignarRutinaPersonalizada(id, ciCliente, req);
   }
+
+  @Get('test')
+@UseGuards() // sin JWT
+test() {
+  console.log('💡 Endpoint público alcanzado');
+  return { msg: 'Ruta rutinas activa' };
+}
+
 }
