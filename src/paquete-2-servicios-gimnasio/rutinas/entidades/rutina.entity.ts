@@ -42,6 +42,8 @@ tipoAcceso: string;
   @JoinColumn({ name: 'CICliente' })
   cliente?: Cliente;
 
+  
+
 @Column({ default: false })
 esBasica: boolean;
 
