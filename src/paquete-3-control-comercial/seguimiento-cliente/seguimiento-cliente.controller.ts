@@ -42,7 +42,7 @@ export class SeguimientoClienteController {
   }
 
   @Get('cliente/:ci/:fecha')
-  @Roles('Instructor')
+   @Roles('Cliente', 'Instructor')
   obtenerPorFecha(@Param('ci') ci: string, @Param('fecha') fecha: string) {
     return this.service.obtenerPorClienteYFecha(ci, fecha);
   }
