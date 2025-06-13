@@ -8,6 +8,7 @@ import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-
 import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
 import { Asistencia } from 'paquete-2-servicios-gimnasio/asistencia/asistencia.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity'; // ✅ IMPORTACIÓN
+import { AsistenciaPersonal } from './asistencia_personal.entity';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity'; 
       HoraLaboral,
       Asistencia,
       Bitacora, // ✅ AÑADIDO AQUÍ
+      AsistenciaPersonal,
     ]),
   ],
   providers: [PersonalService],

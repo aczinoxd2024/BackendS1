@@ -7,11 +7,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Personal } from './personal.entity';
-import { Persona } from '../../paquete-1-usuarios-accesos/personas/persona.entity';
+import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
-import { Asistencia } from 'paquete-2-servicios-gimnasio/asistencia/asistencia.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
+import { AsistenciaPersonal } from './asistencia_personal.entity';
 
 @Injectable()
 export class PersonalService {
@@ -30,20 +30,18 @@ export class PersonalService {
     @InjectRepository(HoraLaboral)
     private readonly horaLaboralRepo: Repository<HoraLaboral>,
 
-    @InjectRepository(Asistencia)
-    private readonly asistenciaRepo: Repository<Asistencia>,
+    @InjectRepository(AsistenciaPersonal)
+    private readonly asistenciaRepo: Repository<AsistenciaPersonal>,
 
     @InjectRepository(Bitacora)
     private readonly bitacoraRepo: Repository<Bitacora>,
   ) {}
 
-  // ✅ Listar todo el personal
-  findAll(): Promise<Personal[]> {
+  async findAll(): Promise<Personal[]> {
     this.logger.log('Listando todo el personal');
     return this.personalRepo.find();
   }
 
-  // ✅ Buscar personal por CI
   async findOne(ci: string): Promise<Personal> {
     const persona = await this.personalRepo.findOneBy({ CI: ci });
     if (!persona) {
@@ -53,7 +51,6 @@ export class PersonalService {
     return persona;
   }
 
-  // ✅ Generar datos para tarjeta virtual del personal
   async generarTarjetaPersonal(ci: string) {
     const personal = await this.personalRepo.findOne({ where: { CI: ci } });
     const persona = await this.personaRepo.findOne({ where: { CI: ci } });
@@ -64,11 +61,10 @@ export class PersonalService {
     }
 
     const hoy = new Date();
-    const dia = hoy.getDay(); // Domingo = 0
+    const dia = hoy.getDay();
     const idDia = dia === 0 ? 7 : dia;
-    const horaActual = hoy.toTimeString().split(' ')[0]; // HH:MM:SS
+    const horaActual = hoy.toTimeString().split(' ')[0];
 
-    // 1. Buscar horarios laborales normales
     const horarios = await this.horarioTrabajoRepo
       .createQueryBuilder('ht')
       .innerJoin(HoraLaboral, 'hl', 'ht.IDHora = hl.ID')
@@ -76,23 +72,22 @@ export class PersonalService {
       .select(['hl.HoraInicio as horaInicio', 'hl.HoraFinal as horaFin'])
       .getRawMany();
 
-    // 2. Verificar si tiene clase hoy dentro del margen de 30 min
     const clase = await this.personalRepo.query(
       `
-    SELECT c.Nombre AS clase, h.HoraIni
-    FROM clase_instructor ci
-    JOIN clase c ON c.IDClase = ci.IDClase
-    JOIN horario h ON h.IDClases = c.IDClase
-    JOIN dia_semana ds ON h.IDDia = ds.ID
-    WHERE ci.CI = ?
-      AND ds.Dia = ELT(WEEKDAY(CURDATE())+1, 'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo')
-      AND TIME(NOW()) BETWEEN SUBTIME(h.HoraIni, '00:30:00') AND h.HoraIni
-    LIMIT 1
-    `,
+      SELECT c.Nombre AS clase, h.HoraIni
+      FROM clase_instructor ci
+      JOIN clase c ON c.IDClase = ci.IDClase
+      JOIN horario h ON h.IDClases = c.IDClase
+      JOIN dia_semana ds ON h.IDDia = ds.ID
+      WHERE ci.CI = ?
+        AND ds.Dia = ELT(WEEKDAY(CURDATE())+1, 'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo')
+        AND TIME(NOW()) BETWEEN SUBTIME(h.HoraIni, '00:30:00') AND h.HoraIni
+      LIMIT 1
+      `,
       [ci],
     );
 
-    const asistenciaHabilitada = clase.Length > 0;
+    const asistenciaHabilitada = clase.length > 0;
 
     return {
       ci: persona.CI,
@@ -106,16 +101,16 @@ export class PersonalService {
     };
   }
 
-  // ✅ Registrar entrada
   async registrarAsistenciaDesdeQR(ci: string) {
     const now = new Date();
     const dia = now.getDay();
     const idDia = dia === 0 ? 7 : dia;
-    const horaActual = now.toTimeString().split(' ')[0]; // HH:MM:SS
+    const horaActualStr = now.toTimeString().split(' ')[0];
+    const horaActual = new Date(`1970-01-01T${horaActualStr}Z`);
 
     const yaRegistrado = await this.asistenciaRepo.findOne({
       where: {
-        CI: ci,
+        ci: ci,
         fecha: new Date(now.toDateString()),
       },
     });
@@ -125,50 +120,61 @@ export class PersonalService {
       throw new UnauthorizedException('Ya registraste tu asistencia hoy');
     }
 
-    const coincidencias = await this.horarioTrabajoRepo
+    const horario = await this.horarioTrabajoRepo
       .createQueryBuilder('ht')
       .innerJoin(HoraLaboral, 'hl', 'ht.IDHora = hl.ID')
       .where('ht.IDPersona = :ci AND ht.IDDia = :idDia', { ci, idDia })
-      .andWhere(':horaActual BETWEEN hl.HoraInicio AND hl.HoraFinal', {
-        horaActual,
-      })
-      .getCount();
+      .select(['hl.HoraInicio as horaInicio'])
+      .getRawOne();
 
-    if (coincidencias === 0) {
+    if (!horario) {
+      throw new UnauthorizedException('No tienes horario registrado para hoy');
+    }
+
+    const horaInicio = new Date(`1970-01-01T${horario.horaInicio}Z`);
+    const minutosDiferencia =
+      (horaActual.getTime() - horaInicio.getTime()) / 60000;
+
+    let estado = 'Puntual';
+    if (minutosDiferencia > 10 && minutosDiferencia <= 30) {
+      estado = 'Con Retraso';
+    } else if (minutosDiferencia > 30) {
       this.logger.warn(
-        `⛔ Intento de asistencia fuera de horario para CI ${ci} a las ${horaActual}`,
+        `⛔ Asistencia fuera del rango permitido para CI ${ci} (Minutos: ${minutosDiferencia})`,
       );
       throw new UnauthorizedException(
-        'No estás dentro de tu horario laboral para registrar asistencia',
+        'Superaste el tiempo permitido para registrar asistencia',
       );
     }
 
     const nuevaAsistencia = this.asistenciaRepo.create({
-      CI: ci,
+      ci,
       fecha: now,
-      horaEntrada: horaActual,
-      idTipoPer: 2, // Personal
+      horaEntrada: horaActualStr,
+      estado,
     });
 
     await this.asistenciaRepo.save(nuevaAsistencia);
 
     await this.bitacoraRepo.save({
       idUsuario: ci,
-      accion: 'Registro de entrada por QR',
-      tablaAfectada: 'asistencia',
+      accion: `Registro de entrada (${estado}) por QR`,
+      tablaAfectada: 'asistencia_personal',
       ipMaquina: '127.0.0.1',
     });
 
-    this.logger.log(`✅ Asistencia registrada correctamente para CI ${ci}`);
+    this.logger.log(
+      `✅ Asistencia (${estado}) registrada correctamente para CI ${ci}`,
+    );
     return {
-      mensaje: '✅ Asistencia registrada correctamente',
-      hora: horaActual,
+      mensaje: `✅ Asistencia (${estado}) registrada correctamente`,
+      hora: horaActualStr,
     };
   }
-  // 📌 Mostrar todas las asistencias registradas de un personal
+
   async obtenerAsistenciasDelPersonal(ci: string) {
     const asistencias = await this.asistenciaRepo.find({
-      where: { CI: ci },
+      where: { ci },
       order: { fecha: 'DESC' },
     });
 
@@ -180,9 +186,10 @@ export class PersonalService {
 
     return asistencias;
   }
+
   async obtenerAsistenciasDelDia() {
     const hoy = new Date();
-    const fechaHoy = hoy.toISOString().split('T')[0]; // YYYY-MM-DD
+    const fechaHoy = hoy.toISOString().split('T')[0];
 
     const asistencias = await this.asistenciaRepo
       .createQueryBuilder('asis')
@@ -197,7 +204,6 @@ export class PersonalService {
     return asistencias;
   }
 
-  // ✅ Registrar salida
   async registrarSalidaDesdeQR(ci: string) {
     const now = new Date();
     const horaActual = now.toTimeString().split(' ')[0];
@@ -205,7 +211,7 @@ export class PersonalService {
 
     const asistencia = await this.asistenciaRepo.findOne({
       where: {
-        CI: ci,
+        ci,
         fecha: fechaHoy,
       },
     });
@@ -228,7 +234,7 @@ export class PersonalService {
     await this.bitacoraRepo.save({
       idUsuario: ci,
       accion: 'Registro de salida por QR',
-      tablaAfectada: 'asistencia',
+      tablaAfectada: 'asistencia_personal',
       ipMaquina: '127.0.0.1',
     });
 
