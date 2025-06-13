@@ -5,7 +5,6 @@ import { Bitacora } from './bitacora.entity';
 import { Request } from 'express';
 import { AccionBitacora } from './bitacora-actions.enum';
 
-
 @Injectable()
 export class BitacoraService {
   constructor(
@@ -60,22 +59,24 @@ export class BitacoraService {
   /**
    * Registra en la bitácora extrayendo info desde el request JWT
    */
-async registrarDesdeRequest(
-  req: Request,
-  accion: AccionBitacora,
-  tabla: string,
-): Promise<void> {
-  const user = req.user as { id?: string }; // 👈 tipado seguro
-  const idUsuario = user?.id;
+  async registrarDesdeRequest(
+    req: Request,
+    accion: AccionBitacora,
+    tabla: string,
+  ): Promise<void> {
+    const user = req.user as { id?: string }; // 👈 tipado seguro
+    const idUsuario = user?.id;
 
-  if (!idUsuario) {
-    console.warn('⚠️ No se pudo extraer el ID del usuario desde el token JWT');
-    return;
+    if (!idUsuario) {
+      console.warn(
+        '⚠️ No se pudo extraer el ID del usuario desde el token JWT',
+      );
+      return;
+    }
+
+    const ip = this.getClientIp(req);
+    await this.registrar(idUsuario, accion, tabla, ip);
   }
-
-  const ip = this.getClientIp(req);
-  await this.registrar(idUsuario, accion, tabla, ip);
-}
 
   /**
    * Extrae IP del request
