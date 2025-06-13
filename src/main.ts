@@ -35,6 +35,8 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:4200',
+      'https://web-production-d581.up.railway.app',   // 👈 AGREGAR ESTE
+    'http://web-production-d581.up.railway.app',    // 👈 OPCIONAL
       'https://backends1-production.up.railway.app',
       'http://backends1-production.up.railway.app',
       'https://proyectosis120252.netlify.app',
