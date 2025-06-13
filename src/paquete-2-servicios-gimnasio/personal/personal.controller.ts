@@ -43,7 +43,7 @@ export class PersonalController {
 
   // ✅ 4. Registrar asistencia desde cámara (solo recepcionista)
   @Post('asistencia-escanear')
-  @Roles('recepcionista')
+  @Roles('recepcionista', 'instructor')
   registrarAsistenciaQR(@Body() dto: AsistenciaEscanearDto) {
     return this.personalService.registrarAsistenciaDesdeQR(dto.ci);
   }
