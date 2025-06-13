@@ -1,16 +1,22 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn } from 'typeorm';
+
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  Generated,
+  CreateDateColumn,
+} from 'typeorm';
 
 @Entity('seguimiento_cliente')
 export class SeguimientoCliente {
   @PrimaryColumn()
   IDCliente: string;
 
-  @PrimaryColumn({ type: 'datetime' })
-  @CreateDateColumn({
-    type: 'datetime',
-    name: 'Fecha',
-    default: () => 'CURRENT_TIMESTAMP',
-  })
+  @PrimaryColumn()
+  @Generated('increment')
+  id: number;
+
+  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   Fecha: Date;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })
@@ -25,24 +31,12 @@ export class SeguimientoCliente {
   @Column()
   CIInstructor: string;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  Pierna?: number;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  Biceps?: number;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  Pecho?: number;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  Abdomen?: number;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  Cintura?: number;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  Cadera?: number;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  Espalda?: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) Pecho?: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) Abdomen?: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) Cintura?: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) Cadera?: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) Pierna?: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) Biceps?: number;
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true }) Espalda?: number;
 }
+

@@ -25,6 +25,7 @@ import { BitacoraModule } from 'paquete-1-usuarios-accesos/bitacora/bitacora.mod
     BitacoraModule
   ],
   controllers: [RutinasController],
-  providers: [RutinasService]
+  providers: [RutinasService],
+   exports: [RutinasService],
 })
 export class RutinasModule {}

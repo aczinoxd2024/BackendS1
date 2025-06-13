@@ -112,10 +112,16 @@ import { RutinasModule } from './paquete-2-servicios-gimnasio/rutinas/rutinas.mo
     AsistenciaModule,
     SalaModule,
     PagosModule,
+<<<<<<< HEAD
     GpersonalModule,
     SeguimientoClienteModule,
     RutinasModule,
     AsistenciaModule,
+=======
+    GpersonalModule, 
+    SeguimientoClienteModule,
+    RutinasModule,
+>>>>>>> 5c0e00ef48435f4fa81527962f55f11b1d67e110
   ],
   providers: [
     {
