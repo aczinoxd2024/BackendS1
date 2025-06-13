@@ -109,6 +109,7 @@ export class SeguimientoClienteService {
 }
 
 async eliminarSeguimiento(ci: string, fecha: string): Promise<{ mensaje: string }> {
+  console.log('[🧪 DEBUG] Eliminando seguimiento de:', ci, 'Fecha:', fecha);
   const seguimiento = await this.obtenerPorClienteYFecha(ci, fecha); // ← busca por CI + solo fecha
   await this.seguimientoRepo.remove(seguimiento);
   return { mensaje: 'Seguimiento eliminado correctamente.' };
@@ -121,7 +122,8 @@ async eliminarSeguimiento(ci: string, fecha: string): Promise<{ mensaje: string 
     .createQueryBuilder('seguimiento')
     .where('seguimiento.IDCliente = :ci', { ci })
    // .andWhere('DATE(seguimiento.Fecha) = :fecha', { fecha }) // ← compara solo por la fecha, sin hora
-   .andWhere('DATE(seguimiento.Fecha) = DATE(:fecha)', { fecha }) 
+   //.andWhere('DATE(seguimiento.Fecha) = DATE(:fecha)', { fecha }) //actual 
+   .andWhere('DATE(CONVERT_TZ(seguimiento.Fecha, "+00:00", "-04:00")) = :fecha', { fecha })  //prueba
    .orderBy('seguimiento.Fecha', 'DESC')
     .getOne();
 
