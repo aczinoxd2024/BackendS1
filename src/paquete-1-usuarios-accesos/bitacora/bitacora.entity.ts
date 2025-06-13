@@ -14,8 +14,9 @@ export class Bitacora {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  idUsuario: string; // FK hacia usuario.id
+  @Column({ length: 50 })
+  idUsuario: string;
+  // FK hacia usuario.id
 
   @Column('text')
   accion: string;
