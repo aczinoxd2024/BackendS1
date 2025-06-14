@@ -6,6 +6,7 @@ import {
   Body,
   Req,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PersonalService } from './personal.service';
 import { JwtAuthGuard } from 'paquete-1-usuarios-accesos/auth/jwt.auth.guard';
@@ -48,10 +49,18 @@ export class PersonalController {
     @Body() dto: AsistenciaEscanearDto,
     @Req() req: UserRequest,
   ) {
+    const ciResponsable = req.user?.ci;
+    if (!ciResponsable) {
+      throw new UnauthorizedException(
+        'No se pudo obtener el CI del responsable',
+      );
+    }
+
+    const ip = req.ip || '127.0.0.1';
     return this.personalService.registrarAsistenciaDesdeQR(
       dto.ci,
-      req.user.ci,
-      req.ip,
+      ciResponsable,
+      ip,
     );
   }
 
@@ -62,8 +71,15 @@ export class PersonalController {
     @Body() dto: AsistenciaEscanearDto,
     @Req() req: UserRequest,
   ) {
+    const ciResponsable = req.user?.ci;
+    if (!ciResponsable) {
+      throw new UnauthorizedException(
+        'No se pudo obtener el CI del responsable',
+      );
+    }
+
     const ip = req.ip || '127.0.0.1';
-    return this.personalService.registrarSalida(dto.ci, req.user.ci, ip);
+    return this.personalService.registrarSalida(dto.ci, ciResponsable, ip);
   }
 
   // ✅ Consultar asistencias por CI (administrador o recepcionista)

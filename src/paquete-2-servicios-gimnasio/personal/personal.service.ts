@@ -103,13 +103,18 @@ export class PersonalService {
 
   async registrarAsistenciaDesdeQR(
     ciEscaneado: string, // CI del personal escaneado
-    ciResponsable: string, // CI del recepcionista que realiza la acción
-    ip?: string, // ip puede venir como undefined
+    ciResponsable: string, // CI del recepcionista/instructor
+    ip?: string,
   ) {
     const now = new Date();
     const idDia = now.getDay() === 0 ? 7 : now.getDay();
     const horaActualStr = now.toTimeString().split(' ')[0];
     const horaActual = new Date(`1970-01-01T${horaActualStr}Z`);
+
+    console.log(`📥 Iniciando registro de asistencia`);
+    console.log(`CI escaneado: ${ciEscaneado}`);
+    console.log(`Responsable (CI): ${ciResponsable}`);
+    console.log(`IP: ${ip || '127.0.0.1'}`);
 
     const yaRegistrado = await this.asistenciaRepo.findOne({
       where: {
@@ -136,6 +141,7 @@ export class PersonalService {
       .getRawOne()) as { horaInicio: string };
 
     if (!horario) {
+      this.logger.warn(`⚠️ No se encontró horario para hoy CI ${ciEscaneado}`);
       throw new UnauthorizedException('No tienes horario registrado para hoy');
     }
 
@@ -148,12 +154,14 @@ export class PersonalService {
       estado = 'Con Retraso';
     } else if (minutosDiferencia > 30) {
       this.logger.warn(
-        `⛔ Asistencia fuera del rango permitido para CI ${ciEscaneado} (Minutos: ${minutosDiferencia})`,
+        `⛔ Fuera de rango (minutos: ${minutosDiferencia}) CI: ${ciEscaneado}`,
       );
       throw new UnauthorizedException(
         'Superaste el tiempo permitido para registrar asistencia',
       );
     }
+
+    console.log(`⏱ Estado calculado: ${estado}`);
 
     const nuevaAsistencia = this.asistenciaRepo.create({
       ci: ciEscaneado,
@@ -163,8 +171,9 @@ export class PersonalService {
     });
 
     await this.asistenciaRepo.save(nuevaAsistencia);
+    console.log(`✅ Asistencia guardada en BD`);
 
-    const ipFinal = ip || '127.0.0.1'; // ✅ garantiza valor tipo string
+    const ipFinal = ip || '127.0.0.1';
 
     await this.bitacoraRepo.save({
       idUsuario: ciResponsable,
@@ -173,6 +182,7 @@ export class PersonalService {
       ipMaquina: ipFinal,
     });
 
+    console.log(`📝 Bitácora registrada para usuario ${ciResponsable}`);
     this.logger.log(
       `✅ Asistencia (${estado}) registrada correctamente para CI ${ciEscaneado}`,
     );
@@ -224,6 +234,12 @@ export class PersonalService {
     const fechaHoy = new Date(now.toDateString());
     const horaSalida = now.toTimeString().split(' ')[0];
 
+    console.log('📤 Iniciando registro de salida');
+    console.log(`CI escaneado: ${ciEscaneado}`);
+    console.log(`Responsable (CI): ${ciResponsable}`);
+    console.log(`Hora salida: ${horaSalida}`);
+    console.log(`IP: ${ip || '127.0.0.1'}`);
+
     const asistencia = await this.asistenciaRepo.findOne({
       where: {
         ci: ciEscaneado,
@@ -245,8 +261,9 @@ export class PersonalService {
 
     asistencia.horaSalida = horaSalida;
     await this.asistenciaRepo.save(asistencia);
+    console.log(`✅ Hora de salida guardada en la BD para CI ${ciEscaneado}`);
 
-    const ipFinal = ip || '127.0.0.1'; // 🛡 Garantiza que la IP nunca sea undefined
+    const ipFinal = ip || '127.0.0.1';
 
     await this.bitacoraRepo.save({
       idUsuario: ciResponsable,
@@ -255,6 +272,7 @@ export class PersonalService {
       ipMaquina: ipFinal,
     });
 
+    console.log(`📝 Bitácora registrada para salida de CI ${ciEscaneado}`);
     this.logger.log(
       `📤 Salida registrada correctamente para CI ${ciEscaneado}`,
     );
