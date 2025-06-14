@@ -108,23 +108,19 @@ export class SeguimientoClienteService {
   return await this.seguimientoRepo.save(seguimiento);
 }
 
-async eliminarSeguimiento(ci: string, fecha: string): Promise<{ mensaje: string }> {
-  console.log('[🧪 DEBUG] Eliminando seguimiento de:', ci, 'Fecha:', fecha);
-  const seguimiento = await this.obtenerPorClienteYFecha(ci, fecha); // ← busca por CI + solo fecha
-  await this.seguimientoRepo.remove(seguimiento);
-  return { mensaje: 'Seguimiento eliminado correctamente.' };
-}
+async obtenerPorClienteYFecha(ci: string, fecha: string): Promise<SeguimientoCliente> {
+  const useConvertTZ = process.env.NODE_ENV === 'production'; // Solo en Railway
 
-
-
-  async obtenerPorClienteYFecha(ci: string, fecha: string): Promise<SeguimientoCliente> {
   const resultado = await this.seguimientoRepo
     .createQueryBuilder('seguimiento')
     .where('seguimiento.IDCliente = :ci', { ci })
-   // .andWhere('DATE(seguimiento.Fecha) = :fecha', { fecha }) // ← compara solo por la fecha, sin hora
-   //.andWhere('DATE(seguimiento.Fecha) = DATE(:fecha)', { fecha }) //actual 
-   .andWhere('DATE(CONVERT_TZ(seguimiento.Fecha, "+00:00", "-04:00")) = :fecha', { fecha })  //prueba
-   .orderBy('seguimiento.Fecha', 'DESC')
+    .andWhere(
+      useConvertTZ
+        ? 'DATE(CONVERT_TZ(seguimiento.Fecha, "+00:00", "-04:00")) = :fecha'
+        : 'DATE(seguimiento.Fecha) = :fecha',
+      { fecha }
+    )
+    .orderBy('seguimiento.Fecha', 'DESC')
     .getOne();
 
   if (!resultado) {
@@ -132,6 +128,14 @@ async eliminarSeguimiento(ci: string, fecha: string): Promise<{ mensaje: string 
   }
 
   return resultado;
+}
+
+
+async eliminarSeguimiento(ci: string, fecha: string): Promise<{ mensaje: string }> {
+  console.log('[🧪 DEBUG] Eliminando seguimiento de:', ci, 'Fecha:', fecha);
+  const seguimiento = await this.obtenerPorClienteYFecha(ci, fecha); // ← busca por CI + solo fecha
+  await this.seguimientoRepo.remove(seguimiento);
+  return { mensaje: 'Seguimiento eliminado correctamente.' };
 }
 
 
