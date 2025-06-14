@@ -273,8 +273,21 @@ export class PersonalService {
 
     const ipFinal = ip || '127.0.0.1';
 
+    // 🔍 Buscar ID del usuario responsable (desde CI -> IDPersona -> id)
+    const usuarioResponsable = await this.usuarioRepo.findOne({
+      where: { idPersona: { CI: ciResponsable } },
+    });
+
+    if (!usuarioResponsable) {
+      this.logger.warn(
+        `⚠️ No se encontró usuario con CI responsable ${ciResponsable}`,
+      );
+      throw new NotFoundException('Usuario responsable no registrado');
+    }
+
+    // 📝 Guardar en bitácora con ID real del usuario
     await this.bitacoraRepo.save({
-      idUsuario: ciResponsable,
+      idUsuario: usuarioResponsable.id,
       accion: `Registro de salida por QR`,
       tablaAfectada: 'asistencia_personal',
       ipMaquina: ipFinal,
