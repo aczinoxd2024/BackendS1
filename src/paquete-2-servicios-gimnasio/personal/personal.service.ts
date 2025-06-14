@@ -12,6 +12,7 @@ import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-labora
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 import { AsistenciaPersonal } from './asistencia_personal.entity';
+import { Request } from 'express';
 
 @Injectable()
 export class PersonalService {
@@ -63,7 +64,6 @@ export class PersonalService {
     const hoy = new Date();
     const dia = hoy.getDay();
     const idDia = dia === 0 ? 7 : dia;
-    const horaActual = hoy.toTimeString().split(' ')[0];
 
     const horarios = await this.horarioTrabajoRepo
       .createQueryBuilder('ht')
@@ -72,7 +72,7 @@ export class PersonalService {
       .select(['hl.HoraInicio as horaInicio', 'hl.HoraFinal as horaFin'])
       .getRawMany();
 
-    const clase = await this.personalRepo.query(
+    const clase = (await this.personalRepo.query(
       `
       SELECT c.Nombre AS clase, h.HoraIni
       FROM clase_instructor ci
@@ -85,7 +85,7 @@ export class PersonalService {
       LIMIT 1
       `,
       [ci],
-    );
+    )) as { clase: string; HoraIni: string }[];
 
     const asistenciaHabilitada = clase.length > 0;
 
@@ -101,31 +101,39 @@ export class PersonalService {
     };
   }
 
-  async registrarAsistenciaDesdeQR(ci: string) {
+  async registrarAsistenciaDesdeQR(
+    ciEscaneado: string, // CI del personal escaneado
+    ciResponsable: string, // CI del recepcionista que realiza la acción
+    ip?: string, // ip puede venir como undefined
+  ) {
     const now = new Date();
-    const dia = now.getDay();
-    const idDia = dia === 0 ? 7 : dia;
+    const idDia = now.getDay() === 0 ? 7 : now.getDay();
     const horaActualStr = now.toTimeString().split(' ')[0];
     const horaActual = new Date(`1970-01-01T${horaActualStr}Z`);
 
     const yaRegistrado = await this.asistenciaRepo.findOne({
       where: {
-        ci: ci,
+        ci: ciEscaneado,
         fecha: new Date(now.toDateString()),
       },
     });
 
     if (yaRegistrado) {
-      this.logger.warn(`❌ Asistencia ya registrada hoy para CI ${ci}`);
+      this.logger.warn(
+        `❌ Asistencia ya registrada hoy para CI ${ciEscaneado}`,
+      );
       throw new UnauthorizedException('Ya registraste tu asistencia hoy');
     }
 
-    const horario = await this.horarioTrabajoRepo
+    const horario = (await this.horarioTrabajoRepo
       .createQueryBuilder('ht')
       .innerJoin(HoraLaboral, 'hl', 'ht.IDHora = hl.ID')
-      .where('ht.IDPersona = :ci AND ht.IDDia = :idDia', { ci, idDia })
+      .where('ht.IDPersona = :ci AND ht.IDDia = :idDia', {
+        ci: ciEscaneado,
+        idDia,
+      })
       .select(['hl.HoraInicio as horaInicio'])
-      .getRawOne();
+      .getRawOne()) as { horaInicio: string };
 
     if (!horario) {
       throw new UnauthorizedException('No tienes horario registrado para hoy');
@@ -140,7 +148,7 @@ export class PersonalService {
       estado = 'Con Retraso';
     } else if (minutosDiferencia > 30) {
       this.logger.warn(
-        `⛔ Asistencia fuera del rango permitido para CI ${ci} (Minutos: ${minutosDiferencia})`,
+        `⛔ Asistencia fuera del rango permitido para CI ${ciEscaneado} (Minutos: ${minutosDiferencia})`,
       );
       throw new UnauthorizedException(
         'Superaste el tiempo permitido para registrar asistencia',
@@ -148,7 +156,7 @@ export class PersonalService {
     }
 
     const nuevaAsistencia = this.asistenciaRepo.create({
-      ci,
+      ci: ciEscaneado,
       fecha: now,
       horaEntrada: horaActualStr,
       estado,
@@ -156,16 +164,19 @@ export class PersonalService {
 
     await this.asistenciaRepo.save(nuevaAsistencia);
 
+    const ipFinal = ip || '127.0.0.1'; // ✅ garantiza valor tipo string
+
     await this.bitacoraRepo.save({
-      idUsuario: ci,
+      idUsuario: ciResponsable,
       accion: `Registro de entrada (${estado}) por QR`,
       tablaAfectada: 'asistencia_personal',
-      ipMaquina: '127.0.0.1',
+      ipMaquina: ipFinal,
     });
 
     this.logger.log(
-      `✅ Asistencia (${estado}) registrada correctamente para CI ${ci}`,
+      `✅ Asistencia (${estado}) registrada correctamente para CI ${ciEscaneado}`,
     );
+
     return {
       mensaje: `✅ Asistencia (${estado}) registrada correctamente`,
       hora: horaActualStr,
@@ -204,44 +215,53 @@ export class PersonalService {
     return asistencias;
   }
 
-  async registrarSalidaDesdeQR(ci: string) {
+  async registrarSalida(
+    ciEscaneado: string,
+    ciResponsable: string,
+    ip?: string,
+  ) {
     const now = new Date();
-    const horaActual = now.toTimeString().split(' ')[0];
     const fechaHoy = new Date(now.toDateString());
+    const horaSalida = now.toTimeString().split(' ')[0];
 
     const asistencia = await this.asistenciaRepo.findOne({
       where: {
-        ci,
+        ci: ciEscaneado,
         fecha: fechaHoy,
       },
     });
 
     if (!asistencia) {
       this.logger.warn(
-        `⛔ No se encontró asistencia previa para salida de CI ${ci}`,
+        `⚠️ No se encontró asistencia registrada para CI ${ciEscaneado} hoy`,
       );
-      throw new NotFoundException('No se encontró asistencia registrada hoy');
+      throw new NotFoundException('No tienes una asistencia registrada hoy');
     }
 
     if (asistencia.horaSalida) {
-      this.logger.warn(`⚠️ El personal con CI ${ci} ya registró su salida`);
+      this.logger.warn(`⚠️ Ya se registró la salida para CI ${ciEscaneado}`);
       throw new UnauthorizedException('Ya registraste tu salida hoy');
     }
 
-    asistencia.horaSalida = horaActual;
+    asistencia.horaSalida = horaSalida;
     await this.asistenciaRepo.save(asistencia);
 
+    const ipFinal = ip || '127.0.0.1'; // 🛡 Garantiza que la IP nunca sea undefined
+
     await this.bitacoraRepo.save({
-      idUsuario: ci,
-      accion: 'Registro de salida por QR',
+      idUsuario: ciResponsable,
+      accion: `Registro de salida por QR`,
       tablaAfectada: 'asistencia_personal',
-      ipMaquina: '127.0.0.1',
+      ipMaquina: ipFinal,
     });
 
-    this.logger.log(`✅ Salida registrada correctamente para CI ${ci}`);
+    this.logger.log(
+      `📤 Salida registrada correctamente para CI ${ciEscaneado}`,
+    );
+
     return {
-      mensaje: '✅ Salida registrada correctamente',
-      hora: horaActual,
+      mensaje: '📤 Salida registrada correctamente',
+      hora: horaSalida,
     };
   }
 }

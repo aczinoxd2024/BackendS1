@@ -143,7 +143,7 @@ export class AuthService {
         telefono: usuario.idPersona?.Telefono ?? '',
         direccion: usuario.idPersona?.Direccion ?? '',
         rol: rolNormalizado,
-        ci: usuario.idPersona?.CI ?? ''    //para registar CI de instructor
+        ci: usuario.idPersona?.CI ?? '', //para registar CI de instructor
       },
     };
   }
