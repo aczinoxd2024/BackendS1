@@ -1,41 +1,41 @@
 import { IsOptional, IsString, IsDateString, IsNumber } from 'class-validator';
 
 export class UpdatePersonalDto {
-  // Campos de persona
+  // 📌 Campos de la tabla PERSONA
   @IsOptional()
   @IsString()
-  nombre?: string;
+  Nombre?: string;
 
   @IsOptional()
   @IsString()
-  apellido?: string;
+  Apellido?: string;
 
   @IsOptional()
   @IsDateString()
-  fechaNacimiento?: Date;
+  FechaNacimiento?: string;
 
   @IsOptional()
   @IsString()
-  telefono?: string;
+  Telefono?: string;
 
   @IsOptional()
   @IsString()
-  direccion?: string;
+  Direccion?: string;
 
-  // Campos de personal
+  // 📌 Campos de la tabla PERSONAL
   @IsOptional()
   @IsString()
-  cargo?: string;
+  Cargo?: string;
 
   @IsOptional()
   @IsDateString()
-  fechaContratacion?: Date;
+  FechaContratacion?: string;
 
   @IsOptional()
   @IsString()
-  areaP?: string;
+  AreaP?: string;
 
   @IsOptional()
   @IsNumber()
-  sueldo?: number;
+  Sueldo?: number;
 }

@@ -161,11 +161,31 @@ export class GpersonalService {
       throw new NotFoundException('Personal no encontrado');
     }
 
-    Object.assign(persona, dto);
-    Object.assign(personal, dto);
+    // Actualiza solo los campos permitidos y definidos
+    Object.assign(persona, {
+      ...(dto.Nombre && { Nombre: dto.Nombre }),
+      ...(dto.Apellido && { Apellido: dto.Apellido }),
+      ...(dto.FechaNacimiento && { FechaNacimiento: dto.FechaNacimiento }),
+      ...(dto.Telefono && { Telefono: dto.Telefono }),
+      ...(dto.Direccion && { Direccion: dto.Direccion }),
+    });
+
+    Object.assign(personal, {
+      ...(dto.Cargo && { Cargo: dto.Cargo }),
+      ...(dto.FechaContratacion && { FechaContratacion: dto.FechaContratacion }),
+      ...(dto.AreaP && { AreaP: dto.AreaP }),
+      ...(dto.Sueldo !== undefined && { Sueldo: dto.Sueldo }),
+    });
 
     await this.personaRepository.save(persona);
     await this.personalRepository.save(personal);
+
+    await this.bitacoraRepository.save({
+      idUsuario,
+      accion: `Actualizó datos del personal con CI ${ci}`,
+      tablaAfectada: 'persona/personal',
+      ipMaquina: ip === '::1' ? 'localhost' : ip,
+    });
 
     return 'Personal actualizado correctamente';
   }
@@ -175,32 +195,16 @@ export class GpersonalService {
     idUsuario: string,
     ip: string,
   ): Promise<string> {
-    console.log(`➡️ Desactivando personal con CI: ${ci}`);
-    console.log(`🧾 Usuario que realiza la acción (idUsuario): ${idUsuario}`);
-
     const usuario = await this.usuarioRepository.findOne({
       where: { idPersona: { CI: ci } },
     });
-
-    console.log('👤 Usuario encontrado para desactivar:', usuario);
 
     if (!usuario) {
       throw new NotFoundException('Usuario no encontrado para este personal');
     }
 
-    usuario.idEstadoU = 2; // Estado Inactivo
+    usuario.idEstadoU = 2; // Inactivo
     await this.usuarioRepository.save(usuario);
-    console.log('🚫 Usuario actualizado como inactivo');
-
-    // Verificar que el idUsuario que ejecuta la acción exista
-    const usuarioAdmin = await this.usuarioRepository.findOne({
-      where: { id: idUsuario },
-    });
-
-    if (!usuarioAdmin) {
-      console.warn(`⚠️ El idUsuario "${idUsuario}" no existe en la tabla usuario`);
-      throw new NotFoundException('El usuario que realiza esta acción no existe');
-    }
 
     await this.bitacoraRepository.save({
       idUsuario,
@@ -209,8 +213,32 @@ export class GpersonalService {
       ipMaquina: ip === '::1' ? 'localhost' : ip,
     });
 
-    console.log('📝 Bitácora registrada correctamente');
-
     return 'Personal desactivado correctamente (acceso denegado)';
+  }
+
+  async reactivarPersonal(
+    ci: string,
+    idUsuario: string,
+    ip: string,
+  ): Promise<string> {
+    const usuario = await this.usuarioRepository.findOne({
+      where: { idPersona: { CI: ci } },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado para este personal');
+    }
+
+    usuario.idEstadoU = 1; // Activo
+    await this.usuarioRepository.save(usuario);
+
+    await this.bitacoraRepository.save({
+      idUsuario,
+      accion: `Reactivó al personal con CI ${ci}`,
+      tablaAfectada: 'usuario',
+      ipMaquina: ip === '::1' ? 'localhost' : ip,
+    });
+
+    return 'Personal reactivado correctamente';
   }
 }

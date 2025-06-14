@@ -1,18 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { UsuariosService } from 'paquete-1-usuarios-accesos/usuarios/usuarios.service';
 
-// ✅ Interfaz con los campos esperados del token
+// ✅ Interfaz con el nuevo campo `id`
 interface JwtPayload {
-  ci: string;
+  id: string;
   correo: string;
   rol: string;
 }
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private usuariosService: UsuariosService) {
+  constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -20,10 +19,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // ✅ Ya no es async (no se usa await) y se usa tipado correcto
+  // ✅ Devuelve el `id` correcto que existe en la tabla USUARIO
   validate(payload: JwtPayload) {
     return {
-      id: payload.ci, // 👈 ID del usuario (es el CI en tu app)
+      id: payload.id,          // ← este será req.user.id
       correo: payload.correo,
       rol: payload.rol,
     };

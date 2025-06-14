@@ -9,7 +9,6 @@ import {
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { UsuarioPerfil } from './usuario-perfil.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
-import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 
 @Entity('usuario')
 export class Usuario {

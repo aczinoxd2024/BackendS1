@@ -6,6 +6,7 @@ import {
   Body,
   Req,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PersonalService } from './personal.service';
 import { JwtAuthGuard } from 'paquete-1-usuarios-accesos/auth/jwt.auth.guard';
@@ -13,6 +14,7 @@ import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
 import { Roles } from 'paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 import { UserRequest } from 'paquete-1-usuarios-accesos/auth/user-request.interface';
 import { AsistenciaEscanearDto } from 'paquete-1-usuarios-accesos/auth/dto/asistencia-escanear.dto';
+import { Request } from 'express';
 
 @Controller('personal')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -41,18 +43,45 @@ export class PersonalController {
     return this.personalService.generarTarjetaPersonal(ci);
   }
 
-  // ✅ 4. Registrar asistencia desde cámara (solo recepcionista)
   @Post('asistencia-escanear')
   @Roles('recepcionista', 'instructor')
-  registrarAsistenciaQR(@Body() dto: AsistenciaEscanearDto) {
-    return this.personalService.registrarAsistenciaDesdeQR(dto.ci);
+  registrarAsistenciaQR(
+    @Body() dto: AsistenciaEscanearDto,
+    @Req() req: UserRequest,
+  ) {
+    const ciResponsable = req.user?.ci;
+    if (!ciResponsable) {
+      throw new UnauthorizedException(
+        'No se pudo obtener el CI del responsable',
+      );
+    }
+
+    const ip = req.ip || '127.0.0.1';
+    return this.personalService.registrarAsistenciaDesdeQR(
+      dto.ci,
+      ciResponsable,
+      ip,
+    );
   }
+
   // ✅ Registrar salida del personal
   @Post('asistencia-salida')
-  @Roles('recepcionista')
-  registrarSalida(@Body() dto: AsistenciaEscanearDto) {
-    return this.personalService.registrarSalidaDesdeQR(dto.ci);
+  @Roles('recepcionista', 'instructor')
+  registrarSalidaQR(
+    @Body() dto: AsistenciaEscanearDto,
+    @Req() req: UserRequest,
+  ) {
+    const ciResponsable = req.user?.ci;
+    if (!ciResponsable) {
+      throw new UnauthorizedException(
+        'No se pudo obtener el CI del responsable',
+      );
+    }
+
+    const ip = req.ip || '127.0.0.1';
+    return this.personalService.registrarSalida(dto.ci, ciResponsable, ip);
   }
+
   // ✅ Consultar asistencias por CI (administrador o recepcionista)
   @Get(':ci/asistencias')
   @Roles('administrador', 'recepcionista')
