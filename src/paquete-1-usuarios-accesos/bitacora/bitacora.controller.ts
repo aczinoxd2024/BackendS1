@@ -14,7 +14,11 @@ export class BitacoraController {
    * Obtener todos los registros de la bitácora
    * Solo permitido para Administradores
    */
+  //@Get()
   @Get()
+  getAll() {
+    return this.bitacoraService.obtenerTodos();
+  }
   @Roles('Administrador')
   async obtenerBitacora() {
     return this.bitacoraService.obtenerTodos();

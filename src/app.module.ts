@@ -47,6 +47,8 @@ import { PagosModule } from './pagos/pagos.module';
 import { GpersonalModule } from 'paquete-1-usuarios-accesos/gestion-personal/gpersonal.module';
 //import { RutinasModule } from './paquete-2-servicios-instructor/rutinas/rutinas.module';
 import { RutinasModule } from './paquete-2-servicios-gimnasio/rutinas/rutinas.module';
+import { InventarioModule } from './paquete-4-gestion-administrativa-tecnica/inventario/inventario.module';
+import { EstadoInventarioModule } from './paquete-4-gestion-administrativa-tecnica/estado-inventario/estado-inventario.module';
 
 @Module({
   imports: [
@@ -116,6 +118,8 @@ import { RutinasModule } from './paquete-2-servicios-gimnasio/rutinas/rutinas.mo
     SeguimientoClienteModule,
     RutinasModule,
     AsistenciaModule,
+    InventarioModule,
+    EstadoInventarioModule,
   ],
   providers: [
     {

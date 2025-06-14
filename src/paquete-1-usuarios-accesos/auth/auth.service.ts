@@ -116,8 +116,11 @@ export class AuthService {
 
     const rolNormalizado = rolesInternos[rol.trim()] ?? rol.toLowerCase();
 
+    console.log(usuario.id);
+    console.log('🧠 ESTE ES EL AUTH.SERVICE.TS CORRECTO QUE GENERA EL TOKEN');
+
     const payload: JwtPayload = {
-      id: usuario.id,
+      id: usuario.id, // <- debe ser user001, user004, etc.
       correo: usuario.correo,
       rol: rolNormalizado,
       ci: usuario.idPersona?.CI,
@@ -143,7 +146,7 @@ export class AuthService {
         telefono: usuario.idPersona?.Telefono ?? '',
         direccion: usuario.idPersona?.Direccion ?? '',
         rol: rolNormalizado,
-        ci: usuario.idPersona?.CI ?? ''    //para registar CI de instructor
+        ci: usuario.idPersona?.CI ?? '',
       },
     };
   }

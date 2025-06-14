@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { Bitacora } from './bitacora.entity';
 import { Request } from 'express';
 import { AccionBitacora } from './bitacora-actions.enum';
+import { JwtService } from '@nestjs/jwt'; // invetar
 
 @Injectable()
 export class BitacoraService {
   constructor(
     @InjectRepository(Bitacora)
     private bitacoraRepository: Repository<Bitacora>,
+    private jwtService: JwtService, // inventar
   ) {}
 
   /**
@@ -64,18 +66,30 @@ export class BitacoraService {
     accion: AccionBitacora,
     tabla: string,
   ): Promise<void> {
-    const user = req.user as { id?: string }; // 👈 tipado seguro
-    const idUsuario = user?.id;
+    const authHeader = req.headers['authorization'];
+    let idUsuario: string | undefined;
 
-    if (!idUsuario) {
-      console.warn(
-        '⚠️ No se pudo extraer el ID del usuario desde el token JWT',
-      );
-      return;
+    try {
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const decoded: any = this.jwtService.decode(token);
+
+        console.log('🎯 JWT recibido en bitácora:', decoded);
+        idUsuario = decoded?.id;
+      }
+
+      if (!idUsuario) {
+        console.warn(
+          '⚠️ No se pudo extraer el ID del usuario desde el token JWT',
+        );
+        return;
+      }
+
+      const ip = this.getClientIp(req);
+      await this.registrar(idUsuario, accion, tabla, ip);
+    } catch (error) {
+      console.error('❌ Error al registrar en bitácora desde request:', error);
     }
-
-    const ip = this.getClientIp(req);
-    await this.registrar(idUsuario, accion, tabla, ip);
   }
 
   /**
@@ -83,7 +97,6 @@ export class BitacoraService {
    */
   getClientIp(request: Request): string {
     const forwarded = request.headers['x-forwarded-for'];
-
     let ip = '';
 
     if (typeof forwarded === 'string') {
