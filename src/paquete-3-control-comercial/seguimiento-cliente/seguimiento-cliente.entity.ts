@@ -15,9 +15,12 @@ export class SeguimientoCliente {
   @PrimaryColumn()
   @Generated('increment')
   id: number;
-
+/*
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   Fecha: Date;
+*/
+@CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })  //prueba
+Fecha: Date;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   Peso: number;
