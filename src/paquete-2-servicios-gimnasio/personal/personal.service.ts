@@ -105,8 +105,8 @@ export class PersonalService {
   }
 
   async registrarAsistenciaDesdeQR(
-    ciEscaneado: string, // CI del personal escaneado
-    ciResponsable: string, // CI del recepcionista/instructor
+    ciEscaneado: string,
+    ciResponsable: string,
     ip?: string,
   ) {
     const now = new Date();
@@ -178,27 +178,35 @@ export class PersonalService {
 
     const ipFinal = ip || '127.0.0.1';
 
-    // ✅ Buscar usuario responsable desde el CI
-    const usuarioResponsable = await this.usuarioRepo
+    // 🔍 Buscar ID del usuario responsable (desde CI → IDPersona → ID)
+    const usuario = await this.usuarioRepo
       .createQueryBuilder('usuario')
-      .leftJoinAndSelect('usuario.idPersona', 'persona')
+      .innerJoinAndSelect('usuario.idPersona', 'persona')
       .where('persona.CI = :ci', { ci: ciResponsable })
       .getOne();
 
-    if (!usuarioResponsable) {
+    if (!usuario) {
       this.logger.warn(`⚠️ No se encontró usuario con CI ${ciResponsable}`);
       throw new NotFoundException('Usuario responsable no registrado');
     }
 
-    // 📝 Guardar en bitácora
+    // 📝 Guardar en bitácora con detalle
     await this.bitacoraRepo.save({
-      idUsuario: usuarioResponsable.id,
-      accion: `Registro de entrada (${estado}) por QR`,
+      idUsuario: usuario.id,
+      accion: `Registro de entrada (${estado}) del personal CI ${ciEscaneado} (escaneado por usuario ${usuario.id})`,
       tablaAfectada: 'asistencia_personal',
       ipMaquina: ipFinal,
     });
 
-    console.log(`📝 Bitácora registrada para usuario ${usuarioResponsable.id}`);
+    console.log(`📝 Bitácora registrada para usuario ${usuario.id}`);
+    this.logger.log(
+      `✅ Asistencia (${estado}) registrada correctamente para CI ${ciEscaneado}`,
+    );
+
+    return {
+      mensaje: `✅ Asistencia (${estado}) registrada correctamente`,
+      hora: horaActualStr,
+    };
   }
 
   async obtenerAsistenciasDelPersonal(ci: string) {
@@ -273,10 +281,12 @@ export class PersonalService {
 
     const ipFinal = ip || '127.0.0.1';
 
-    // 🔍 Buscar ID del usuario responsable (desde CI -> IDPersona -> id)
-    const usuarioResponsable = await this.usuarioRepo.findOne({
-      where: { idPersona: { CI: ciResponsable } },
-    });
+    // 🔍 Buscar ID del usuario responsable (desde CI → IDPersona → id)
+    const usuarioResponsable = await this.usuarioRepo
+      .createQueryBuilder('usuario')
+      .innerJoinAndSelect('usuario.idPersona', 'persona')
+      .where('persona.CI = :ci', { ci: ciResponsable })
+      .getOne();
 
     if (!usuarioResponsable) {
       this.logger.warn(
@@ -288,7 +298,7 @@ export class PersonalService {
     // 📝 Guardar en bitácora con ID real del usuario
     await this.bitacoraRepo.save({
       idUsuario: usuarioResponsable.id,
-      accion: `Registro de salida por QR`,
+      accion: `Registro de salida del personal CI ${ciEscaneado} (escaneado por usuario CI ${ciResponsable})`,
       tablaAfectada: 'asistencia_personal',
       ipMaquina: ipFinal,
     });
