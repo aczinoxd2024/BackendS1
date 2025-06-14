@@ -9,6 +9,7 @@ import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-labora
 import { Asistencia } from 'paquete-2-servicios-gimnasio/asistencia/asistencia.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity'; // ✅ IMPORTACIÓN
 import { AsistenciaPersonal } from './asistencia_personal.entity';
+import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 
 @Module({
   imports: [
@@ -18,10 +19,12 @@ import { AsistenciaPersonal } from './asistencia_personal.entity';
       HorarioTrabajo,
       HoraLaboral,
       Asistencia,
+      Usuario,
       Bitacora, // ✅ AÑADIDO AQUÍ
       AsistenciaPersonal,
     ]),
   ],
+
   providers: [PersonalService],
   controllers: [PersonalController],
   exports: [TypeOrmModule],

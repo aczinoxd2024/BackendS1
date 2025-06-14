@@ -13,6 +13,7 @@ import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 import { AsistenciaPersonal } from './asistencia_personal.entity';
 import { Request } from 'express';
+import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 
 @Injectable()
 export class PersonalService {
@@ -30,6 +31,8 @@ export class PersonalService {
 
     @InjectRepository(HoraLaboral)
     private readonly horaLaboralRepo: Repository<HoraLaboral>,
+    @InjectRepository(Usuario)
+    private readonly usuarioRepo: Repository<Usuario>,
 
     @InjectRepository(AsistenciaPersonal)
     private readonly asistenciaRepo: Repository<AsistenciaPersonal>,
@@ -175,22 +178,27 @@ export class PersonalService {
 
     const ipFinal = ip || '127.0.0.1';
 
+    // ✅ Buscar usuario responsable desde el CI
+    const usuarioResponsable = await this.usuarioRepo
+      .createQueryBuilder('usuario')
+      .leftJoinAndSelect('usuario.idPersona', 'persona')
+      .where('persona.CI = :ci', { ci: ciResponsable })
+      .getOne();
+
+    if (!usuarioResponsable) {
+      this.logger.warn(`⚠️ No se encontró usuario con CI ${ciResponsable}`);
+      throw new NotFoundException('Usuario responsable no registrado');
+    }
+
+    // 📝 Guardar en bitácora
     await this.bitacoraRepo.save({
-      idUsuario: ciResponsable,
+      idUsuario: usuarioResponsable.id,
       accion: `Registro de entrada (${estado}) por QR`,
       tablaAfectada: 'asistencia_personal',
       ipMaquina: ipFinal,
     });
 
-    console.log(`📝 Bitácora registrada para usuario ${ciResponsable}`);
-    this.logger.log(
-      `✅ Asistencia (${estado}) registrada correctamente para CI ${ciEscaneado}`,
-    );
-
-    return {
-      mensaje: `✅ Asistencia (${estado}) registrada correctamente`,
-      hora: horaActualStr,
-    };
+    console.log(`📝 Bitácora registrada para usuario ${usuarioResponsable.id}`);
   }
 
   async obtenerAsistenciasDelPersonal(ci: string) {
