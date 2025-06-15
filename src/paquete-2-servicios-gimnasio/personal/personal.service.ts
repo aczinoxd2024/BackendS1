@@ -122,6 +122,18 @@ export class PersonalService {
     console.log(`Responsable (CI): ${ciResponsable}`);
     console.log(`IP: ${ip || '127.0.0.1'}`);
 
+    // 🔍 Buscar ID del usuario responsable (antes de registrar asistencia)
+    const usuario = await this.usuarioRepo
+      .createQueryBuilder('usuario')
+      .innerJoinAndSelect('usuario.idPersona', 'persona')
+      .where('persona.CI = :ci', { ci: ciResponsable })
+      .getOne();
+
+    if (!usuario) {
+      this.logger.warn(`⚠️ No se encontró usuario con CI ${ciResponsable}`);
+      throw new NotFoundException('Usuario responsable no registrado');
+    }
+
     const yaRegistrado = await this.asistenciaRepo.findOne({
       where: {
         ci: ciEscaneado,
@@ -174,6 +186,7 @@ export class PersonalService {
       fecha: now,
       horaEntrada: horaActualStr,
       estado,
+      idUsuario: usuario.id, // ✅ guardamos el usuario que escaneó
     });
 
     await this.asistenciaRepo.save(nuevaAsistencia);
@@ -181,19 +194,7 @@ export class PersonalService {
 
     const ipFinal = ip || '127.0.0.1';
 
-    // 🔍 Buscar ID del usuario responsable (desde CI → IDPersona → ID)
-    const usuario = await this.usuarioRepo
-      .createQueryBuilder('usuario')
-      .innerJoinAndSelect('usuario.idPersona', 'persona')
-      .where('persona.CI = :ci', { ci: ciResponsable })
-      .getOne();
-
-    if (!usuario) {
-      this.logger.warn(`⚠️ No se encontró usuario con CI ${ciResponsable}`);
-      throw new NotFoundException('Usuario responsable no registrado');
-    }
-
-    // 📝 Guardar en bitácora con detalle
+    // 📝 Guardar en bitácora
     await this.bitacoraRepo.save({
       idUsuario: usuario.id,
       accion: `Registro de entrada (${estado}) del personal CI ${ciEscaneado} (escaneado por usuario ${usuario.id})`,
@@ -215,6 +216,7 @@ export class PersonalService {
   async obtenerAsistenciasDelPersonal(ci: string) {
     const asistencias = await this.asistenciaRepo.find({
       where: { ci },
+      relations: ['persona', 'responsable'], // ✅ incluye el usuario que registró
       order: { fecha: 'DESC' },
     });
 
@@ -231,11 +233,11 @@ export class PersonalService {
     const hoy = new Date();
     const fechaHoy = hoy.toISOString().split('T')[0];
 
-    const asistencias = await this.asistenciaRepo
-      .createQueryBuilder('asis')
-      .where('asis.fecha = :fecha', { fecha: fechaHoy })
-      .orderBy('asis.horaEntrada', 'ASC')
-      .getMany();
+    const asistencias = await this.asistenciaRepo.find({
+      where: { fecha: new Date(fechaHoy) },
+      relations: ['persona', 'responsable'], // ✅ incluye relaciones necesarias
+      order: { horaEntrada: 'ASC' },
+    });
 
     if (!asistencias || asistencias.length === 0) {
       throw new NotFoundException('No hay asistencias registradas hoy');

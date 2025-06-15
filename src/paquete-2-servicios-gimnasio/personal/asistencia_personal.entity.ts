@@ -6,6 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
+import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 
 @Entity('asistencia_personal')
 export class AsistenciaPersonal {
@@ -30,4 +31,11 @@ export class AsistenciaPersonal {
   @ManyToOne(() => Persona, { eager: true })
   @JoinColumn({ name: 'CIPerso' })
   persona: Persona;
+  // ✅ Nuevo campo para saber quién registró la asistencia
+  @ManyToOne(() => Usuario, { eager: true })
+  @JoinColumn({ name: 'idUsuario' })
+  responsable: Usuario;
+
+  @Column({ name: 'idUsuario', nullable: true })
+  idUsuario: string; // UUID
 }
