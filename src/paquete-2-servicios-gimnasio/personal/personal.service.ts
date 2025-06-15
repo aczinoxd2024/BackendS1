@@ -100,10 +100,13 @@ export class PersonalService {
       horarioHoy: horarios,
       asistenciaHabilitada,
       claseAsignada: asistenciaHabilitada ? clase[0].clase : null,
-      qrData: persona.CI,
+      qrData: JSON.stringify({
+        ci: persona.CI,
+        nombre: `${persona.Nombre} ${persona.Apellido}`,
+        cargo: personal.Cargo,
+      }),
     };
   }
-
   async registrarAsistenciaDesdeQR(
     ciEscaneado: string,
     ciResponsable: string,
