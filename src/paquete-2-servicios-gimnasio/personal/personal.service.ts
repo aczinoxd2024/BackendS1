@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Personal } from './personal.entity';
+
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
@@ -14,6 +15,7 @@ import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 import { AsistenciaPersonal } from './asistencia_personal.entity';
 import { Request } from 'express';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
+import { toZonedTime, format } from 'date-fns-tz';
 
 @Injectable()
 export class PersonalService {
@@ -112,17 +114,19 @@ export class PersonalService {
     ciResponsable: string,
     ip?: string,
   ) {
-    const now = new Date();
+    const zonaBolivia = 'America/La_Paz';
+    const nowUtc = new Date();
+    const now = toZonedTime(nowUtc, zonaBolivia);
+    const horaActualStr = format(now, 'HH:mm:ss'); // formato hora local
     const idDia = now.getDay() === 0 ? 7 : now.getDay();
-    const horaActualStr = now.toTimeString().split(' ')[0];
-    const horaActual = new Date(`1970-01-01T${horaActualStr}Z`);
 
     console.log(`📥 Iniciando registro de asistencia`);
     console.log(`CI escaneado: ${ciEscaneado}`);
     console.log(`Responsable (CI): ${ciResponsable}`);
+    console.log(`Hora actual (BO): ${horaActualStr}`);
     console.log(`IP: ${ip || '127.0.0.1'}`);
 
-    // 🔍 Buscar ID del usuario responsable (antes de registrar asistencia)
+    // 🔍 Buscar ID del usuario responsable
     const usuario = await this.usuarioRepo
       .createQueryBuilder('usuario')
       .innerJoinAndSelect('usuario.idPersona', 'persona')
@@ -163,7 +167,8 @@ export class PersonalService {
       throw new UnauthorizedException('No tienes horario registrado para hoy');
     }
 
-    const horaInicio = new Date(`1970-01-01T${horario.horaInicio}Z`);
+    const horaInicio = new Date(`1970-01-01T${horario.horaInicio}:00Z`);
+    const horaActual = new Date(`1970-01-01T${horaActualStr}Z`);
     const minutosDiferencia =
       (horaActual.getTime() - horaInicio.getTime()) / 60000;
 
@@ -172,7 +177,9 @@ export class PersonalService {
       estado = 'Con Retraso';
     } else if (minutosDiferencia > 30) {
       this.logger.warn(
-        `⛔ Fuera de rango (minutos: ${minutosDiferencia}) CI: ${ciEscaneado}`,
+        `⛔ Fuera de rango (min: ${minutosDiferencia.toFixed(
+          1,
+        )}) para CI: ${ciEscaneado}`,
       );
       throw new UnauthorizedException(
         'Superaste el tiempo permitido para registrar asistencia',
@@ -186,7 +193,7 @@ export class PersonalService {
       fecha: now,
       horaEntrada: horaActualStr,
       estado,
-      idUsuario: usuario.id, // ✅ guardamos el usuario que escaneó
+      idUsuario: usuario.id,
     });
 
     await this.asistenciaRepo.save(nuevaAsistencia);
@@ -194,7 +201,6 @@ export class PersonalService {
 
     const ipFinal = ip || '127.0.0.1';
 
-    // 📝 Guardar en bitácora
     await this.bitacoraRepo.save({
       idUsuario: usuario.id,
       accion: `Registro de entrada (${estado}) del personal CI ${ciEscaneado} (escaneado por usuario ${usuario.id})`,
@@ -230,12 +236,14 @@ export class PersonalService {
   }
 
   async obtenerAsistenciasDelDia() {
-    const hoy = new Date();
-    const fechaHoy = hoy.toISOString().split('T')[0];
+    const zonaBolivia = 'America/La_Paz';
+    const nowUtc = new Date();
+    const now = toZonedTime(nowUtc, zonaBolivia);
+    const fechaHoy = new Date(now.toDateString());
 
     const asistencias = await this.asistenciaRepo.find({
-      where: { fecha: new Date(fechaHoy) },
-      relations: ['persona', 'responsable'], // ✅ incluye relaciones necesarias
+      where: { fecha: fechaHoy },
+      relations: ['persona', 'responsable'],
       order: { horaEntrada: 'ASC' },
     });
 
@@ -245,20 +253,41 @@ export class PersonalService {
 
     return asistencias;
   }
+  probarZonaHoraria() {
+    const nowUtc: Date = new Date();
+    const zonaBolivia = 'America/La_Paz';
+
+    // ✅ Usar toZonedTime en lugar de utcToZonedTime
+    const fechaBolivia = toZonedTime(nowUtc, zonaBolivia);
+
+    const fechaFormateada = format(fechaBolivia, 'yyyy-MM-dd HH:mm:ssXXX', {
+      timeZone: zonaBolivia,
+    });
+
+    console.log('🕓 Hora UTC:', nowUtc.toISOString());
+    console.log('🇧🇴 Hora Bolivia:', fechaFormateada);
+
+    return {
+      utc: nowUtc.toISOString(),
+      bolivia: fechaFormateada,
+    };
+  }
 
   async registrarSalida(
     ciEscaneado: string,
     ciResponsable: string,
     ip?: string,
   ) {
-    const now = new Date();
+    const zonaBolivia = 'America/La_Paz';
+    const nowUtc = new Date();
+    const now = toZonedTime(nowUtc, zonaBolivia);
     const fechaHoy = new Date(now.toDateString());
-    const horaSalida = now.toTimeString().split(' ')[0];
+    const horaSalida = format(now, 'HH:mm:ss');
 
     console.log('📤 Iniciando registro de salida');
     console.log(`CI escaneado: ${ciEscaneado}`);
     console.log(`Responsable (CI): ${ciResponsable}`);
-    console.log(`Hora salida: ${horaSalida}`);
+    console.log(`Hora salida (BO): ${horaSalida}`);
     console.log(`IP: ${ip || '127.0.0.1'}`);
 
     const asistencia = await this.asistenciaRepo.findOne({
@@ -297,7 +326,7 @@ export class PersonalService {
     asistencia.idUsuario = usuarioResponsable.id;
     await this.asistenciaRepo.save(asistencia);
 
-    const ipFinal = ip || '127.0.0.1'; // ✅ agregado
+    const ipFinal = ip || '127.0.0.1';
 
     await this.bitacoraRepo.save({
       idUsuario: usuarioResponsable.id,

@@ -81,6 +81,12 @@ export class PersonalController {
     const ip = req.ip || '127.0.0.1';
     return this.personalService.registrarSalida(dto.ci, ciResponsable, ip);
   }
+  @Get('test/zonahoraria')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('administrador')
+  testHoraBolivia() {
+    return this.personalService.probarZonaHoraria();
+  }
 
   // ✅ Consultar asistencias por CI (administrador o recepcionista)
   @Get(':ci/asistencias')
