@@ -267,25 +267,29 @@ async obtenerClasesPorInstructor(ci: string) {
       .leftJoinAndSelect('clase.claseInstructores', 'ci_rel')
       .leftJoinAndSelect('ci_rel.instructor', 'instructor')
       .leftJoinAndSelect('clase.horarios', 'horario')
-      .leftJoinAndSelect('clase.sala', 'sala') // opcional
+      .leftJoinAndSelect('clase.sala', 'sala')
       .where('instructor.CI = :ci', { ci })
       .getMany();
+
+    // console para ver si alguna clase tiene problema
+    console.log('🔎 Clases encontradas:', clases);
 
     return clases.map((clase) => ({
       IDClase: clase.IDClase,
       Nombre: clase.Nombre,
       Estado: clase.Estado,
-      Horarios: clase.horarios.map((h) => ({
+      Horarios: (clase.horarios || []).map((h) => ({
         horaInicio: h.HoraIni,
         horaFin: h.HoraFin,
-        dia: h.diaSemana?.Dia ?? 'Sin día'
+        dia: h.diaSemana?.Dia || 'Sin día',
       })),
     }));
   } catch (error) {
     console.error('⛔ Error en obtenerClasesPorInstructor:', error);
-    throw new BadRequestException('No se pudieron obtener las clases del instructor.');
+    throw new BadRequestException(error.message || 'No se pudieron obtener las clases del instructor.');
   }
 }
+
 
 
   // ✅ Clases disponibles para cliente (vista reducida)
