@@ -203,7 +203,7 @@ export class PersonalService {
 
     await this.bitacoraRepo.save({
       idUsuario: usuario.id,
-      accion: `Registro de entrada (${estado}) del personal CI ${ciEscaneado} (escaneado por usuario ${usuario.id})`,
+      accion: `Registro de entrada (${estado}) del personal CI ${ciEscaneado} (escaneado por usuario CI ${ciResponsable})`,
       tablaAfectada: 'asistencia_personal',
       ipMaquina: ipFinal,
     });
