@@ -407,17 +407,23 @@ async asignarRutinaAClase(idClase: number, idRutina: number) {
   }
 
   clase.rutina = rutina;
-  await this.clasesRepository.save(clase);
+await this.clasesRepository.save(clase);
 
-  await this.bitacoraService.registrar(
-    clase.CIInstructor, // ID del instructor que asignó
-    AccionBitacora.ASIGNAR_RUTINA_CLASE,
-    'clase',
-    `Asignó la rutina ${rutina.nombre} a la clase ${clase.Nombre}`
-  );
+// Obtener CI del instructor
+const claseConInstructor = await this.clasesRepository.findOne({
+  where: { IDClase: idClase },
+  relations: ['claseInstructores', 'claseInstructores.instructor'],
+});
+const ciInstructor = claseConInstructor?.claseInstructores?.[0]?.instructor?.CI || 'admin';
 
-  return { mensaje: 'Rutina asignada correctamente a la clase', clase };
+await this.bitacoraService.registrar(
+  ciInstructor,
+  AccionBitacora.ASIGNAR_RUTINA_CLASE,
+  'clase',
+  `Asignó la rutina ${rutina.nombre} a la clase ${clase.Nombre}`
+);
+
+return { mensaje: 'Rutina asignada correctamente a la clase', clase };
+
 }
-
-
 }

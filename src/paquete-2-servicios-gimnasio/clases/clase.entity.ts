@@ -30,9 +30,7 @@ export class Clase {
   @Column({ nullable: true })
   IDRutina?: number;
 
-  @Column({ type: 'varchar', length: 20 })
-  CIInstructor: string;
-
+  
   @Column({ type: 'int' })
   CupoMaximo: number;
 
