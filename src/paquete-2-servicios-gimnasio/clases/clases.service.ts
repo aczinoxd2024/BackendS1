@@ -267,6 +267,7 @@ async obtenerClasesPorInstructor(ci: string) {
       .leftJoinAndSelect('clase.claseInstructores', 'ci_rel')
       .leftJoinAndSelect('ci_rel.instructor', 'instructor')
       .leftJoinAndSelect('clase.horarios', 'horario')
+      .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
       .leftJoinAndSelect('clase.sala', 'sala')
       .where('instructor.CI = :ci', { ci })
       .getMany();
