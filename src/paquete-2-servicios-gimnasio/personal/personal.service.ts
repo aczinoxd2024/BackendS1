@@ -280,13 +280,6 @@ export class PersonalService {
       throw new UnauthorizedException('Ya registraste tu salida hoy');
     }
 
-    asistencia.horaSalida = horaSalida;
-    await this.asistenciaRepo.save(asistencia);
-    console.log(`✅ Hora de salida guardada en la BD para CI ${ciEscaneado}`);
-
-    const ipFinal = ip || '127.0.0.1';
-
-    // 🔍 Buscar ID del usuario responsable (desde CI → IDPersona → id)
     const usuarioResponsable = await this.usuarioRepo
       .createQueryBuilder('usuario')
       .innerJoinAndSelect('usuario.idPersona', 'persona')
@@ -300,7 +293,12 @@ export class PersonalService {
       throw new NotFoundException('Usuario responsable no registrado');
     }
 
-    // 📝 Guardar en bitácora con ID real del usuario
+    asistencia.horaSalida = horaSalida;
+    asistencia.idUsuario = usuarioResponsable.id;
+    await this.asistenciaRepo.save(asistencia);
+
+    const ipFinal = ip || '127.0.0.1'; // ✅ agregado
+
     await this.bitacoraRepo.save({
       idUsuario: usuarioResponsable.id,
       accion: `Registro de salida del personal CI ${ciEscaneado} (escaneado por usuario CI ${ciResponsable})`,
