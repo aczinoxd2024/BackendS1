@@ -222,6 +222,12 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase && dto.IDClase) {
     return 'Rutina personalizada asignada correctamente';
   }
 
-  
+  async obtenerRutinasPorTipo(tipo: string): Promise<Rutina[]> {
+  return this.rutinaRepo.find({
+    where: { tipoAcceso: tipo },
+    relations: ['detalles'], // si quieres traer los ejercicios también
+  });
+}
+
 
 }

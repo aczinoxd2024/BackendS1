@@ -48,6 +48,14 @@ export class RutinasController {
     return this.rutinasService.findOne(id);
   }
 
+  @Get('tipo/clase')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('instructor')
+async obtenerRutinasDeClase() {
+  return this.rutinasService.obtenerRutinasPorTipo('clase');
+}
+
+
   @Put(':id')
   @Roles('Instructor')
   update(@Param('id') id: number, @Body() dto: UpdateRutinaDto, @Req() req: Request) {
