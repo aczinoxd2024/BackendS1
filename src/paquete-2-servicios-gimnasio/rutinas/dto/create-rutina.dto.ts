@@ -52,6 +52,9 @@ export class CreateRutinaDto {
   ciInstructor: string;
 
   @IsOptional()
+IDClase?: number;
+
+  @IsOptional()
 @IsArray()
 @ValidateNested({ each: true })
 @Type(() => DetalleRutinaDto)

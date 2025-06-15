@@ -260,14 +260,14 @@ export class ClasesService {
   }
 
   // ✅ Clases filtradas por instructor logueado
-  async obtenerClasesPorInstructor(ci: string) {
+async obtenerClasesPorInstructor(ci: string) {
+  try {
     const clases = await this.clasesRepository
       .createQueryBuilder('clase')
       .leftJoinAndSelect('clase.claseInstructores', 'ci_rel')
       .leftJoinAndSelect('ci_rel.instructor', 'instructor')
       .leftJoinAndSelect('clase.horarios', 'horario')
-      .leftJoinAndSelect('horario.diaSemana', 'diaSemana')
-      .leftJoinAndSelect('clase.sala', 'sala') // ⚠️ Agrega esta línea si no está
+      .leftJoinAndSelect('clase.sala', 'sala') // opcional
       .where('instructor.CI = :ci', { ci })
       .getMany();
 
@@ -278,10 +278,15 @@ export class ClasesService {
       Horarios: clase.horarios.map((h) => ({
         horaInicio: h.HoraIni,
         horaFin: h.HoraFin,
-        dia: h.diaSemana?.Dia ?? null,
+        dia: h.diaSemana?.Dia ?? 'Sin día'
       })),
     }));
+  } catch (error) {
+    console.error('⛔ Error en obtenerClasesPorInstructor:', error);
+    throw new BadRequestException('No se pudieron obtener las clases del instructor.');
   }
+}
+
 
   // ✅ Clases disponibles para cliente (vista reducida)
   async obtenerClasesParaCliente() {

@@ -19,5 +19,6 @@ export enum TipoAccesoRutina {
   GENERAL = 'general',
   GOLD = 'gold',
   PERSONALIZADA = 'personalizada',
+  clase = 'clase',
 }
 
