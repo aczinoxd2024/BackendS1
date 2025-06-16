@@ -102,10 +102,19 @@ export class GpersonalService {
     }
   }
 
-  async listarPersonal(): Promise<Personal[]> {
-    console.log('[SERVICIO] Listar Personal');
-    return this.personalRepository.find({ relations: ['persona'] });
-  }
+//  async listarPersonal(): Promise<Personal[]> {
+//    console.log('[SERVICIO] Listar Personal');
+//    return this.personalRepository.find({ relations: ['persona', 'usuario'] });
+//  }
+
+async listarPersonal(): Promise<any[]> {
+  return this.personalRepository
+    .createQueryBuilder('personal')
+    .leftJoinAndSelect('personal.persona', 'persona')
+    .leftJoinAndMapOne('personal.usuario', Usuario, 'usuario', 'usuario.idPersona = persona.CI')
+    .getMany();
+}
+
 
   async obtenerPersonal(ci: string): Promise<Personal> {
     console.log(`[SERVICIO] Obtener Personal CI: ${ci}`);
@@ -122,94 +131,96 @@ export class GpersonalService {
     return personal;
   }
 
-  async actualizarPersonal(ci: string, dto: UpdatePersonalDto, idUsuario: string, ip: string): Promise<string> {
-    console.log(`[SERVICIO] Actualizar Personal CI: ${ci}`);
-    console.log('→ Datos recibidos:', dto);
+  async actualizarPersonal(ci: string, dto: UpdatePersonalDto, idUsuario: string, ip: string): Promise<{ message: string }> {
+  console.log(`[SERVICIO] Actualizar Personal CI: ${ci}`);
+  console.log('→ Datos recibidos:', dto);
 
-    const persona = await this.personaRepository.findOne({ where: { CI: ci } });
-    const personal = await this.personalRepository.findOne({ where: { CI: ci } });
+  const persona = await this.personaRepository.findOne({ where: { CI: ci } });
+  const personal = await this.personalRepository.findOne({ where: { CI: ci } });
 
-    if (!persona || !personal) {
-      console.warn(`[⚠️] Personal o persona no encontrado para CI: ${ci}`);
-      throw new NotFoundException('Personal no encontrado');
-    }
-
-    Object.assign(persona, {
-      ...(dto.Nombre && { Nombre: dto.Nombre }),
-      ...(dto.Apellido && { Apellido: dto.Apellido }),
-      ...(dto.FechaNacimiento && { FechaNacimiento: dto.FechaNacimiento }),
-      ...(dto.Telefono && { Telefono: dto.Telefono }),
-      ...(dto.Direccion && { Direccion: dto.Direccion }),
-    });
-
-    Object.assign(personal, {
-      ...(dto.Cargo && { Cargo: dto.Cargo }),
-      ...(dto.FechaContratacion && { FechaContratacion: dto.FechaContratacion }),
-      ...(dto.AreaP && { AreaP: dto.AreaP }),
-      ...(dto.Sueldo !== undefined && { Sueldo: dto.Sueldo }),
-    });
-
-    await this.personaRepository.save(persona);
-    await this.personalRepository.save(personal);
-
-    await this.bitacoraRepository.save({
-      idUsuario,
-      accion: `Actualizó datos del personal con CI ${ci}`,
-      tablaAfectada: 'persona/personal',
-      ipMaquina: ip === '::1' ? 'localhost' : ip,
-    });
-
-    console.log('✔️ Personal actualizado y bitácora registrada');
-    return 'Personal actualizado correctamente';
+  if (!persona || !personal) {
+    console.warn(`[⚠️] Personal o persona no encontrado para CI: ${ci}`);
+    throw new NotFoundException('Personal no encontrado');
   }
 
-  async desactivarPersonal(ci: string, idUsuario: string, ip: string): Promise<string> {
-    console.log(`[SERVICIO] Desactivar personal CI: ${ci}`);
-    const usuario = await this.usuarioRepository.findOne({
-      where: { idPersona: { CI: ci } },
-    });
+  Object.assign(persona, {
+    ...(dto.Nombre && { Nombre: dto.Nombre }),
+    ...(dto.Apellido && { Apellido: dto.Apellido }),
+    ...(dto.FechaNacimiento && { FechaNacimiento: dto.FechaNacimiento }),
+    ...(dto.Telefono && { Telefono: dto.Telefono }),
+    ...(dto.Direccion && { Direccion: dto.Direccion }),
+  });
 
-    if (!usuario) {
-      console.warn('[⚠️] Usuario no encontrado para desactivación');
-      throw new NotFoundException('Usuario no encontrado para este personal');
-    }
+  Object.assign(personal, {
+    ...(dto.Cargo && { Cargo: dto.Cargo }),
+    ...(dto.FechaContratacion && { FechaContratacion: dto.FechaContratacion }),
+    ...(dto.AreaP && { AreaP: dto.AreaP }),
+    ...(dto.Sueldo !== undefined && { Sueldo: dto.Sueldo }),
+  });
 
-    usuario.idEstadoU = 2;
-    await this.usuarioRepository.save(usuario);
+  await this.personaRepository.save(persona);
+  await this.personalRepository.save(personal);
 
-    await this.bitacoraRepository.save({
-      idUsuario,
-      accion: `Eliminó/desactivó al personal con CI ${ci}`,
-      tablaAfectada: 'usuario',
-      ipMaquina: ip === '::1' ? 'localhost' : ip,
-    });
+  await this.bitacoraRepository.save({
+    idUsuario,
+    accion: `Actualizó datos del personal con CI ${ci}`,
+    tablaAfectada: 'persona/personal',
+    ipMaquina: ip === '::1' ? 'localhost' : ip,
+  });
 
-    console.log('✔️ Personal desactivado y bitácora registrada');
-    return 'Personal desactivado correctamente (acceso denegado)';
+  console.log('✔️ Personal actualizado y bitácora registrada');
+  return { message: 'Personal actualizado correctamente' };
+}
+
+
+  async desactivarPersonal(ci: string, idUsuario: string, ip: string): Promise<{ message: string }> {
+  console.log(`[SERVICIO] Desactivar personal CI: ${ci}`);
+  const usuario = await this.usuarioRepository.findOne({
+    where: { idPersona: { CI: ci } },
+  });
+
+  if (!usuario) {
+    console.warn('[⚠️] Usuario no encontrado para desactivación');
+    throw new NotFoundException('Usuario no encontrado para este personal');
   }
 
-  async reactivarPersonal(ci: string, idUsuario: string, ip: string): Promise<string> {
-    console.log(`[SERVICIO] Reactivar personal CI: ${ci}`);
-    const usuario = await this.usuarioRepository.findOne({
-      where: { idPersona: { CI: ci } },
-    });
+  usuario.idEstadoU = 2;
+  await this.usuarioRepository.save(usuario);
 
-    if (!usuario) {
-      console.warn('[⚠️] Usuario no encontrado para reactivación');
-      throw new NotFoundException('Usuario no encontrado para este personal');
-    }
+  await this.bitacoraRepository.save({
+    idUsuario,
+    accion: `Eliminó/desactivó al personal con CI ${ci}`,
+    tablaAfectada: 'usuario',
+    ipMaquina: ip === '::1' ? 'localhost' : ip,
+  });
 
-    usuario.idEstadoU = 1;
-    await this.usuarioRepository.save(usuario);
+  console.log('✔️ Personal desactivado y bitácora registrada');
+  return { message: 'Personal desactivado correctamente (acceso denegado)' };
+}
 
-    await this.bitacoraRepository.save({
-      idUsuario,
-      accion: `Reactivó al personal con CI ${ci}`,
-      tablaAfectada: 'usuario',
-      ipMaquina: ip === '::1' ? 'localhost' : ip,
-    });
 
-    console.log('✔️ Personal reactivado y bitácora registrada');
-    return 'Personal reactivado correctamente';
+  async reactivarPersonal(ci: string, idUsuario: string, ip: string): Promise<{ message: string }> {
+  console.log(`[SERVICIO] Reactivar personal CI: ${ci}`);
+  const usuario = await this.usuarioRepository.findOne({
+    where: { idPersona: { CI: ci } },
+  });
+
+  if (!usuario) {
+    console.warn('[⚠️] Usuario no encontrado para reactivación');
+    throw new NotFoundException('Usuario no encontrado para este personal');
+  }
+
+  usuario.idEstadoU = 1;
+  await this.usuarioRepository.save(usuario);
+
+  await this.bitacoraRepository.save({
+    idUsuario,
+    accion: `Reactivó al personal con CI ${ci}`,
+    tablaAfectada: 'usuario',
+    ipMaquina: ip === '::1' ? 'localhost' : ip,
+  });
+
+  console.log('✔️ Personal reactivado y bitácora registrada');
+  return { message: 'Personal reactivado correctamente' };
   }
 }
