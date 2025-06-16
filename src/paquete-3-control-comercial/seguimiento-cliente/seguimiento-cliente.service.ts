@@ -17,26 +17,31 @@ export class SeguimientoClienteService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async registrarSeguimiento(dto: CreateSeguimientoDto): Promise<SeguimientoCliente> {
-    const [membresia] = await this.dataSource.query(
-      `
-      SELECT tm.NombreTipo, m.FechaFin
-      FROM membresia m
-      JOIN tipo_membresia tm ON m.TipoMembresiaID = tm.ID
-      WHERE m.CICliente = ? AND m.FechaFin >= CURDATE()
-      ORDER BY m.FechaFin DESC
-      LIMIT 1
-      `,
-      [dto.ciCliente],
-    );
 
-    if (!membresia || membresia.NombreTipo.toLowerCase() !== 'gold') {
-      throw new BadRequestException(
-        'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.'
-      );
-    }
-/*
-    const ultimo = await this.seguimientoRepo.findOne({
+  async registrarSeguimiento(dto: CreateSeguimientoDto): Promise<SeguimientoCliente> {
+  const [membresia] = await this.dataSource.query(
+    `
+    SELECT tm.NombreTipo, m.FechaFin
+    FROM membresia m
+    JOIN tipo_membresia tm ON m.TipoMembresiaID = tm.ID
+    WHERE m.CICliente = ? AND m.FechaFin >= CURDATE()
+    ORDER BY m.FechaFin DESC
+    LIMIT 1
+    `,
+    [dto.ciCliente],
+  );
+
+  
+
+  if (!membresia || membresia.NombreTipo.toLowerCase() !== 'gold') {
+    throw new BadRequestException(
+      'Solo los clientes con membresía Gold activa pueden registrar seguimientos físicos.',
+    );
+  }
+
+
+/* validacion de ultimo registro ingresado, 15 dias
+   const ultimo = await this.seguimientoRepo.findOne({
       where: { IDCliente: dto.ciCliente },
       order: { Fecha: 'DESC' },
     });
@@ -51,14 +56,24 @@ export class SeguimientoClienteService {
         );
       }
     }
+
 */
-     const imcCalculado = dto.peso / (dto.altura * dto.altura);
+  const imcCalculado = dto.peso / (dto.altura * dto.altura);
   const imcFinal = dto.imc ?? parseFloat(imcCalculado.toFixed(2));
 
-  // ✅ Ajustar la hora local a Bolivia
+  // Ajustar la hora local a Bolivia
   const zonaBolivia = 'America/La_Paz';
   const ahoraUtc = new Date();
   const fechaLocalBolivia = toZonedTime(ahoraUtc, zonaBolivia);
+
+  const horaUtc = ahoraUtc.toISOString();
+  const horaBolivia = format(fechaLocalBolivia, 'yyyy-MM-dd HH:mm:ssXXX', {
+    timeZone: zonaBolivia,
+  });
+
+  //  Log para pruebas locales
+  console.log('🌐 Hora UTC:', horaUtc);
+  console.log('🇧🇴 Hora Bolivia:', horaBolivia);
 
   const nuevo = this.seguimientoRepo.create({
     IDCliente: dto.ciCliente,
@@ -77,7 +92,7 @@ export class SeguimientoClienteService {
   });
 
   return await this.seguimientoRepo.save(nuevo);
-  }
+}
 
   async obtenerHistorialCliente(ci: string): Promise<SeguimientoCliente[]> {
     const resultados = await this.seguimientoRepo.find({
