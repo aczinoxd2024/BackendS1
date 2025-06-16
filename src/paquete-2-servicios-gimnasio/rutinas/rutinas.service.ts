@@ -13,6 +13,8 @@ import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-act
 import { Request } from 'express';
 import { ClienteRutina } from './entidades/cliente-rutina.entity';
 import { InternalServerErrorException } from '@nestjs/common';
+import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
+import { TipoAccesoRutina } from './enums';
 
 
 @Injectable()
@@ -25,9 +27,10 @@ export class RutinasService {
     @InjectRepository(Cliente) private readonly clienteRepository: Repository<Cliente>,
     private readonly bitacoraService: BitacoraService,
     @InjectRepository(ClienteRutina) private readonly clienteRutinaRepository: Repository<ClienteRutina>,
+    @InjectRepository(Clase) private readonly claseRepo: Repository<Clase>,
   ) {}
 
-  async create(dto: CreateRutinaDto, req: Request): Promise<Rutina> {
+ async create(dto: CreateRutinaDto, req: Request): Promise<Rutina> {
   let detalles: DetalleRutina[] = [];
 
   if (dto.detalles && dto.detalles.length > 0) {
@@ -50,6 +53,16 @@ export class RutinasService {
     );
   }
 
+  // Inicializamos clase opcionalmente
+  let clase: Clase | undefined = undefined;
+
+if (dto.tipoAcceso === TipoAccesoRutina.clase && dto.IDClase) {
+  const claseEncontrada = await this.claseRepo.findOne({ where: { IDClase: dto.IDClase } });
+  if (!claseEncontrada) throw new NotFoundException('Clase no encontrada');
+  clase = claseEncontrada;
+}
+
+
   const rutina = this.rutinaRepo.create({
     nombre: dto.nombre,
     objetivo: dto.objetivo,
@@ -59,6 +72,8 @@ export class RutinasService {
     generoObjetivo: dto.generoObjetivo,
     ciInstructor: dto.ciInstructor,
     detalles,
+    clase, // ✅ opcional
+    IDClase: dto.IDClase,
     activo: true,
   });
 
@@ -207,6 +222,12 @@ export class RutinasService {
     return 'Rutina personalizada asignada correctamente';
   }
 
-  
+  async obtenerRutinasPorTipo(tipo: string): Promise<Rutina[]> {
+  return this.rutinaRepo.find({
+    where: { tipoAcceso: tipo },
+    relations: ['detalles'], // si quieres traer los ejercicios también
+  });
+}
+
 
 }

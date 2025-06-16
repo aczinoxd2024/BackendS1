@@ -8,6 +8,8 @@ import {
 } from 'typeorm';
 import { DetalleRutina } from './detalle-rutina.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
+import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
+
 
 @Entity('rutina')
 export class Rutina {
@@ -50,4 +52,11 @@ export class Rutina {
 
   @Column({ default: false })
   esBasica: boolean;
+
+  @ManyToOne(() => Clase, { nullable: true })
+@JoinColumn({ name: 'IDClase' })
+clase?: Clase;
+
+@Column({ nullable: true })
+IDClase?: number;
 }
