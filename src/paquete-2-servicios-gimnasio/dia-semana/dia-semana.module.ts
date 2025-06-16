@@ -12,3 +12,4 @@ import { DiasController } from './dias.controller';
   exports: [TypeOrmModule],
 })
 export class DiaSemanaModule {}
+
