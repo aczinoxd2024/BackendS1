@@ -9,7 +9,6 @@ import { Repository, DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
-import { Personal } from 'paquete-2-servicios-gimnasio/personal/personal.entity';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { UsuarioPerfil } from 'paquete-1-usuarios-accesos/usuarios/usuario-perfil.entity';
 import { Perfil } from 'paquete-1-usuarios-accesos/usuarios/perfil.entity';
@@ -20,9 +19,10 @@ import { CreatePersonalDto } from 'paquete-1-usuarios-accesos/auth/dto/create-pe
 // Importar nuevas entidades para la gestión de horarios
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
 import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
-import { DiaSemana } from 'paquete-2-servicios-gimnasio/asistencia/dia-semana.entity';
-import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum'; // Importar AccionBitacora
-import { UpdatePersonalDto } from '@auth/dto/update-personal.dto';
+import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
+import { UpdatePersonalDto } from '@auth/dto/update-personal.dto'; // Asegúrate de que esta ruta sea correcta
+import { Personal } from './gpersonal.entity';
+import { DiaSemana } from 'paquete-2-servicios-gimnasio/dia-semana/dia-semana.entity';
 
 @Injectable()
 export class GpersonalService {
@@ -40,18 +40,18 @@ export class GpersonalService {
     @InjectRepository(Bitacora)
     private bitacoraRepository: Repository<Bitacora>,
     private dataSource: DataSource,
-    @InjectRepository(HorarioTrabajo) // Inyectar HorarioTrabajoRepository
+    @InjectRepository(HorarioTrabajo)
     private horarioTrabajoRepository: Repository<HorarioTrabajo>,
-    @InjectRepository(HoraLaboral) // Inyectar HoraLaboralRepository
+    @InjectRepository(HoraLaboral)
     private horaLaboralRepository: Repository<HoraLaboral>,
-    @InjectRepository(DiaSemana) // Inyectar DiaSemanaRepository
+    @InjectRepository(DiaSemana)
     private diaSemanaRepository: Repository<DiaSemana>,
   ) {}
 
   async crearPersonal(
     dto: CreatePersonalDto,
-    idUsuario: string, // Esta variable será usada para la bitácora
-    ip: string, // Esta variable será usada para la bitácora
+    idUsuario: string,
+    ip: string,
   ): Promise<{ message: string }> {
     console.log('[SERVICIO] Crear Personal → Datos recibidos:', dto);
     const queryRunner = this.dataSource.createQueryRunner();
@@ -71,7 +71,7 @@ export class GpersonalService {
         AreaP,
         Sueldo,
         correo,
-        horariosTrabajo, // Desestructurar el nuevo campo
+        horariosTrabajo,
       } = dto;
 
       if (Cargo.toLowerCase().includes('administrador')) {
@@ -108,7 +108,7 @@ export class GpersonalService {
 
       console.log('→ Creando usuario...');
       const usuario = this.usuarioRepository.create({
-        id: CI,
+        id: CI, // Asumimos que el ID de usuario es el CI
         correo,
         contrasena: hashedPassword,
         idPersona: persona,
@@ -144,9 +144,9 @@ export class GpersonalService {
       if (horariosTrabajo && horariosTrabajo.length > 0) {
         console.log('→ Asignando horarios de trabajo...');
         for (const horarioDto of horariosTrabajo) {
-          // MODIFICACIÓN 1: Cambiar 'ID' a 'IDDia' al buscar DiaSemana
+          // CORRECCIÓN: Buscar DiaSemana por su ID de columna 'ID'
           const diaSemana = await queryRunner.manager.findOne(DiaSemana, {
-            where: { IDDia: horarioDto.idDia },
+            where: { ID: horarioDto.idDia }, // <-- ¡CORREGIDO AQUÍ! (usa DiaSemana.ID)
           });
           if (!diaSemana) {
             throw new BadRequestException(
@@ -172,9 +172,10 @@ export class GpersonalService {
 
           const nuevoHorarioTrabajo = this.horarioTrabajoRepository.create({
             IDPersona: CI,
-            // MODIFICACIÓN 2: Cambiar 'ID' a 'IDDia' al asignar
-            IDDia: diaSemana.IDDia,
-            IDHora: horaLaboral.IDHora,
+            // CORRECCIÓN: Asignar a IDDia el ID de la entidad DiaSemana
+            IDDia: diaSemana.ID, // <-- ¡CORREGIDO AQUÍ! (usa DiaSemana.ID)
+            // CORRECCIÓN: Asignar a IDHora el IDHora de la entidad HoraLaboral
+            IDHora: horaLaboral.IDHora, // <-- ¡CORREGIDO AQUÍ! (usa HoraLaboral.IDHora)
           });
           await queryRunner.manager.save(HorarioTrabajo, nuevoHorarioTrabajo);
         }
@@ -186,7 +187,7 @@ export class GpersonalService {
       // LÍNEA FINAL DE BITÁCORA: Añadir entrada de bitácora para la creación de personal
       await this.bitacoraRepository.save({
         idUsuario: idUsuario,
-        accion: AccionBitacora.CREAR_PERSONAL, // Asumiendo que existe esta acción en tu enum
+        accion: AccionBitacora.CREAR_PERSONAL,
         tablaAfectada: 'persona/personal/usuario/horario_trabajo',
         ipMaquina: ip === '::1' ? 'localhost' : ip,
       });
@@ -208,15 +209,8 @@ export class GpersonalService {
     }
   }
 
-  // ... (rest of the methods) ...
-
-  // ... (resto de los métodos) ...
-
-  //  async listarPersonal(): Promise<Personal[]> {
-  //    console.log('[SERVICIO] Listar Personal');
-  //    return this.personalRepository.find({ relations: ['persona', 'usuario'] });
-  //  }
-
+  // ... (resto de los métodos como listarPersonal, obtenerPersonal, actualizarPersonal, desactivarPersonal, reactivarPersonal) ...
+  // No hay cambios en los métodos restantes de este archivo
   async listarPersonal(): Promise<any[]> {
     return this.personalRepository
       .createQueryBuilder('personal')
