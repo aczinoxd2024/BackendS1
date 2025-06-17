@@ -172,4 +172,26 @@ async eliminarSeguimiento(ci: string, fecha: string): Promise<{ mensaje: string 
 
     return await this.seguimientoRepo.save(seguimiento);
   }
+
+  async listarClientesConMembresiaGoldActiva(): Promise<
+  { ci: string; nombre: string; apellido: string; fechaFin: string }[]
+> {
+  const resultados = await this.dataSource.query(
+    `
+    SELECT p.CI AS ci, p.Nombre AS nombre, p.Apellido AS apellido, m.FechaFin
+    FROM membresia m
+    JOIN tipo_membresia tm ON m.TipoMembresiaID = tm.ID
+    JOIN persona p ON p.CI = m.CICliente
+    WHERE tm.NombreTipo = 'Gold' AND m.FechaFin >= CURDATE()
+    ORDER BY m.FechaFin DESC
+    `
+  );
+
+  if (!resultados || resultados.length === 0) {
+    throw new NotFoundException('No hay clientes con membresía Gold activa.');
+  }
+
+  return resultados;
+}
+
 }

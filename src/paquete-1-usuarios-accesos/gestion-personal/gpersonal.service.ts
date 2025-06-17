@@ -1,3 +1,4 @@
+// src/paquete-1-usuarios-accesos/gestion-personal/gpersonal.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -15,7 +16,13 @@ import { Perfil } from 'paquete-1-usuarios-accesos/usuarios/perfil.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 
 import { CreatePersonalDto } from 'paquete-1-usuarios-accesos/auth/dto/create-personal.dto';
-import { UpdatePersonalDto } from 'paquete-1-usuarios-accesos/auth/dto/update-personal.dto';
+
+// Importar nuevas entidades para la gestión de horarios
+import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
+import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
+import { DiaSemana } from 'paquete-2-servicios-gimnasio/asistencia/dia-semana.entity';
+import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum'; // Importar AccionBitacora
+import { UpdatePersonalDto } from '@auth/dto/update-personal.dto';
 
 @Injectable()
 export class GpersonalService {
@@ -33,29 +40,67 @@ export class GpersonalService {
     @InjectRepository(Bitacora)
     private bitacoraRepository: Repository<Bitacora>,
     private dataSource: DataSource,
+    @InjectRepository(HorarioTrabajo) // Inyectar HorarioTrabajoRepository
+    private horarioTrabajoRepository: Repository<HorarioTrabajo>,
+    @InjectRepository(HoraLaboral) // Inyectar HoraLaboralRepository
+    private horaLaboralRepository: Repository<HoraLaboral>,
+    @InjectRepository(DiaSemana) // Inyectar DiaSemanaRepository
+    private diaSemanaRepository: Repository<DiaSemana>,
   ) {}
 
-  async crearPersonal(dto: CreatePersonalDto, idUsuario: string, ip: string): Promise<{ message: string }> {
+  async crearPersonal(
+    dto: CreatePersonalDto,
+    idUsuario: string, // Esta variable será usada para la bitácora
+    ip: string, // Esta variable será usada para la bitácora
+  ): Promise<{ message: string }> {
     console.log('[SERVICIO] Crear Personal → Datos recibidos:', dto);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const { CI, Nombre, Apellido, FechaNacimiento, Telefono, Direccion, Cargo, FechaContratacion, AreaP, Sueldo, correo } = dto;
+      const {
+        CI,
+        Nombre,
+        Apellido,
+        FechaNacimiento,
+        Telefono,
+        Direccion,
+        Cargo,
+        FechaContratacion,
+        AreaP,
+        Sueldo,
+        correo,
+        horariosTrabajo, // Desestructurar el nuevo campo
+      } = dto;
 
       if (Cargo.toLowerCase().includes('administrador')) {
         console.warn('[❌] Intento de crear administrador no permitido');
-        throw new BadRequestException('No está permitido crear un administrador desde este módulo.');
+        throw new BadRequestException(
+          'No está permitido crear un administrador desde este módulo.',
+        );
       }
 
       console.log('→ Creando persona...');
-      const persona = this.personaRepository.create({ CI, Nombre, Apellido, FechaNacimiento, Telefono, Direccion });
+      const persona = this.personaRepository.create({
+        CI,
+        Nombre,
+        Apellido,
+        FechaNacimiento,
+        Telefono,
+        Direccion,
+      });
       await queryRunner.manager.save(Persona, persona);
       console.log('✔️ Persona guardada');
 
       console.log('→ Creando personal...');
-      const personal = this.personalRepository.create({ CI, Cargo, FechaContratacion, AreaP, Sueldo });
+      const personal = this.personalRepository.create({
+        CI,
+        Cargo,
+        FechaContratacion,
+        AreaP,
+        Sueldo,
+      });
       await queryRunner.manager.save(Personal, personal);
       console.log('✔️ Personal guardado');
 
@@ -72,13 +117,19 @@ export class GpersonalService {
       await queryRunner.manager.save(Usuario, usuario);
       console.log('✔️ Usuario creado');
 
-      const nombrePerfil = Cargo.toLowerCase().includes('recepcionista') ? 'Recepcionista' : 'Instructor';
+      const nombrePerfil = Cargo.toLowerCase().includes('recepcionista')
+        ? 'Recepcionista'
+        : 'Instructor';
       console.log(`→ Buscando perfil: ${nombrePerfil}`);
-      const perfil = await this.perfilRepository.findOne({ where: { nombrePerfil } });
+      const perfil = await this.perfilRepository.findOne({
+        where: { nombrePerfil },
+      });
 
       if (!perfil) {
         console.error('[❌] Perfil no encontrado');
-        throw new NotFoundException(`No se encontró el perfil "${nombrePerfil}"`);
+        throw new NotFoundException(
+          `No se encontró el perfil "${nombrePerfil}"`,
+        );
       }
 
       console.log('→ Asignando perfil al usuario...');
@@ -89,10 +140,65 @@ export class GpersonalService {
       await queryRunner.manager.save(UsuarioPerfil, usuarioPerfil);
       console.log('✔️ Perfil asignado');
 
-      await queryRunner.commitTransaction();
-      console.log(`[✔️] Personal registrado correctamente como ${nombrePerfil}`);
+      // NUEVO: Asignar horarios de trabajo
+      if (horariosTrabajo && horariosTrabajo.length > 0) {
+        console.log('→ Asignando horarios de trabajo...');
+        for (const horarioDto of horariosTrabajo) {
+          // MODIFICACIÓN 1: Cambiar 'ID' a 'IDDia' al buscar DiaSemana
+          const diaSemana = await queryRunner.manager.findOne(DiaSemana, {
+            where: { IDDia: horarioDto.idDia },
+          });
+          if (!diaSemana) {
+            throw new BadRequestException(
+              `Día de la semana con ID ${horarioDto.idDia} no encontrado.`,
+            );
+          }
 
-      return { message: `Personal registrado correctamente como ${nombrePerfil}` };
+          // Busca si la HoraLaboral ya existe, o crea una nueva
+          let horaLaboral = await queryRunner.manager.findOne(HoraLaboral, {
+            where: {
+              HoraIni: horarioDto.horaInicio,
+              HoraFin: horarioDto.horaFin,
+            },
+          });
+
+          if (!horaLaboral) {
+            horaLaboral = this.horaLaboralRepository.create({
+              HoraIni: horarioDto.horaInicio,
+              HoraFin: horarioDto.horaFin,
+            });
+            await queryRunner.manager.save(HoraLaboral, horaLaboral);
+          }
+
+          const nuevoHorarioTrabajo = this.horarioTrabajoRepository.create({
+            IDPersona: CI,
+            // MODIFICACIÓN 2: Cambiar 'ID' a 'IDDia' al asignar
+            IDDia: diaSemana.IDDia,
+            IDHora: horaLaboral.IDHora,
+          });
+          await queryRunner.manager.save(HorarioTrabajo, nuevoHorarioTrabajo);
+        }
+        console.log('✔️ Horarios de trabajo asignados.');
+      } else {
+        console.log('→ No se proporcionaron horarios de trabajo para asignar.');
+      }
+
+      // LÍNEA FINAL DE BITÁCORA: Añadir entrada de bitácora para la creación de personal
+      await this.bitacoraRepository.save({
+        idUsuario: idUsuario,
+        accion: AccionBitacora.CREAR_PERSONAL, // Asumiendo que existe esta acción en tu enum
+        tablaAfectada: 'persona/personal/usuario/horario_trabajo',
+        ipMaquina: ip === '::1' ? 'localhost' : ip,
+      });
+
+      await queryRunner.commitTransaction();
+      console.log(
+        `[✔️] Personal registrado correctamente como ${nombrePerfil}`,
+      );
+
+      return {
+        message: `Personal registrado correctamente como ${nombrePerfil}`,
+      };
     } catch (error) {
       await queryRunner.rollbackTransaction();
       console.error('[❌] Error durante la creación del personal:', error);
@@ -102,9 +208,26 @@ export class GpersonalService {
     }
   }
 
-  async listarPersonal(): Promise<Personal[]> {
-    console.log('[SERVICIO] Listar Personal');
-    return this.personalRepository.find({ relations: ['persona'] });
+  // ... (rest of the methods) ...
+
+  // ... (resto de los métodos) ...
+
+  //  async listarPersonal(): Promise<Personal[]> {
+  //    console.log('[SERVICIO] Listar Personal');
+  //    return this.personalRepository.find({ relations: ['persona', 'usuario'] });
+  //  }
+
+  async listarPersonal(): Promise<any[]> {
+    return this.personalRepository
+      .createQueryBuilder('personal')
+      .leftJoinAndSelect('personal.persona', 'persona')
+      .leftJoinAndMapOne(
+        'personal.usuario',
+        Usuario,
+        'usuario',
+        'usuario.idPersona = persona.CI',
+      )
+      .getMany();
   }
 
   async obtenerPersonal(ci: string): Promise<Personal> {
@@ -122,12 +245,19 @@ export class GpersonalService {
     return personal;
   }
 
-  async actualizarPersonal(ci: string, dto: UpdatePersonalDto, idUsuario: string, ip: string): Promise<string> {
+  async actualizarPersonal(
+    ci: string,
+    dto: UpdatePersonalDto,
+    idUsuario: string,
+    ip: string,
+  ): Promise<{ message: string }> {
     console.log(`[SERVICIO] Actualizar Personal CI: ${ci}`);
     console.log('→ Datos recibidos:', dto);
 
     const persona = await this.personaRepository.findOne({ where: { CI: ci } });
-    const personal = await this.personalRepository.findOne({ where: { CI: ci } });
+    const personal = await this.personalRepository.findOne({
+      where: { CI: ci },
+    });
 
     if (!persona || !personal) {
       console.warn(`[⚠️] Personal o persona no encontrado para CI: ${ci}`);
@@ -144,7 +274,9 @@ export class GpersonalService {
 
     Object.assign(personal, {
       ...(dto.Cargo && { Cargo: dto.Cargo }),
-      ...(dto.FechaContratacion && { FechaContratacion: dto.FechaContratacion }),
+      ...(dto.FechaContratacion && {
+        FechaContratacion: dto.FechaContratacion,
+      }),
       ...(dto.AreaP && { AreaP: dto.AreaP }),
       ...(dto.Sueldo !== undefined && { Sueldo: dto.Sueldo }),
     });
@@ -160,10 +292,14 @@ export class GpersonalService {
     });
 
     console.log('✔️ Personal actualizado y bitácora registrada');
-    return 'Personal actualizado correctamente';
+    return { message: 'Personal actualizado correctamente' };
   }
 
-  async desactivarPersonal(ci: string, idUsuario: string, ip: string): Promise<string> {
+  async desactivarPersonal(
+    ci: string,
+    idUsuario: string,
+    ip: string,
+  ): Promise<{ message: string }> {
     console.log(`[SERVICIO] Desactivar personal CI: ${ci}`);
     const usuario = await this.usuarioRepository.findOne({
       where: { idPersona: { CI: ci } },
@@ -185,10 +321,14 @@ export class GpersonalService {
     });
 
     console.log('✔️ Personal desactivado y bitácora registrada');
-    return 'Personal desactivado correctamente (acceso denegado)';
+    return { message: 'Personal desactivado correctamente (acceso denegado)' };
   }
 
-  async reactivarPersonal(ci: string, idUsuario: string, ip: string): Promise<string> {
+  async reactivarPersonal(
+    ci: string,
+    idUsuario: string,
+    ip: string,
+  ): Promise<{ message: string }> {
     console.log(`[SERVICIO] Reactivar personal CI: ${ci}`);
     const usuario = await this.usuarioRepository.findOne({
       where: { idPersona: { CI: ci } },
@@ -210,6 +350,6 @@ export class GpersonalService {
     });
 
     console.log('✔️ Personal reactivado y bitácora registrada');
-    return 'Personal reactivado correctamente';
+    return { message: 'Personal reactivado correctamente' };
   }
 }

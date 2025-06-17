@@ -1,7 +1,8 @@
 import { IsOptional, IsString, IsDateString, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdatePersonalDto {
-  // 📌 Campos de la tabla PERSONA
+  // 📌 PERSONA
   @IsOptional()
   @IsString()
   Nombre?: string;
@@ -22,7 +23,7 @@ export class UpdatePersonalDto {
   @IsString()
   Direccion?: string;
 
-  // 📌 Campos de la tabla PERSONAL
+  // 📌 PERSONAL
   @IsOptional()
   @IsString()
   Cargo?: string;
@@ -36,6 +37,7 @@ export class UpdatePersonalDto {
   AreaP?: string;
 
   @IsOptional()
-  @IsNumber()
+  @Type(() => Number) // ✅ transforma string a número si viene así
+  @IsNumber({}, { message: 'Sueldo debe ser un número válido' })
   Sueldo?: number;
 }
