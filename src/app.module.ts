@@ -49,7 +49,8 @@ import { GpersonalModule } from 'paquete-1-usuarios-accesos/gestion-personal/gpe
 import { RutinasModule } from './paquete-2-servicios-gimnasio/rutinas/rutinas.module';
 import { InventarioModule } from './paquete-4-gestion-administrativa-tecnica/inventario/inventario.module';
 import { EstadoInventarioModule } from './paquete-4-gestion-administrativa-tecnica/estado-inventario/estado-inventario.module';
-
+import { InventarioUsoModule } from './paquete-4-gestion-administrativa-tecnica/inventario-uso/inventario-uso.module';
+import { InventarioResponsableModule } from './paquete-4-gestion-administrativa-tecnica/inventario-responsable/inventario-responsable.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -120,6 +121,8 @@ import { EstadoInventarioModule } from './paquete-4-gestion-administrativa-tecni
     AsistenciaModule,
     InventarioModule,
     EstadoInventarioModule,
+    InventarioUsoModule,
+    InventarioResponsableModule,
   ],
   providers: [
     {
