@@ -3,13 +3,14 @@ import {
   IsString,
   IsDateString,
   IsNumber,
-  IsOptional,
+  IsOptional, // <-- Asegúrate de que IsOptional esté importado
   IsArray,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer'; // ¡Asegúrate de importar 'Type' de 'class-transformer'!
+import { Type } from 'class-transformer'; // Asegúrate de importar 'Type' de 'class-transformer'
 
 export class HorarioPersonalDto {
+  @IsOptional() // <-- ¡Añadido! Permite que idDia sea null o undefined
   @IsNumber()
   idDia: number;
 

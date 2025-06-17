@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Personal } from './personal.entity';
 
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
@@ -16,6 +15,7 @@ import { AsistenciaPersonal } from './asistencia_personal.entity';
 import { Request } from 'express';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { toZonedTime, format } from 'date-fns-tz';
+import { Personal } from 'paquete-2-servicios-gimnasio/personal/personal.entity';
 
 @Injectable()
 export class PersonalService {
