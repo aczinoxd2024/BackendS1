@@ -185,8 +185,9 @@ export class GpersonalService {
 
           let horaLaboral = await queryRunner.manager.findOne(HoraLaboral, {
             where: {
-              HoraIni: horarioDto.horaInicio,
-              HoraFin: horarioDto.horaFin,
+              // --- CORRECCIÓN FINAL AQUÍ: Usar los nombres de propiedad correctos (HoraInicio, HoraFinal) ---
+              HoraInicio: horarioDto.horaInicio,
+              HoraFinal: horarioDto.horaFin,
             },
           });
 
@@ -195,14 +196,12 @@ export class GpersonalService {
               `[DEBUG] HoraLaboral no existente, creando nueva: ${horarioDto.horaInicio}-${horarioDto.horaFin}`,
             );
             horaLaboral = this.horaLaboralRepository.create({
-              HoraIni: horarioDto.horaInicio,
-              HoraFin: horarioDto.horaFin,
+              HoraInicio: horarioDto.horaInicio, // Corregido: HoraInicio
+              HoraFinal: horarioDto.horaFin, // Corregido: HoraFinal
             });
             await queryRunner.manager.save(HoraLaboral, horaLaboral);
-            // --- CAMBIO AQUÍ: Ahora usamos horaLaboral.ID porque la entidad fue corregida ---
             console.log('✔️ HoraLaboral creada. ID:', horaLaboral.ID);
           } else {
-            // --- CAMBIO AQUÍ: Ahora usamos horaLaboral.ID porque la entidad fue corregida ---
             console.log(
               `[DEBUG] HoraLaboral existente encontrada. ID: ${horaLaboral.ID}`,
             );
@@ -211,7 +210,6 @@ export class GpersonalService {
           const nuevoHorarioTrabajo = this.horarioTrabajoRepository.create({
             IDPersona: CI,
             IDDia: diaSemana.ID,
-            // --- CAMBIO CRÍTICO AQUÍ: Ahora asignamos horaLaboral.ID (la PK real de HoraLaboral) ---
             IDHora: horaLaboral.ID,
           });
           await queryRunner.manager.save(HorarioTrabajo, nuevoHorarioTrabajo);
