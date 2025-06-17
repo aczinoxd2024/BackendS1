@@ -9,7 +9,6 @@ import { Repository, DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
-// Asegúrate de que esta sea la entidad Personal correcta (la que tiene relaciones con clases, etc.)
 import { Personal } from 'paquete-2-servicios-gimnasio/personal/personal.entity';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { UsuarioPerfil } from 'paquete-1-usuarios-accesos/usuarios/usuario-perfil.entity';
@@ -21,11 +20,10 @@ import { CreatePersonalDto } from 'paquete-1-usuarios-accesos/auth/dto/create-pe
 // Importar nuevas entidades para la gestión de horarios
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
 import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
-// ¡ESTA ES LA LÍNEA DE IMPORTACIÓN CORRECTA PARA DiaSemana!
 import { DiaSemana } from 'paquete-2-servicios-gimnasio/dia-semana/dia-semana.entity';
 
 import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
-import { UpdatePersonalDto } from '@auth/dto/update-personal.dto'; // Asegúrate de que esta ruta sea correcta
+import { UpdatePersonalDto } from 'paquete-1-usuarios-accesos/auth/dto/update-personal.dto'; // Asegúrate de que esta ruta sea correcta
 
 @Injectable()
 export class GpersonalService {
@@ -170,9 +168,8 @@ export class GpersonalService {
             `[DEBUG] Procesando Horario #${index + 1}: IDDia=${horarioDto.idDia}, HoraInicio=${horarioDto.horaInicio}, HoraFin=${horarioDto.horaFin}`,
           );
 
-          // CORRECCIÓN: Buscar DiaSemana por su ID de columna 'ID'
           const diaSemana = await queryRunner.manager.findOne(DiaSemana, {
-            where: { ID: horarioDto.idDia }, // <-- ¡CORREGIDO AQUÍ! (usa DiaSemana.ID)
+            where: { ID: horarioDto.idDia },
           });
           if (!diaSemana) {
             console.error(
@@ -186,7 +183,6 @@ export class GpersonalService {
             `[DEBUG] Día Semana encontrado: ID=${diaSemana.ID}, Nombre=${diaSemana.Dia}`,
           );
 
-          // Busca si la HoraLaboral ya existe, o crea una nueva
           let horaLaboral = await queryRunner.manager.findOne(HoraLaboral, {
             where: {
               HoraIni: horarioDto.horaInicio,
@@ -203,19 +199,20 @@ export class GpersonalService {
               HoraFin: horarioDto.horaFin,
             });
             await queryRunner.manager.save(HoraLaboral, horaLaboral);
-            console.log('✔️ HoraLaboral creada. IDHora:', horaLaboral.IDHora);
+            // --- CAMBIO AQUÍ: Ahora usamos horaLaboral.ID porque la entidad fue corregida ---
+            console.log('✔️ HoraLaboral creada. ID:', horaLaboral.ID);
           } else {
+            // --- CAMBIO AQUÍ: Ahora usamos horaLaboral.ID porque la entidad fue corregida ---
             console.log(
-              `[DEBUG] HoraLaboral existente encontrada. IDHora: ${horaLaboral.IDHora}`,
+              `[DEBUG] HoraLaboral existente encontrada. ID: ${horaLaboral.ID}`,
             );
           }
 
           const nuevoHorarioTrabajo = this.horarioTrabajoRepository.create({
             IDPersona: CI,
-            // CORRECCIÓN: Asignar a IDDia el ID de la entidad DiaSemana
-            IDDia: diaSemana.ID, // <-- ¡CORREGIDO AQUÍ! (usa DiaSemana.ID)
-            // CORRECCIÓN: Asignar a IDHora el IDHora de la entidad HoraLaboral
-            IDHora: horaLaboral.IDHora, // <-- ¡CORREGIDO AQUÍ! (usa HoraLaboral.IDHora)
+            IDDia: diaSemana.ID,
+            // --- CAMBIO CRÍTICO AQUÍ: Ahora asignamos horaLaboral.ID (la PK real de HoraLaboral) ---
+            IDHora: horaLaboral.ID,
           });
           await queryRunner.manager.save(HorarioTrabajo, nuevoHorarioTrabajo);
           console.log(
@@ -227,7 +224,6 @@ export class GpersonalService {
         console.log('→ No se proporcionaron horarios de trabajo para asignar.');
       }
 
-      // LÍNEA FINAL DE BITÁCORA: Añadir entrada de bitácora para la creación de personal
       await this.bitacoraRepository.save({
         idUsuario: idUsuario,
         accion: AccionBitacora.CREAR_PERSONAL,
@@ -246,19 +242,16 @@ export class GpersonalService {
         message: `Personal registrado correctamente como ${nombrePerfil}`,
       };
     } catch (error: unknown) {
-      // <-- ¡CORRECCIÓN ESLINT: Typado como 'unknown'!
       await queryRunner.rollbackTransaction();
       console.error('--- TRANSACCIÓN REVERTIDA (ROLLBACK) ---');
       console.error('[❌] Error durante la creación del personal:', error);
-      // Para errores específicos de DB, puedes loguear más detalles:
-      // Comprobar si 'error' es un objeto y tiene la propiedad 'code' para type narrowing
       if (
         typeof error === 'object' &&
         error !== null &&
         'code' in error &&
-        (error as { code: string }).code === 'ER_DUP_ENTRY' // Type assertion para 'code'
+        (error as { code: string }).code === 'ER_DUP_ENTRY'
       ) {
-        const dbError = error as { sqlMessage?: string }; // Type assertion para 'sqlMessage'
+        const dbError = error as { sqlMessage?: string };
         console.error(
           `[DB ERROR] Clave duplicada: ${dbError.sqlMessage || 'Mensaje no disponible'}`,
         );
@@ -271,8 +264,8 @@ export class GpersonalService {
     }
   }
 
-  // ... (resto de los métodos como listarPersonal, obtenerPersonal, actualizarPersonal, desactivarPersonal, reactivarPersonal) ...
-  // No hay cambios en los métodos restantes de este archivo
+  // --- MÉTODOS RESTANTES (SIN CAMBIOS) ---
+
   async listarPersonal(): Promise<any[]> {
     return this.personalRepository
       .createQueryBuilder('personal')
@@ -339,6 +332,10 @@ export class GpersonalService {
 
     await this.personaRepository.save(persona);
     await this.personalRepository.save(personal);
+
+    // --- IMPORTANTE: Si UpdatePersonalDto también tiene 'horariosTrabajo',
+    // --- necesitarás replicar la lógica del método 'crearPersonal' aquí para actualizar/gestionar esos horarios.
+    // --- Por ahora, este método no los maneja.
 
     await this.bitacoraRepository.save({
       idUsuario,
