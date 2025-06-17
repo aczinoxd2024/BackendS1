@@ -59,6 +59,7 @@ async obtenerRutinasDeClase() {
   @Put(':id')
   @Roles('Instructor')
   update(@Param('id') id: number, @Body() dto: UpdateRutinaDto, @Req() req: Request) {
+    console.log('DTO recibido para actualización:', dto);
     return this.rutinasService.update(id, dto, req);
   }
 
