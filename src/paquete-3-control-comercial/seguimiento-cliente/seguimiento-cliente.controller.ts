@@ -66,4 +66,12 @@ eliminar(
   return this.service.eliminarSeguimiento(ci, fecha);
 }
 
+@Get('clientes/gold')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('instructor') 
+listarClientesGold() {
+  return this.service.listarClientesConMembresiaGoldActiva();
+}
+
+
 }
