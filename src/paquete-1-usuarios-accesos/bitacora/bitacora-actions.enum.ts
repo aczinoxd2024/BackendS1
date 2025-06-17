@@ -18,6 +18,8 @@ export enum AccionBitacora {
   ACTUALIZAR_INVENTARIO = 'Actualización de ítem de inventario',
   DAR_BAJA_INVENTARIO = 'Baja lógica de ítem de inventario',
   LISTAR_INVENTARIO = 'Listado de ítems de inventario',
+  // ¡AÑADE ESTA LÍNEA!
+  CREAR_PERSONAL = 'Creación de personal',
 
   // Puedes agregar más si quieres como:
   // CREAR_CLIENTE = 'Creación de cliente',

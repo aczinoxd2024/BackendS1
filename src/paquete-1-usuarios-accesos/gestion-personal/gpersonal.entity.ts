@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  OneToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 
 @Entity('personal')
