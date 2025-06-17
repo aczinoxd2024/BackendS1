@@ -1,12 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
 import { DiaSemanaService } from './dia-semana.service';
 
-@Controller('dias-semana') // <--- ¡CAMBIA 'dias-semana' a 'dias' aquí!
-export class DiaSemanaController {
+@Controller('dias') // <- el que usa el frontend
+export class DiasController {
   constructor(private readonly diaService: DiaSemanaService) {}
 
   @Get()
   getAll() {
-    return this.diaService.findAll();
+    return this.diaService.findAll(); // o puedes mapear DTOs si deseas
   }
 }

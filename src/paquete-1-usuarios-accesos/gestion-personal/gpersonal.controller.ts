@@ -51,7 +51,9 @@ export class GpersonalController {
   ) {
     const idUsuario = req.user?.id ?? 'desconocido';
     const ip = req.ip ?? 'desconocido';
-    console.log(`[PUT] Actualizar personal CI: ${ci} - IP: ${ip} - Usuario: ${idUsuario}`);
+    console.log(
+      `[PUT] Actualizar personal CI: ${ci} - IP: ${ip} - Usuario: ${idUsuario}`,
+    );
     return this.gpersonalService.actualizarPersonal(ci, data, idUsuario, ip);
   }
 
@@ -59,7 +61,9 @@ export class GpersonalController {
   async reactivar(@Param('ci') ci: string, @Req() req: UserRequest) {
     const idUsuario = req.user?.id ?? 'desconocido';
     const ip = req.ip ?? 'desconocido';
-    console.log(`[PUT] Reactivar personal CI: ${ci} - IP: ${ip} - Usuario: ${idUsuario}`);
+    console.log(
+      `[PUT] Reactivar personal CI: ${ci} - IP: ${ip} - Usuario: ${idUsuario}`,
+    );
     return this.gpersonalService.reactivarPersonal(ci, idUsuario, ip);
   }
 
@@ -67,7 +71,9 @@ export class GpersonalController {
   async desactivar(@Param('ci') ci: string, @Req() req: UserRequest) {
     const idUsuario = req.user?.id ?? 'desconocido';
     const ip = req.ip ?? 'desconocido';
-    console.log(`[DELETE] Desactivar personal CI: ${ci} - IP: ${ip} - Usuario: ${idUsuario}`);
+    console.log(
+      `[DELETE] Desactivar personal CI: ${ci} - IP: ${ip} - Usuario: ${idUsuario}`,
+    );
     return this.gpersonalService.desactivarPersonal(ci, idUsuario, ip);
   }
 }

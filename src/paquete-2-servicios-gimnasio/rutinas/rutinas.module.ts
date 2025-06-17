@@ -11,7 +11,8 @@ import { DiaSemana } from 'dia-semana/dia-semana.entity';
 import { ClienteRutina } from './entidades/cliente-rutina.entity';
 import { GrupoMuscular } from './entidades/grupo-muscular.entity';
 import { BitacoraModule } from 'paquete-1-usuarios-accesos/bitacora/bitacora.module';
-import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity'; // 👈 AÑADIDO
+import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
+import { EjerciciosController } from './entidades/ejercicios.controller';
 
 @Module({
   imports: [
@@ -23,11 +24,12 @@ import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity'; // �
       DiaSemana,
       ClienteRutina,
       GrupoMuscular,
-      Clase // 👈 AÑADIDO PARA QUE EL ClaseRepository FUNCIONE
+      Clase, // 👈 AÑADIDO PARA QUE EL ClaseRepository FUNCIONE
+      Ejercicio
     ]),
     BitacoraModule
   ],
-  controllers: [RutinasController],
+  controllers: [RutinasController, EjerciciosController],
   providers: [RutinasService],
   exports: [RutinasService],
 })

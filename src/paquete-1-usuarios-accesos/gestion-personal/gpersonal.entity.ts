@@ -1,12 +1,5 @@
+import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  OneToOne,
-  JoinColumn,
-} from 'typeorm';
-
 
 @Entity('personal')
 export class Personal {
@@ -26,6 +19,6 @@ export class Personal {
   Sueldo: number;
 
   @OneToOne(() => Persona)
-  @JoinColumn({ name: 'CI' }) // CI es tanto PK como FK
+  @JoinColumn({ name: 'CI' }) // CI es tanto PK como FK hacia persona
   persona: Persona;
 }
