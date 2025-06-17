@@ -36,10 +36,6 @@ export class UpdateRutinaDto {
   @IsOptional()
   nivel?: NivelRutina;
 
-  //@IsEnum(TipoRutina)
-  //@IsOptional()
-  //tipo?: TipoRutina;
-
   @IsEnum(GeneroObjetivo)
   @IsOptional()
   generoObjetivo?: GeneroObjetivo;
