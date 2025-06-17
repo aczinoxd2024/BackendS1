@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ejercicio } from './ejercicio.entity';
 
-@Controller('api/ejercicios') // 👈 RUTA CORRECTA
+@Controller('ejercicios') // 👈 RUTA CORRECTA
 export class EjerciciosController {
   constructor(
     @InjectRepository(Ejercicio)

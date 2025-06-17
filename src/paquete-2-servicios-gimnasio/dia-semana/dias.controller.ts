@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { DiaSemanaService } from './dia-semana.service';
 
-@Controller('api/dias') // <- el que usa el frontend
+@Controller('dias') // <- el que usa el frontend
 export class DiasController {
   constructor(private readonly diaService: DiaSemanaService) {}
 
