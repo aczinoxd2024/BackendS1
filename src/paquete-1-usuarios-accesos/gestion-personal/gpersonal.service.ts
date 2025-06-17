@@ -21,7 +21,9 @@ import { CreatePersonalDto } from 'paquete-1-usuarios-accesos/auth/dto/create-pe
 // Importar nuevas entidades para la gestión de horarios
 import { HorarioTrabajo } from 'paquete-2-servicios-gimnasio/asistencia/horario-trabajo.entity';
 import { HoraLaboral } from 'paquete-2-servicios-gimnasio/asistencia/hora-laboral.entity';
+// ¡ESTA ES LA LÍNEA DE IMPORTACIÓN CORRECTA PARA DiaSemana!
 import { DiaSemana } from 'paquete-2-servicios-gimnasio/dia-semana/dia-semana.entity';
+
 import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
 import { UpdatePersonalDto } from '@auth/dto/update-personal.dto'; // Asegúrate de que esta ruta sea correcta
 
@@ -243,14 +245,23 @@ export class GpersonalService {
       return {
         message: `Personal registrado correctamente como ${nombrePerfil}`,
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      // <-- ¡CORRECCIÓN ESLINT: Typado como 'unknown'!
       await queryRunner.rollbackTransaction();
       console.error('--- TRANSACCIÓN REVERTIDA (ROLLBACK) ---');
       console.error('[❌] Error durante la creación del personal:', error);
       // Para errores específicos de DB, puedes loguear más detalles:
-      if (error.code === 'ER_DUP_ENTRY') {
-        // Ejemplo para MySQL: clave duplicada
-        console.error(`[DB ERROR] Clave duplicada: ${error.sqlMessage}`);
+      // Comprobar si 'error' es un objeto y tiene la propiedad 'code' para type narrowing
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'ER_DUP_ENTRY' // Type assertion para 'code'
+      ) {
+        const dbError = error as { sqlMessage?: string }; // Type assertion para 'sqlMessage'
+        console.error(
+          `[DB ERROR] Clave duplicada: ${dbError.sqlMessage || 'Mensaje no disponible'}`,
+        );
       }
       throw error;
     } finally {
