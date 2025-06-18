@@ -17,13 +17,14 @@ export class HoraLaboral {
   // IDHora: number;
   // --- FIN ALTERNATIVA ---
 
-  @Column({ name: 'HoraIni', type: 'time' })
-  HoraIni: string;
+  // --- CORRECCIÓN AQUÍ ---
+  @Column({ name: 'HoraInicio', type: 'time' }) // El nombre de la columna en la BD es 'HoraInicio'
+  HoraInicio: string; // La propiedad en la entidad también debe ser 'HoraInicio'
 
-  @Column({ name: 'HoraFin', type: 'time' })
-  HoraFin: string;
+  @Column({ name: 'HoraFinal', type: 'time' }) // El nombre de la columna en la BD es 'HoraFinal'
+  HoraFinal: string; // La propiedad en la entidad también debe ser 'HoraFinal'
+  // --- FIN CORRECCIÓN ---
 
-  // Relación inversa opcional
   @OneToMany(() => HorarioTrabajo, (ht) => ht.horaLaboral)
   horariosTrabajo: HorarioTrabajo[];
 }
