@@ -15,6 +15,8 @@ import { ClienteRutina } from './entidades/cliente-rutina.entity';
 import { InternalServerErrorException } from '@nestjs/common';
 import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
 import { TipoAccesoRutina } from './enums';
+import { BadRequestException } from '@nestjs/common';
+
 
 
 @Injectable()
@@ -149,13 +151,21 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase && dto.IDClase) {
     if (!rutina) throw new NotFoundException('Rutina no encontrada');
     return rutina;
   }
-
   async update(id: number, dto: UpdateRutinaDto, req: Request): Promise<Rutina> {
-    const rutina = await this.findOne(id);
-    Object.assign(rutina, dto);
-    await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.ACTUALIZAR_RUTINA, 'rutina');
-    return this.rutinaRepo.save(rutina);
+  const rutina = await this.findOne(id); // usa método con validación incluida
+
+  if (!dto.detalles || dto.detalles.length === 0) {
+    throw new BadRequestException('Debe agregar al menos un ejercicio a la rutina');
   }
+
+  Object.assign(rutina, dto);
+
+  await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.ACTUALIZAR_RUTINA, 'rutina');
+
+  return this.rutinaRepo.save(rutina);
+}
+
+
 
   async remove(id: number, req: Request): Promise<void> {
     const rutina = await this.findOne(id);

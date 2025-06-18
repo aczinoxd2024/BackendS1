@@ -14,6 +14,9 @@ export class DetalleRutina {
   @Column()
   repeticiones: number;
 
+  @Column()
+descanso: number;
+
   @Column({ default: false })
   completado: boolean;
 

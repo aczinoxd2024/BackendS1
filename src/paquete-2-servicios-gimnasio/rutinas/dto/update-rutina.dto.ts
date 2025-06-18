@@ -1,59 +1,38 @@
 import {
-  IsArray,
-  IsEnum,
   IsNotEmpty,
-  IsOptional,
   IsString,
+  IsOptional,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { NivelRutina, TipoRutina, GeneroObjetivo, TipoAccesoRutina } from '../enums';
-
-class DetalleRutinaDto {
-  @IsNotEmpty()
-  idEjercicio: number;
-
-  @IsNotEmpty()
-  idDia: number;
-
-  @IsNotEmpty()
-  series: number;
-
-  @IsNotEmpty()
-  repeticiones: number;
-}
+import { DetalleRutinaDto } from './detalle-rutina.dto';
 
 export class UpdateRutinaDto {
+  @IsNotEmpty()
   @IsString()
-  @IsOptional()
-  nombre?: string;
+  nombre: string;
 
+  @IsNotEmpty()
   @IsString()
-  @IsOptional()
-  objetivo?: string;
+  objetivo: string;
 
-  @IsEnum(NivelRutina)
-  @IsOptional()
-  nivel?: NivelRutina;
-
-  @IsEnum(GeneroObjetivo)
-  @IsOptional()
-  generoObjetivo?: GeneroObjetivo;
-
-  @IsEnum(TipoAccesoRutina)
-  @IsOptional()
-  tipoAcceso?: TipoAccesoRutina;
-
-  @IsOptional()
-  esBasica?: boolean;
-
+  @IsNotEmpty()
   @IsString()
-  @IsOptional()
-  ciInstructor?: string;
+  generoObjetivo: string;
 
-  @IsArray()
+  @IsNotEmpty()
+  @IsString()
+  nivel: string;
+
+  @IsNotEmpty()
+  @IsString()
+  tipoAcceso: string;
+
+  @IsOptional()
+  @IsString()
+  descripcion?: string;
+
   @ValidateNested({ each: true })
-  @Type(() => DetalleRutinaDto)
-  @IsOptional()
-  detalles?: DetalleRutinaDto[];
+@Type(() => DetalleRutinaDto)
+detalles: DetalleRutinaDto[];
 }
