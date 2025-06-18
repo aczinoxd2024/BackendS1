@@ -33,7 +33,7 @@ export class UpdateRutinaDto {
   @IsString()
   descripcion?: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => DetalleRutinaDto)

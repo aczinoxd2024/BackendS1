@@ -156,17 +156,50 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase) {
     if (!rutina) throw new NotFoundException('Rutina no encontrada');
     return rutina;
   }
+
+  
   async update(id: number, dto: UpdateRutinaDto, req: Request): Promise<Rutina> {
-  const rutina = await this.findOne(id); // usa método con validación incluida
+  const rutina = await this.findOne(id);
 
   if (!dto.detalles || dto.detalles.length === 0) {
     throw new BadRequestException('Debe agregar al menos un ejercicio a la rutina');
   }
 
-  Object.assign(rutina, dto);
+  // 1. Eliminar los detalles actuales
+  await this.detalleRepo.remove(rutina.detalles);
+
+  // 2. Crear nuevos detalles con relaciones validadas
+  const nuevosDetalles = await Promise.all(
+    dto.detalles.map(async (d) => {
+      const ejercicio = await this.ejercicioRepo.findOne({ where: { id: d.idEjercicio } });
+      const dia = await this.diaRepo.findOne({ where: { ID: d.idDia } });
+
+      if (!ejercicio || !dia) {
+        throw new NotFoundException('Ejercicio o día inválido');
+      }
+
+      return this.detalleRepo.create({
+        ejercicio,
+        dia,
+        series: d.series,
+        repeticiones: d.repeticiones,
+        descanso: d.descanso,
+        rutina: rutina
+      });
+    })
+  );
+
+  await this.detalleRepo.save(nuevosDetalles);
+
+  // 3. Actualizar campos generales de la rutina
+  rutina.nombre = dto.nombre;
+  rutina.objetivo = dto.objetivo;
+  rutina.generoObjetivo = dto.generoObjetivo;
+  rutina.nivel = dto.nivel;
+  rutina.tipoAcceso = dto.tipoAcceso;
+  rutina.descripcion = dto.descripcion || '';
 
   await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.ACTUALIZAR_RUTINA, 'rutina');
-
   return this.rutinaRepo.save(rutina);
 }
 

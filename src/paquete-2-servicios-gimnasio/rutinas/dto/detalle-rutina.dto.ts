@@ -13,10 +13,12 @@ export class DetalleRutinaDto {
 
   @IsNotEmpty()
   @IsNumber()
+  @Min(1)
   series: number;
 
   @IsNotEmpty()
   @IsNumber()
+  @Min(1)
   repeticiones: number;
 
   @IsNotEmpty()
