@@ -1,14 +1,15 @@
 import { IsNotEmpty, IsNumber, Min } from 'class-validator';
 
-
 export class DetalleRutinaDto {
+
+    
   @IsNotEmpty()
   @IsNumber()
-  dia: number;
+  idDia: number;
 
   @IsNotEmpty()
   @IsNumber()
-  ejercicio: number;
+  idEjercicio: number;
 
   @IsNotEmpty()
   @IsNumber()
@@ -16,11 +17,10 @@ export class DetalleRutinaDto {
 
   @IsNotEmpty()
   @IsNumber()
-  reps: number;
+  repeticiones: number;
 
   @IsNotEmpty()
   @IsNumber()
   @Min(1)
   descanso: number;
-  
 }

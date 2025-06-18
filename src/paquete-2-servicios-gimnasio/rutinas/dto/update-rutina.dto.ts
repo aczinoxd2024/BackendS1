@@ -2,6 +2,7 @@ import {
   IsNotEmpty,
   IsString,
   IsOptional,
+  IsArray,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -32,7 +33,9 @@ export class UpdateRutinaDto {
   @IsString()
   descripcion?: string;
 
+  @IsOptional()
+  @IsArray()
   @ValidateNested({ each: true })
-@Type(() => DetalleRutinaDto)
-detalles: DetalleRutinaDto[];
+  @Type(() => DetalleRutinaDto)
+  detalles?: DetalleRutinaDto[];
 }

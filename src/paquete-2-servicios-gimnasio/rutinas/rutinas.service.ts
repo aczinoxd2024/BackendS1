@@ -50,6 +50,7 @@ export class RutinasService {
           dia,
           series: d.series,
           repeticiones: d.repeticiones,
+          descanso: d.descanso
         });
       })
     );
@@ -58,11 +59,15 @@ export class RutinasService {
   // Inicializamos clase opcionalmente
   let clase: Clase | undefined = undefined;
 
-if (dto.tipoAcceso === TipoAccesoRutina.clase && dto.IDClase) {
+if (dto.tipoAcceso === TipoAccesoRutina.clase) {
+  if (!dto.IDClase) {
+    throw new BadRequestException('Se requiere IDClase para rutinas de tipo clase');
+  }
   const claseEncontrada = await this.claseRepo.findOne({ where: { IDClase: dto.IDClase } });
   if (!claseEncontrada) throw new NotFoundException('Clase no encontrada');
   clase = claseEncontrada;
 }
+
 
 
   const rutina = this.rutinaRepo.create({

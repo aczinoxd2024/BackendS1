@@ -7,21 +7,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { DetalleRutinaDto } from './detalle-rutina.dto';
 import { NivelRutina, TipoRutina, GeneroObjetivo, TipoAccesoRutina } from '../enums';
 
-class DetalleRutinaDto {
-  @IsNotEmpty()
-  idEjercicio: number;
-
-  @IsNotEmpty()
-  idDia: number;
-
-  @IsNotEmpty()
-  series: number;
-
-  @IsNotEmpty()
-  repeticiones: number;
-}
 
 export class CreateRutinaDto {
   @IsString()
