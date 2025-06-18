@@ -22,4 +22,5 @@ export class DetalleRutinaDto {
   @IsNumber()
   @Min(1)
   descanso: number;
+  
 }
