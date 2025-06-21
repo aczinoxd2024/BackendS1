@@ -113,11 +113,22 @@ export class PagosService {
     });
 
     let tipoAccion = 'Nueva membresía';
-    if (
-      membresiasPrevias.length > 1 &&
-      membresiasPrevias[0].IDMembresia === membresia?.IDMembresia
-    ) {
-      tipoAccion = 'Extensión de membresía';
+
+    // Verificamos si hay otra membresía anterior a esta
+    if (membresiasPrevias.length > 1) {
+      const ultimaMembresia = membresiasPrevias[1]; // la anterior a la actual
+
+      if (
+        ultimaMembresia.TipoMembresiaID === membresia.TipoMembresiaID &&
+        new Date(ultimaMembresia.FechaFin) >= new Date(membresia.FechaInicio)
+      ) {
+        tipoAccion = 'Extensión de membresía';
+      } else if (
+        ultimaMembresia.TipoMembresiaID !== membresia.TipoMembresiaID &&
+        new Date(ultimaMembresia.FechaFin) >= new Date(membresia.FechaInicio)
+      ) {
+        tipoAccion = 'Cambio de tipo de membresía';
+      }
     }
 
     const fechaInicio = new Date(membresia.FechaInicio);
@@ -136,7 +147,10 @@ export class PagosService {
         { text: `Monto Pagado: $${(+pago.Monto).toFixed(2)} USD` },
         { text: `Método de Pago: ${metodoNombre}` },
         { text: `Número de Comprobante: #${pago.NroPago}` },
-        { text: `Tipo de acción: ${tipoAccion}` },
+        {
+          text: `Tipo de acción: ${tipoAccion === 'Cambio de tipo de membresía' ? 'Cambio de tipo (Básica → Gold, etc.)' : tipoAccion}`,
+        },
+
         '\n',
         { text: '🧾 Detalles:' },
         { text: `Membresía: ${tipo?.NombreTipo ?? 'Sin membresía'}` },
@@ -221,12 +235,22 @@ export class PagosService {
       order: { FechaFin: 'DESC' },
     });
 
-    if (
-      membresiaActual &&
-      membresiasPrevias.length > 1 &&
-      membresiasPrevias[0].IDMembresia === membresiaActual.IDMembresia
-    ) {
-      tipoAccion = 'Extensión de membresía';
+    if (membresiasPrevias.length > 1) {
+      const ultimaMembresia = membresiasPrevias[1];
+
+      if (
+        ultimaMembresia.TipoMembresiaID === membresiaActual.TipoMembresiaID &&
+        new Date(ultimaMembresia.FechaFin) >=
+          new Date(membresiaActual.FechaInicio)
+      ) {
+        tipoAccion = 'Extensión de membresía';
+      } else if (
+        ultimaMembresia.TipoMembresiaID !== membresiaActual.TipoMembresiaID &&
+        new Date(ultimaMembresia.FechaFin) >=
+          new Date(membresiaActual.FechaInicio)
+      ) {
+        tipoAccion = 'Cambio de tipo de membresía';
+      }
     }
 
     // 📩 Enviar correo
