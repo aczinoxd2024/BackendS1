@@ -353,7 +353,7 @@ Adjuntamos el comprobante de tu pago en formato PDF.
 
     // Buscar membresía actual activa
     const membresiaActual = await this.membresiaRepository.findOne({
-      where: { CICliente: ci },
+      where: { CICliente: ci, FechaFin: MoreThanOrEqual(hoy) },
       order: { FechaFin: 'DESC' },
     });
 
