@@ -177,7 +177,7 @@ export class PagosService {
     });
   }
 
-  // ✅ enviarComprobantePorCorreo (sin cambios, pero por consistencia)
+  // ✅ enviarComprobantePorCorreo (con mejoras de fecha de membresía)
   async enviarComprobantePorCorreo(nroPago: number): Promise<void> {
     const pdfBuffer = await this.generarComprobantePDF(nroPago);
 
@@ -224,7 +224,7 @@ export class PagosService {
     // 🔍 Buscar membresía asociada
     const detalles = await this.detallePagoRepository.find({
       where: { IDPago: nroPago },
-      relations: ['membresia'],
+      relations: ['membresia', 'membresia.tipo'],
     });
 
     const membresiaActual = detalles[0]?.membresia;
@@ -253,7 +253,39 @@ export class PagosService {
       }
     }
 
-    // 📩 Enviar correo
+    // 🔢 Cálculo de fechas nueva membresía
+    const hoy = new Date();
+
+    let nuevaFechaInicio: Date;
+    let nuevaFechaFin: Date;
+
+    if (
+      membresiaActual &&
+      membresiaActual.FechaFin >= hoy &&
+      membresiaActual.TipoMembresiaID ===
+        detalles[0]?.membresia?.TipoMembresiaID
+    ) {
+      // 🟡 Extensión
+      nuevaFechaInicio = new Date(membresiaActual.FechaFin);
+      nuevaFechaFin = new Date(nuevaFechaInicio);
+      nuevaFechaFin.setDate(
+        nuevaFechaFin.getDate() +
+          (detalles[0]?.membresia?.tipo?.DuracionDias || 0),
+      );
+    } else {
+      // 🔵 Nueva o cambio de tipo
+      nuevaFechaInicio =
+        membresiaActual && membresiaActual.FechaFin >= hoy
+          ? new Date(membresiaActual.FechaFin)
+          : hoy;
+
+      nuevaFechaFin = new Date(nuevaFechaInicio);
+      nuevaFechaFin.setDate(
+        nuevaFechaFin.getDate() +
+          (detalles[0]?.membresia?.tipo?.DuracionDias || 0),
+      );
+    }
+
     await this.mailerService.sendMail({
       to: usuario.correo,
       subject: 'Tu comprobante de pago - GoFit GYM',
@@ -261,11 +293,15 @@ export class PagosService {
 
 Gracias por tu ${tipoAccion.toLowerCase()} realizada el ${fechaPago} mediante ${metodoNombre}.
 
-Adjuntamos el comprobante de tu pago con número #${pago.NroPago} en formato PDF.
+🧾 Número de comprobante: #${pago.NroPago}
+📅 Fecha actual de vencimiento: ${membresiaActual?.FechaFin ? new Date(membresiaActual.FechaFin).toLocaleDateString('es-BO') : 'No definida'}
+🔜 Nueva membresía activa desde: ${nuevaFechaInicio.toLocaleDateString('es-BO')}
+🏁 Nueva membresía válida hasta: ${nuevaFechaFin.toLocaleDateString('es-BO')}
 
-Tipo de acción: ${tipoAccion}
+Adjuntamos el comprobante de tu pago en formato PDF.
 
-¡Gracias por formar parte de GoFit GYM!`,
+¡Gracias por formar parte de GoFit GYM!
+`,
       attachments: [
         {
           filename: `comprobante_pago_${nroPago}.pdf`,
@@ -274,8 +310,6 @@ Tipo de acción: ${tipoAccion}
         },
       ],
     });
-
-    console.log(`📩 Comprobante enviado a ${usuario.correo}`);
   }
 
   //obtener comprobante por ci en recepcion
