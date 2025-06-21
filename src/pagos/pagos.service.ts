@@ -446,7 +446,11 @@ Adjuntamos el comprobante de tu pago en formato PDF.
     ci: string,
     tipoNuevoID: number,
   ): Promise<{ mensaje: string; accion: 'extender' | 'nueva' }> {
-    const cliente = await this.clienteRepository.findOne({ where: { CI: ci } });
+    // Buscar persona primero (opcional si ya sabes que el CI existe en cliente)
+    const persona = await this.personaRepository.findOneBy({ CI: ci });
+    if (!persona) throw new NotFoundException('Persona no encontrada');
+
+    const cliente = await this.clienteRepository.findOneBy({ CI: ci });
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
 
     const tipoNuevo = await this.tipoMembresiaRepository.findOne({
@@ -457,7 +461,6 @@ Adjuntamos el comprobante de tu pago en formato PDF.
 
     const hoy = new Date();
 
-    // Buscar membresía activa actual
     const membresiaActual = await this.membresiaRepository.findOne({
       where: { CICliente: ci },
       order: { FechaFin: 'DESC' },
@@ -468,7 +471,6 @@ Adjuntamos el comprobante de tu pago en formato PDF.
       membresiaActual.FechaFin >= hoy &&
       membresiaActual.TipoMembresiaID === tipoNuevoID
     ) {
-      // Misma membresía activa → extensión
       const nuevaFechaFin = new Date(membresiaActual.FechaFin);
       nuevaFechaFin.setDate(nuevaFechaFin.getDate() + tipoNuevo.DuracionDias);
 
@@ -478,7 +480,6 @@ Adjuntamos el comprobante de tu pago en formato PDF.
       };
     }
 
-    // Cambio de tipo o nueva membresía
     const fechaInicio =
       membresiaActual && membresiaActual.FechaFin >= hoy
         ? new Date(membresiaActual.FechaFin)
