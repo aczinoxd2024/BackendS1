@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Membresia } from './menbresia.entity';
@@ -20,9 +20,17 @@ export class MembresiasService {
 
   // 🔧 CRUD BÁSICO
 
-  async create(membresia: Membresia): Promise<Membresia> {
-    return this.membresiaRepository.save(membresia);
+ async create(membresia: Membresia): Promise<Membresia> {
+  if (!membresia.CICliente) {
+    throw new BadRequestException('El CI del cliente es obligatorio');
   }
+
+  return this.membresiaRepository.save({
+    ...membresia,
+    PlataformaWeb: 'Web', //  fuerza explícita para este flujo
+  });
+}
+
 
   async findAll(): Promise<Membresia[]> {
     return this.membresiaRepository.find();
@@ -62,6 +70,8 @@ export class MembresiasService {
 
   // 🚀 NUEVO → Asignar Membresía (Presencial)
 
+  
+  /*
   async asignarMembresia(data: {
     clienteCi: string;
     tipoMembresiaId: number;
@@ -105,5 +115,53 @@ export class MembresiasService {
       fechaInicio,
       fechaFin,
     };
+  }*/
+
+    async asignarMembresia(data: {
+  clienteCi: string;
+  tipoMembresiaId: number;
+  fechaInicio: Date;
+}) {
+  // Validar cliente
+  const cliente = await this.clienteRepository.findOneBy({
+    CI: data.clienteCi,
+  });
+  if (!cliente) {
+    throw new NotFoundException('Cliente no encontrado');
   }
+
+  // Validar tipo de membresía
+  const tipoMembresia = await this.tipoMembresiaRepository.findOneBy({
+    ID: data.tipoMembresiaId,
+  });
+  if (!tipoMembresia) {
+    throw new NotFoundException('Tipo de membresía no encontrado');
+  }
+
+  // Calcular fecha fin
+  const fechaInicio = new Date(data.fechaInicio);
+  const fechaFin = new Date(fechaInicio);
+  fechaFin.setDate(fechaFin.getDate() + tipoMembresia.DuracionDias);
+
+  
+  const nuevaMembresia = this.membresiaRepository.create({
+    FechaInicio: fechaInicio,
+    FechaFin: fechaFin,
+    PlataformaWeb: 'Presencial',
+    TipoMembresiaID: tipoMembresia.ID,
+    CICliente: cliente.CI, 
+  });
+
+  await this.membresiaRepository.save(nuevaMembresia);
+
+  return {
+    mensaje: 'Membresía asignada con éxito',
+    cliente: cliente.CI,
+    membresiaId: nuevaMembresia.IDMembresia,
+    fechaInicio,
+    fechaFin,
+  };
+}
+
+
 }
