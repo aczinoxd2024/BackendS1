@@ -9,7 +9,7 @@ import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { DetallePago } from 'pagos/detalle-pago/detalle-pago.entity';
 import { Membresia } from 'membresias/menbresia.entity';
-import { TipoMembresia } from 'membresias/Tipos/menbresia.entity';
+import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 
 import { PagosService } from 'pagos/pagos.service';
