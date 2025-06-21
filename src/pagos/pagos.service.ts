@@ -384,4 +384,54 @@ Tipo de acción: ${tipoAccion}
       nroPago: nuevoPago.NroPago,
     };
   }
+  async previsualizarCambioMembresia(
+    ci: string,
+    tipoNuevoID: number,
+  ): Promise<{ mensaje: string; accion: 'extender' | 'nueva' }> {
+    const cliente = await this.clienteRepository.findOne({ where: { CI: ci } });
+    if (!cliente) throw new NotFoundException('Cliente no encontrado');
+
+    const tipoNuevo = await this.tipoMembresiaRepository.findOne({
+      where: { ID: tipoNuevoID },
+    });
+    if (!tipoNuevo)
+      throw new NotFoundException('Tipo de membresía no encontrado');
+
+    const hoy = new Date();
+
+    // Buscar membresía activa actual
+    const membresiaActual = await this.membresiaRepository.findOne({
+      where: { CICliente: ci },
+      order: { FechaFin: 'DESC' },
+    });
+
+    if (
+      membresiaActual &&
+      membresiaActual.FechaFin >= hoy &&
+      membresiaActual.TipoMembresiaID === tipoNuevoID
+    ) {
+      // Misma membresía activa → extensión
+      const nuevaFechaFin = new Date(membresiaActual.FechaFin);
+      nuevaFechaFin.setDate(nuevaFechaFin.getDate() + tipoNuevo.DuracionDias);
+
+      return {
+        mensaje: `Tienes una membresía activa del mismo tipo. Se extenderá hasta el ${nuevaFechaFin.toLocaleDateString()}.`,
+        accion: 'extender',
+      };
+    }
+
+    // Cambio de tipo o nueva membresía
+    const fechaInicio =
+      membresiaActual && membresiaActual.FechaFin >= hoy
+        ? new Date(membresiaActual.FechaFin)
+        : hoy;
+
+    const fechaFin = new Date(fechaInicio);
+    fechaFin.setDate(fechaFin.getDate() + tipoNuevo.DuracionDias);
+
+    return {
+      mensaje: `Tu nueva membresía comenzará el ${fechaInicio.toLocaleDateString()} y finalizará el ${fechaFin.toLocaleDateString()}.`,
+      accion: 'nueva',
+    };
+  }
 }

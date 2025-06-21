@@ -6,6 +6,7 @@ import {
   Param,
   Res,
   NotFoundException,
+  Query,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { PagosService } from './pagos.service';
@@ -47,5 +48,13 @@ export class PagosController {
   @Get('cliente/:ci')
   findPagosPorCI(@Param('ci') ci: string) {
     return this.pagosService.obtenerPagosPorCI(ci);
+  }
+  @Get('previsualizar-membresia')
+  async previsualizarMembresia(
+    @Query('ci') ci: string,
+    @Query('tipoNuevoID') tipoNuevoID: string,
+  ) {
+    const id = parseInt(tipoNuevoID, 10);
+    return this.pagosService.previsualizarCambioMembresia(ci, id);
   }
 }
