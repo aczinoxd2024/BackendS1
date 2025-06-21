@@ -516,7 +516,8 @@ if (existeMembresia) {
       throw new Error('No se encontró el pago asociado a este session_id');
     }
 
-    // ✅ Buscar correo real
+    //  Buscar correo real
+    //para probar el cambio
     const usuario = await this.usuarioRepository.findOne({
       where: { idPersona: { CI: pago.CIPersona } },
     });
