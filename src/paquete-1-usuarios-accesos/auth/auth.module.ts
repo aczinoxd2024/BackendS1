@@ -1,27 +1,24 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport'; // ✅ Añadido
+import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsuariosModule } from 'paquete-1-usuarios-accesos/usuarios/usuarios.module';
 import { BitacoraModule } from 'paquete-1-usuarios-accesos/bitacora/bitacora.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
-import { JwtStrategy } from './jwt.strategy'; // ✅ Añadido
+import { JwtStrategy } from './jwt.strategy';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
-
-// ✅ Se mantiene porque tú lo usas
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EstadoCliente } from 'paquete-1-usuarios-accesos/clientes/estado-cliente/estado-cliente.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    PassportModule.register({ defaultStrategy: 'jwt' }), // ✅ Añadido
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     UsuariosModule,
     BitacoraModule,
-    TypeOrmModule.forFeature([EstadoCliente]), // ✅ Se mantiene
+    TypeOrmModule.forFeature([EstadoCliente]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -35,29 +32,22 @@ import { EstadoCliente } from 'paquete-1-usuarios-accesos/clientes/estado-client
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         transport: {
-          host: configService.get('MAIL_HOST'),
+          host: configService.get<string>('MAIL_HOST'),
           port: configService.get<number>('MAIL_PORT'),
           secure: false,
           auth: {
-            user: configService.get('MAIL_USER'),
-            pass: configService.get('MAIL_PASS'),
+            user: configService.get<string>('MAIL_USER'),
+            pass: configService.get<string>('MAIL_PASS'),
           },
         },
         defaults: {
-          from: `"Soporte Gym" <${configService.get('MAIL_FROM')}>`, // ✅ Corregido
-        },
-        template: {
-          dir: __dirname + '/templates',
-          adapter: new HandlebarsAdapter(),
-          options: {
-            strict: true,
-          },
+          from: `"Soporte Gym" <${configService.get<string>('MAIL_FROM')}>`,
         },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, RolesGuard, JwtStrategy], // ✅ Añadido JwtStrategy
+  providers: [AuthService, RolesGuard, JwtStrategy],
   exports: [JwtModule],
 })
 export class AuthModule {}
