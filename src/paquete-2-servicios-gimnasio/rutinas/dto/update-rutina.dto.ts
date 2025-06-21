@@ -13,6 +13,10 @@ export class UpdateRutinaDto {
   @IsString()
   nombre: string;
 
+  @IsOptional()
+@IsString()
+ciInstructor?: string;
+
   @IsNotEmpty()
   @IsString()
   objetivo: string;
