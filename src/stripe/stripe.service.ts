@@ -311,14 +311,18 @@ export class StripeService {
     return;
   }
 
-  const pagoExistente = await this.pagoRepository.findOne({
-    where: { StripeEventId: event.id },
-  });
+const pagoExistente = await this.pagoRepository.findOne({
+  where: [
+    { StripeEventId: event.id },
+    { StripePaymentIntentId: paymentIntent }
+  ]
+});
 
-  if (pagoExistente) {
-    console.log('⚠️ Este evento ya fue procesado. Abortando.');
-    return;
-  }
+if (pagoExistente) {
+  console.log('⚠️ Este evento o pago ya fue procesado. Abortando.');
+  return;
+}
+
 
   const usuario = await this.usuarioRepository.findOne({
     where: { correo: email },
@@ -512,7 +516,8 @@ if (existeMembresia) {
       throw new Error('No se encontró el pago asociado a este session_id');
     }
 
-    // ✅ Buscar correo real
+    //  Buscar correo real
+    //para probar el cambio
     const usuario = await this.usuarioRepository.findOne({
       where: { idPersona: { CI: pago.CIPersona } },
     });
