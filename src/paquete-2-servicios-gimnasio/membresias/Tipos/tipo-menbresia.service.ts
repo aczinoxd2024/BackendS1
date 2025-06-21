@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TipoMembresia } from './menbresia.entity';
+import { TipoMembresia } from './tipo_menbresia.entity';
 
 @Injectable()
 export class TipoMembresiaService {
   constructor(
     @InjectRepository(TipoMembresia)
     private tipoMembresiaRepository: Repository<TipoMembresia>,
-
   ) {}
 
   async obtenerTipos(): Promise<{ id: number; nombre: string }[]> {

@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { DetallePago } from 'pagos/detalle-pago/detalle-pago.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
-import { TipoMembresia } from 'membresias/Tipos/menbresia.entity';
+import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
 
 @Entity('membresia')
 export class Membresia {

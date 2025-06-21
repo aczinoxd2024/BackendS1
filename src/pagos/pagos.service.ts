@@ -10,20 +10,14 @@ import { Pago } from './pagos.entity';
 import { DetallePago } from './detalle-pago/detalle-pago.entity';
 import { Membresia } from 'membresias/menbresia.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
-import { TipoMembresia } from 'membresias/Tipos/menbresia.entity';
+import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
-
-import { RegistroPagoDto } from './registro-pago/registro-pago.dto';
+import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 import { MailerService } from '@nestjs-modules/mailer';
-
-import * as pdfMake from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
-import type { TDocumentDefinitions } from 'pdfmake/interfaces';
-
-//(pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
-(pdfMake as any).vfs = (pdfFonts as any).vfs;
+// ✅ Importación de pdfmake y asignación de fuentes VFS
+import pdfMake from '../utils/pdf.config';
 
 @Injectable()
 export class PagosService {
@@ -51,14 +45,14 @@ export class PagosService {
 
     @InjectRepository(Clase)
     private claseRepository: Repository<Clase>,
+    @InjectRepository(Bitacora)
+    private bitacoraRepository: Repository<Bitacora>,
 
     private readonly mailerService: MailerService,
   ) {}
 
   //  Método original de registrar pago (sin tocar)
   async generarComprobantePDF(nroPago: number): Promise<Buffer> {
-    console.log('🔎 Buscando detalle con IDPago:', nroPago);
-
     const pago = await this.pagosRepository.findOne({
       where: { NroPago: nroPago },
     });
@@ -74,10 +68,7 @@ export class PagosService {
       throw new NotFoundException('Detalle de pago no encontrado');
     }
 
-    const detalle = detalles[0]; // o hacer un loop si hay varios
-
-    console.log('🧾 Detalle encontrado para el comprobante:', detalle);
-
+    const detalle = detalles[0];
     const persona = await this.personaRepository.findOne({
       where: { CI: pago.CIPersona },
     });
@@ -97,7 +88,6 @@ export class PagosService {
 
     const clase = detalle.clase;
 
-    // método de pago
     let metodoNombre = 'Desconocido';
     switch (pago.MetodoPago) {
       case 1:
@@ -116,10 +106,22 @@ export class PagosService {
         metodoNombre = 'Otro';
     }
 
-    // Calcular fechas
-    const fechaInicio = new Date(pago.Fecha);
-    const fechaFin = new Date(pago.Fecha);
-    fechaFin.setMonth(fechaFin.getMonth() + 1);
+    // Determinar si fue extensión o nueva membresía
+    const membresiasPrevias = await this.membresiaRepository.find({
+      where: { CICliente: pago.CIPersona },
+      order: { FechaFin: 'DESC' },
+    });
+
+    let tipoAccion = 'Nueva membresía';
+    if (
+      membresiasPrevias.length > 1 &&
+      membresiasPrevias[0].IDMembresia === membresia?.IDMembresia
+    ) {
+      tipoAccion = 'Extensión de membresía';
+    }
+
+    const fechaInicio = new Date(membresia.FechaInicio);
+    const fechaFin = new Date(membresia.FechaFin);
 
     const docDefinition = {
       content: [
@@ -134,6 +136,7 @@ export class PagosService {
         { text: `Monto Pagado: $${(+pago.Monto).toFixed(2)} USD` },
         { text: `Método de Pago: ${metodoNombre}` },
         { text: `Número de Comprobante: #${pago.NroPago}` },
+        { text: `Tipo de acción: ${tipoAccion}` },
         '\n',
         { text: '🧾 Detalles:' },
         { text: `Membresía: ${tipo?.NombreTipo ?? 'Sin membresía'}` },
@@ -182,7 +185,7 @@ export class PagosService {
       );
     }
 
-    // ✅ Determinar método de pago en texto
+    // Método de pago
     let metodoNombre = 'Desconocido';
     switch (pago.MetodoPago) {
       case 1:
@@ -201,17 +204,42 @@ export class PagosService {
         metodoNombre = 'Otro';
     }
 
-    // ✅ Fecha formateada
+    // Fecha formateada
     const fechaPago = new Date(pago.Fecha).toLocaleDateString();
 
+    // 🔍 Buscar membresía asociada
+    const detalles = await this.detallePagoRepository.find({
+      where: { IDPago: nroPago },
+      relations: ['membresia'],
+    });
+
+    const membresiaActual = detalles[0]?.membresia;
+
+    let tipoAccion = 'Nueva membresía';
+    const membresiasPrevias = await this.membresiaRepository.find({
+      where: { CICliente: pago.CIPersona },
+      order: { FechaFin: 'DESC' },
+    });
+
+    if (
+      membresiaActual &&
+      membresiasPrevias.length > 1 &&
+      membresiasPrevias[0].IDMembresia === membresiaActual.IDMembresia
+    ) {
+      tipoAccion = 'Extensión de membresía';
+    }
+
+    // 📩 Enviar correo
     await this.mailerService.sendMail({
       to: usuario.correo,
       subject: 'Tu comprobante de pago - GoFit GYM',
       text: `Hola ${persona?.Nombre},
 
-Gracias por tu compra realizada el ${fechaPago} mediante ${metodoNombre}.
+Gracias por tu ${tipoAccion.toLowerCase()} realizada el ${fechaPago} mediante ${metodoNombre}.
 
 Adjuntamos el comprobante de tu pago con número #${pago.NroPago} en formato PDF.
+
+Tipo de acción: ${tipoAccion}
 
 ¡Gracias por formar parte de GoFit GYM!`,
       attachments: [
@@ -239,9 +267,7 @@ Adjuntamos el comprobante de tu pago con número #${pago.NroPago} en formato PDF
       order: { Fecha: 'DESC' },
     });
   }
-
-  //forma manual recepcion
-  /* async registrarPago(data: {
+  async registrarPago(data: {
     ci: string;
     monto: number;
     metodoPago: number;
@@ -259,20 +285,64 @@ Adjuntamos el comprobante de tu pago con número #${pago.NroPago} en formato PDF
     const cliente = await this.clienteRepository.findOneBy({ CI: ci });
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
 
-    const tipo = await this.tipoMembresiaRepository.findOneBy({
+    const tipoNuevo = await this.tipoMembresiaRepository.findOneBy({
       ID: tipoMembresiaId,
     });
-    if (!tipo) throw new NotFoundException('Tipo de membresía no encontrado');
+    if (!tipoNuevo)
+      throw new NotFoundException('Tipo de membresía no encontrado');
 
     const hoy = new Date();
-    const fechaFin = new Date(hoy);
-    fechaFin.setDate(hoy.getDate() + tipo.DuracionDias);
+
+    // Buscar membresía actual activa
+    const membresiaActual = await this.membresiaRepository.findOne({
+      where: { CICliente: ci },
+      order: { FechaFin: 'DESC' },
+    });
+
+    let fechaInicio: Date;
+    let fechaFin: Date;
+    let mensaje = '';
+
+    if (
+      membresiaActual &&
+      membresiaActual.FechaFin >= hoy &&
+      membresiaActual.TipoMembresiaID === tipoNuevo.ID
+    ) {
+      // 🔁 Misma membresía activa → extender duración
+      fechaInicio = membresiaActual.FechaFin;
+      fechaFin = new Date(fechaInicio);
+      fechaFin.setDate(fechaFin.getDate() + tipoNuevo.DuracionDias);
+
+      membresiaActual.FechaFin = fechaFin;
+      await this.membresiaRepository.save(membresiaActual);
+
+      mensaje = `Se ha extendido tu membresía hasta el ${fechaFin.toLocaleDateString()}.`;
+
+      // Bitácora
+      await this.bitacoraRepository.save({
+        idUsuario,
+        accion: `Extendió membresía ${tipoNuevo.NombreTipo} de CI ${ci}.`,
+        tablaAfectada: 'membresia',
+        ipMaquina: ip === '::1' ? 'localhost' : ip,
+      });
+
+      return { mensaje, extendida: true };
+    }
+
+    // 📅 Nueva membresía: diferente tipo o ya vencida
+    fechaInicio =
+      membresiaActual && membresiaActual.FechaFin >= hoy
+        ? new Date(membresiaActual.FechaFin)
+        : hoy;
+
+    fechaFin = new Date(fechaInicio);
+    fechaFin.setDate(fechaFin.getDate() + tipoNuevo.DuracionDias);
 
     const nuevaMembresia = this.membresiaRepository.create({
-      FechaInicio: hoy,
+      FechaInicio: fechaInicio,
       FechaFin: fechaFin,
       PlataformaWeb: 'Presencial',
-      TipoMembresiaID: tipo.ID,
+      TipoMembresiaID: tipoNuevo.ID,
       CICliente: ci,
     });
     await this.membresiaRepository.save(nuevaMembresia);
@@ -288,24 +358,30 @@ Adjuntamos el comprobante de tu pago con número #${pago.NroPago} en formato PDF
     const detalle = this.detallePagoRepository.create({
       IDPago: nuevoPago.NroPago,
       IDMembresia: nuevaMembresia.IDMembresia,
-      IDClase: tipo.ID === 2 || tipo.ID === 3 ? (idClase ?? null) : null,
+      IDClase:
+        tipoNuevo.ID === 2 || tipoNuevo.ID === 3 ? (idClase ?? null) : null,
       MontoTotal: monto,
       IDPromo: null,
     });
     await this.detallePagoRepository.save(detalle);
 
+    mensaje =
+      membresiaActual && membresiaActual.FechaFin >= hoy
+        ? `Tu nueva membresía comenzará el ${fechaInicio.toLocaleDateString()} después de finalizar la actual.`
+        : `Tu nueva membresía ha comenzado hoy (${fechaInicio.toLocaleDateString()}).`;
+
     // Bitácora
     await this.bitacoraRepository.save({
       idUsuario,
-      accion: `Registró manualmente un pago de $${monto.toFixed(2)} para CI ${ci} con membresía ${tipo.NombreTipo}.`,
+      accion: `Registró pago de $${monto.toFixed(2)} para CI ${ci} con nueva membresía ${tipoNuevo.NombreTipo}.`,
       tablaAfectada: 'pago / membresía / detalle_pago',
       ipMaquina: ip === '::1' ? 'localhost' : ip,
       IDPago: nuevoPago.NroPago,
     });
 
     return {
-      mensaje: 'Pago registrado correctamente',
+      mensaje,
       nroPago: nuevoPago.NroPago,
     };
-  }*/
+  }
 }
