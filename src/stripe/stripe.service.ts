@@ -289,7 +289,7 @@ export class StripeService {
 
 
     //metodo de prueba para ver si se pone doble la membresia aqui
-    async handleEvent(event: Stripe.Event): Promise<void> {
+   async handleEvent(event: Stripe.Event): Promise<void> {
   console.log('📩 Evento recibido desde Stripe:', event.type);
 
   if (event.type !== 'checkout.session.completed') {
@@ -306,23 +306,30 @@ export class StripeService {
   const amount = session.amount_total ?? 0;
   const paymentIntent = session.payment_intent as string;
 
+  console.log('🧾 Datos extraídos del evento:', {
+    email,
+    descripcion,
+    idClase,
+    amount,
+    paymentIntent,
+  });
+
   if (!email || !descripcion || !amount) {
     console.log('❌ Faltan datos necesarios del evento. Abortando guardado.');
     return;
   }
 
-const pagoExistente = await this.pagoRepository.findOne({
-  where: [
-    { StripeEventId: event.id },
-    { StripePaymentIntentId: paymentIntent }
-  ]
-});
+  const pagoExistente = await this.pagoRepository.findOne({
+    where: [
+      { StripeEventId: event.id },
+      { StripePaymentIntentId: paymentIntent }
+    ]
+  });
 
-if (pagoExistente) {
-  console.log('⚠️ Este evento o pago ya fue procesado. Abortando.');
-  return;
-}
-
+  if (pagoExistente) {
+    console.log('⚠️ Este evento o pago ya fue procesado. Abortando.');
+    return;
+  }
 
   const usuario = await this.usuarioRepository.findOne({
     where: { correo: email },
@@ -333,6 +340,7 @@ if (pagoExistente) {
     console.log('❌ Usuario o CI no encontrado.');
     return;
   }
+  console.log('👤 Usuario identificado:', usuario.idPersona.CI);
 
   const cliente = await this.clienteRepository.findOne({
     where: { CI: usuario.idPersona.CI },
@@ -342,6 +350,7 @@ if (pagoExistente) {
     console.log('❌ Cliente no encontrado con ese CI.');
     return;
   }
+  console.log('✅ Cliente encontrado');
 
   const fechaHoraBolivia = new Date();
   fechaHoraBolivia.setHours(fechaHoraBolivia.getHours() - 4);
@@ -356,6 +365,7 @@ if (pagoExistente) {
   });
 
   const pagoGuardado = await this.pagoRepository.save(nuevoPago);
+  console.log('💰 Pago guardado con ID:', pagoGuardado.NroPago);
 
   const tipo = await this.tipoMembresiaRepository.findOne({
     where: { NombreTipo: descripcion },
@@ -365,6 +375,7 @@ if (pagoExistente) {
     console.log(`❌ Tipo de membresía "${descripcion}" no encontrada.`);
     return;
   }
+  console.log('🏷️ Tipo de membresía:', tipo.ID, tipo.NombreTipo);
 
   const esDisciplina = tipo.ID === 3;
 
@@ -384,6 +395,7 @@ if (pagoExistente) {
     });
 
     await this.membresiaRepository.save(nuevaDisciplina);
+    console.log('✅ Membresía DISCIPLINA guardada con ID:', nuevaDisciplina.IDMembresia);
 
     const detalleDisciplina = this.detallePagoRepository.create({
       IDPago: pagoGuardado.NroPago,
@@ -394,6 +406,7 @@ if (pagoExistente) {
     });
 
     await this.detallePagoRepository.save(detalleDisciplina);
+    console.log('🧾 Detalle de pago disciplina guardado');
 
     await this.bitacoraRepository.save({
       idUsuario: usuario.id,
@@ -404,8 +417,8 @@ if (pagoExistente) {
     });
 
     await this.pagosService.enviarComprobantePorCorreo(pagoGuardado.NroPago);
-    console.log('📧 Comprobante enviado para disciplina.');
-    return; // ✅ Salir aquí para evitar duplicar
+    console.log('📧 Comprobante enviado para disciplina');
+    return;
   }
 
   const ultimaMembresia = await this.membresiaRepository.findOne({
@@ -428,26 +441,28 @@ if (pagoExistente) {
     fechaInicio = new Date(ultimaMembresia.FechaInicio);
     fechaFin = new Date(ultimaMembresia.FechaFin);
     fechaFin.setDate(fechaFin.getDate() + tipo.DuracionDias);
+    console.log('🔁 Renovando membresía existente');
   } else {
     fechaInicio = new Date();
     fechaFin = new Date();
     fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
+    console.log('🆕 Nueva membresía desde cero');
   }
 
-  // ⚠️ Validar si ya se creó una membresía para este pago
-const existeMembresia = await this.membresiaRepository.findOne({
-  where: {
-    CICliente: cliente.CI,
-    FechaInicio: fechaInicio,
-    FechaFin: fechaFin,
-    TipoMembresiaID: tipo.ID,
-  },
-});
+  // Verificar si ya existe una membresía con mismos datos
+  const existeMembresia = await this.membresiaRepository.findOne({
+    where: {
+      CICliente: cliente.CI,
+      FechaInicio: fechaInicio,
+      FechaFin: fechaFin,
+      TipoMembresiaID: tipo.ID,
+    },
+  });
 
-if (existeMembresia) {
-  console.log('⛔ Membresía ya existe con mismas fechas y tipo. Abortando creación duplicada.');
-  return;
-}
+  if (existeMembresia) {
+    console.log('⛔ Membresía ya existente para ese cliente y fechas. Abortando.');
+    return;
+  }
 
   const nuevaMembresia = this.membresiaRepository.create({
     FechaInicio: fechaInicio,
@@ -458,6 +473,7 @@ if (existeMembresia) {
   });
 
   await this.membresiaRepository.save(nuevaMembresia);
+  console.log('✅ Membresía guardada:', nuevaMembresia.IDMembresia);
 
   const detalle = this.detallePagoRepository.create({
     IDPago: pagoGuardado.NroPago,
@@ -468,9 +484,11 @@ if (existeMembresia) {
   });
 
   await this.detallePagoRepository.save(detalle);
+  console.log('📦 Detalle de pago guardado');
 
   cliente.IDEstado = 1;
   await this.clienteRepository.save(cliente);
+  console.log('👤 Cliente actualizado con estado activo');
 
   const mensajeAccion = ultimaMembresia
     ? mismaMembresia
@@ -480,17 +498,16 @@ if (existeMembresia) {
 
   await this.bitacoraRepository.save({
     idUsuario: usuario.id,
-    accion: `Cliente CI ${usuario.id} realizó un pago de $${(amount / 100).toFixed(
-      2,
-    )}. ${mensajeAccion}`,
+    accion: `Cliente CI ${usuario.id} realizó un pago de $${(amount / 100).toFixed(2)}. ${mensajeAccion}`,
     tablaAfectada: 'membresia / pago / detalle_pago',
     ipMaquina: 'web-stripe',
     IDPago: pagoGuardado.NroPago,
   });
 
   await this.pagosService.enviarComprobantePorCorreo(pagoGuardado.NroPago);
-  console.log('📧 Comprobante generado y enviado por pagosService.');
+  console.log('📧 Comprobante generado y enviado por pagosService');
 }
+
 
 
   async obtenerPagosPorCliente(ci: string): Promise<Pago[]> {
@@ -516,7 +533,8 @@ if (existeMembresia) {
       throw new Error('No se encontró el pago asociado a este session_id');
     }
 
-    // ✅ Buscar correo real
+    //  Buscar correo real
+    //para probar el cambio
     const usuario = await this.usuarioRepository.findOne({
       where: { idPersona: { CI: pago.CIPersona } },
     });
