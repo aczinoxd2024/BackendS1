@@ -364,7 +364,7 @@ Tipo de acción: ${tipoAccion}
       IDPromo: null,
     });
     await this.detallePagoRepository.save(detalle);
-
+    console.log('✔️ bien');
     mensaje =
       membresiaActual && membresiaActual.FechaFin >= hoy
         ? `Tu nueva membresía comenzará el ${fechaInicio.toLocaleDateString()} después de finalizar la actual.`
