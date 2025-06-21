@@ -180,6 +180,7 @@ export class ClientesService {
       FechaFin: fechaFin,
       PlataformaWeb: plataforma,
       TipoMembresiaID: data.tipoMembresiaId,
+      CICliente: cliente.CI,     //nuevo roly
     });
     await this.membresiaRepository.save(membresia);
 
