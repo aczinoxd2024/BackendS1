@@ -430,6 +430,21 @@ export class StripeService {
     fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
   }
 
+  // ⚠️ Validar si ya se creó una membresía para este pago
+const existeMembresia = await this.membresiaRepository.findOne({
+  where: {
+    CICliente: cliente.CI,
+    FechaInicio: fechaInicio,
+    FechaFin: fechaFin,
+    TipoMembresiaID: tipo.ID,
+  },
+});
+
+if (existeMembresia) {
+  console.log('⛔ Membresía ya existe con mismas fechas y tipo. Abortando creación duplicada.');
+  return;
+}
+
   const nuevaMembresia = this.membresiaRepository.create({
     FechaInicio: fechaInicio,
     FechaFin: fechaFin,
