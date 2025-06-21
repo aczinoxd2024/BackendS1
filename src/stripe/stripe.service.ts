@@ -285,7 +285,7 @@ export class StripeService {
     console.log('📧 Comprobante generado y enviado por pagosService.');
   }*/
 
-  //metodo de prueba para ver si se pone doble la membresia aqui
+  //metodo de prueba para ver si se pone doble membresia aqui
   async handleEvent(event: Stripe.Event): Promise<void> {
     console.log('📩 Evento recibido desde Stripe:', event.type);
 
