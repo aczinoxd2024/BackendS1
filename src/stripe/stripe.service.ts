@@ -409,11 +409,15 @@ export class StripeService {
     // ✅ Procesar membresía normal (básica / gold)
     const ultimaMembresia = await this.membresiaRepository.findOne({
       where: { CICliente: cliente.CI },
-      order: { FechaFin: 'DESC' },
+      order: {
+        FechaFin: 'DESC',
+        IDMembresia: 'DESC', // como refuerzo
+      },
     });
 
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
+    const mismaMembresia = ultimaMembresia?.TipoMembresiaID === tipo.ID;
 
     // ✅ Calcular fechas para nueva membresía (evitando solapamiento con membresía activa)
 let fechaInicio: Date;
