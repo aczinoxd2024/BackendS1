@@ -373,16 +373,19 @@ Adjuntamos el comprobante de tu pago en formato PDF.
     );
 
     const hoy = new Date();
-    // Normalizar 'hoy' si tus fechas de BD no tienen componente de tiempo, para una comparación precisa del día.
-    // hoy.setHours(0, 0, 0, 0);
-    console.log('Fecha y hora actual (hoy):', hoy.toLocaleString('es-BO'));
+    // ✅ DESCOMENTA ESTA LÍNEA para normalizar 'hoy' al inicio del día
+    hoy.setHours(0, 0, 0, 0);
+    console.log(
+      'Fecha y hora actual (hoy, normalizada):',
+      hoy.toLocaleString('es-BO'),
+    );
 
     // ✅ REFINAMIENTO CLAVE: Buscar la membresía activa EXISTENTE del MISMO TIPO
     const membresiaActivaMismoTipo = await this.membresiaRepository.findOne({
       where: {
         CICliente: ci,
         TipoMembresiaID: tipoNuevo.ID, // <-- Filtra por el TipoID aquí
-        FechaFin: MoreThanOrEqual(hoy),
+        FechaFin: MoreThanOrEqual(hoy), // <-- La comparación se hará con hoy normalizado
       },
       order: { FechaFin: 'DESC' }, // Obtener la más reciente de ese tipo
     });
@@ -391,7 +394,7 @@ Adjuntamos el comprobante de tu pago en formato PDF.
     // Esto es para la lógica de "cambio de tipo" donde la nueva membresía empieza DESPUÉS de la actual
     const ultimaMembresiaActivaCualquierTipo =
       await this.membresiaRepository.findOne({
-        where: { CICliente: ci, FechaFin: MoreThanOrEqual(hoy) },
+        where: { CICliente: ci, FechaFin: MoreThanOrEqual(hoy) }, // <-- La comparación se hará con hoy normalizado
         order: { FechaFin: 'DESC' },
       });
 
