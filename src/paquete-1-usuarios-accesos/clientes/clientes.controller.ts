@@ -10,10 +10,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  Injectable,
   NotFoundException,
   InternalServerErrorException,
-  BadRequestException,
 } from '@nestjs/common';
 import { ClientesService } from './clientes.service';
 import { UserRequest } from 'paquete-1-usuarios-accesos/auth/user-request.interface';
@@ -109,5 +107,12 @@ export class ClientesController {
         'No se pudo recuperar la información del cliente.',
       );
     }
+  }
+  @UseGuards(JwtAuthGuard)
+  @Roles('cliente')
+  @Get('perfil-renovar')
+  async obtenerPerfilParaRenovacion(@Req() req: UserRequest) {
+    const correo = req.user?.correo;
+    return this.clientesService.obtenerMiPerfilPorCorreo(correo);
   }
 }

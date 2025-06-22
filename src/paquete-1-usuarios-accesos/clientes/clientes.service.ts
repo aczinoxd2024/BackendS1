@@ -180,7 +180,7 @@ export class ClientesService {
       FechaFin: fechaFin,
       PlataformaWeb: plataforma,
       TipoMembresiaID: data.tipoMembresiaId,
-      CICliente: cliente.CI,     //nuevo roly
+      CICliente: cliente.CI, //nuevo roly
     });
     await this.membresiaRepository.save(membresia);
 
@@ -423,6 +423,36 @@ export class ClientesService {
       correo: usuario.correo,
       telefono: persona?.Telefono ?? '',
       direccion: persona?.Direccion ?? '',
+    };
+  }
+  async obtenerMiPerfilPorCorreo(correo: string) {
+    // Paso 1: Obtener el usuario con su persona relacionada
+    const usuario = await this.usuariosRepository.findOne({
+      where: { correo },
+      relations: ['idPersona'],
+    });
+
+    if (!usuario || !usuario.idPersona) {
+      throw new NotFoundException('No se encontró el usuario con ese correo.');
+    }
+
+    const persona = usuario.idPersona;
+
+    // Paso 2: Buscar en cliente usando el CI de la persona
+    const cliente = await this.clientesRepository.findOneBy({ CI: persona.CI });
+
+    if (!cliente) {
+      throw new NotFoundException('No se encontró la relación con cliente.');
+    }
+
+    // Paso 3: Retornar respuesta
+    return {
+      ci: cliente.CI,
+      nombre: persona.Nombre,
+      apellido: persona.Apellido,
+      correo: usuario.correo,
+      telefono: persona.Telefono ?? '',
+      direccion: persona.Direccion ?? '',
     };
   }
 }
