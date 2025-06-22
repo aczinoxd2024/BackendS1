@@ -23,6 +23,7 @@ import { Pago } from 'pagos/pagos.entity';
 import { EstadoCliente } from './estado-cliente/estado-cliente.entity';
 import { ClienteCrearDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteCrear.dto';
 import { ClienteActualizarDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteActualizar.dto';
+import { PagosService } from 'pagos/pagos.service'; // ✅ Nueva importación
 
 @Injectable()
 export class ClientesService {
@@ -44,6 +45,7 @@ export class ClientesService {
     @InjectRepository(Pago) private pagoRepository: Repository<Pago>,
     @InjectRepository(EstadoCliente)
     private estadoClienteRepository: Repository<EstadoCliente>,
+    private readonly pagosService: PagosService, // ✅ Inyección de PagosService
   ) {}
 
   // ------------------------------
@@ -82,7 +84,7 @@ export class ClientesService {
   }
 
   // ------------------------------
-  // MÉTODO UNIFICADO PARA REGISTRO,zzz
+  // MÉTODO UNIFICADO PARA REGISTRO
   // ------------------------------
   private async registrarCliente(
     data: {
@@ -97,16 +99,18 @@ export class ClientesService {
       tipoMembresiaId: number;
       metodoPagoId: number;
     },
-    idUsuario: string,
+    idUsuario: string, // ID del usuario que realiza la acción (recepcionista, admin o el propio cliente si es web)
     ip: string,
     plataforma: 'Presencial' | 'Web',
   ) {
+    // 1. Validar si el correo ya está registrado
     const correoExistente = await this.usuariosRepository.findOneBy({
       correo: data.correo,
     });
     if (correoExistente)
       throw new BadRequestException('El correo ya está registrado.');
 
+    // 2. Crear Persona
     const persona = this.personasRepository.create({
       CI: data.ci,
       Nombre: data.nombre,
@@ -117,12 +121,14 @@ export class ClientesService {
     });
     await this.personasRepository.save(persona);
 
+    // 3. Obtener estado 'Activo' para el cliente
     const estadoActivo = await this.estadoClienteRepository.findOneBy({
       Estado: 'Activo',
     });
     if (!estadoActivo)
       throw new BadRequestException('No se encontró el estado "Activo".');
 
+    // 4. Crear Cliente
     const cliente = this.clientesRepository.create({
       CI: persona.CI,
       IDEstado: estadoActivo.ID,
@@ -134,15 +140,16 @@ export class ClientesService {
     });
     await this.clientesRepository.save(cliente);
 
+    // 5. Crear Usuario y asignarle perfil 'cliente'
     const tempPassword = 'Cambiar123';
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     const usuario = this.usuariosRepository.create({
-      id: persona.CI,
+      id: persona.CI, // El ID del usuario es el CI de la persona
       correo: data.correo,
       contrasena: hashedPassword,
       idPersona: persona,
-      idEstadoU: 1,
+      idEstadoU: 1, // Asumimos 1 es el ID para estado activo de usuario
     });
     await this.usuariosRepository.save(usuario);
 
@@ -157,77 +164,70 @@ export class ClientesService {
     });
     await this.usuarioPerfilRepository.save(usuarioPerfil);
 
+    // 6. Obtener TipoMembresia y MetodoPago para el pago
     const tipoMembresia = await this.tipoMembresiaRepository.findOneBy({
       ID: data.tipoMembresiaId,
     });
     if (!tipoMembresia)
       throw new BadRequestException('La membresía seleccionada no existe.');
 
-    const metodoPago = await this.metodoPagoRepository.findOneBy({
+    const metodoPagoEntity = await this.metodoPagoRepository.findOneBy({
       id: data.metodoPagoId,
     });
-    if (!metodoPago)
+    if (!metodoPagoEntity)
       throw new BadRequestException(
         'El método de pago seleccionado no existe.',
       );
 
-    const hoy = new Date();
-    const fechaFin = new Date(hoy);
-    fechaFin.setDate(hoy.getDate() + tipoMembresia.DuracionDias);
+    // ✅ 7. Delegar la creación/extensión de la membresía y el registro del pago a PagosService
+    const idUsuarioParaBitacoraPago =
+      plataforma === 'Web' ? usuario.id : idUsuario; // Si es web, el propio cliente es el que "paga"
 
-    const membresia = this.membresiaRepository.create({
-      FechaInicio: hoy,
-      FechaFin: fechaFin,
-      PlataformaWeb: plataforma,
-      TipoMembresiaID: data.tipoMembresiaId,
-      CICliente: cliente.CI, //nuevo roly
+    const resultPago = await this.pagosService.registrarPago({
+      ci: data.ci,
+      monto: tipoMembresia.Precio, // Se asume que el monto es el precio del tipo de membresía al registrar
+      metodoPago: data.metodoPagoId,
+      tipoMembresiaId: data.tipoMembresiaId,
+      idClase: null, // No se asigna clase al registrar un cliente por primera vez
+      idUsuario: idUsuarioParaBitacoraPago,
+      ip: ip,
     });
-    await this.membresiaRepository.save(membresia);
 
-    let pago: Pago | null = null;
-
-    if (plataforma === 'Presencial') {
-      pago = this.pagoRepository.create({
-        Fecha: hoy,
-        Monto: tipoMembresia.Precio,
-        MetodoPago: data.metodoPagoId,
-        CIPersona: persona.CI,
-      });
-      await this.pagoRepository.save(pago);
-    }
-
+    // 8. Registrar en Bitácora (la acción de registro de cliente)
     let accionBitacora = '';
-    let idUsuarioBitacora = '';
+    let idUsuarioBitacoraFinal = '';
 
     if (plataforma === 'Presencial') {
-      // Buscar nombre del usuario (Recepcionista o Administrador)
       const usuarioQuienRegistra = await this.usuariosRepository.findOne({
         where: { id: idUsuario },
         relations: ['idPersona'],
       });
-
       const nombreUsuario =
         usuarioQuienRegistra?.idPersona?.Nombre ?? 'Desconocido';
 
-      accionBitacora = `La recepcionista (Usuario ID: ${idUsuario} - ${nombreUsuario}) registró al cliente CI ${cliente.CI}, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPago.metodoPago}".`;
-      idUsuarioBitacora = idUsuario; // 👈 ID de la recepcionista
+      accionBitacora = `La recepcionista (Usuario ID: ${idUsuario} - ${nombreUsuario}) registró al cliente CI ${cliente.CI}, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPagoEntity.metodoPago}".`;
+      idUsuarioBitacoraFinal = idUsuario; // ID de la recepcionista
     } else {
-      accionBitacora = `Se registró cliente CI ${cliente.CI} desde la Web, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPago.metodoPago}".`;
-      idUsuarioBitacora = usuario.id; // 👈 CI del cliente que se acaba de registrar
+      accionBitacora = `Se registró cliente CI ${cliente.CI} desde la Web, con membresía "${tipoMembresia.NombreTipo}" y método de pago "${metodoPagoEntity.metodoPago}".`;
+      idUsuarioBitacoraFinal = usuario.id; // CI del cliente que se acaba de registrar
     }
 
     await this.bitacoraRepository.save({
-      idUsuario: idUsuarioBitacora,
+      idUsuario: idUsuarioBitacoraFinal,
       accion: accionBitacora,
       tablaAfectada: 'cliente / membresia / pago',
       ipMaquina: ip === '::1' ? 'localhost' : ip,
+      IDPago: resultPago.nroPago, // El número de pago retornado por PagosService
     });
 
     return {
-      mensaje: 'Cliente registrado correctamente con membresía',
+      mensaje:
+        'Cliente registrado correctamente con membresía y pago procesado.',
       cliente,
-      membresia,
-      ...(plataforma === 'Presencial' && pago ? { pago } : {}),
+      membresia: {
+        status: resultPago.mensaje, // Mensaje del PagosService sobre la membresía
+        nroPago: resultPago.nroPago, // Número de pago
+      },
       usuario: { correo: usuario.correo, passwordTemporal: tempPassword },
     };
   }

@@ -331,6 +331,7 @@ Adjuntamos el comprobante de tu pago en formato PDF.
       order: { Fecha: 'DESC' },
     });
   }
+
   async registrarPago(data: {
     ci: string;
     monto: number;
@@ -356,61 +357,71 @@ Adjuntamos el comprobante de tu pago en formato PDF.
       throw new NotFoundException('Tipo de membresía no encontrado');
 
     const hoy = new Date();
+    // Normalizar 'hoy' para comparación solo de fecha, si es necesario, o asegurarse de que las fechas almacenadas en BD no tengan tiempo.
+    // Para este caso, vamos a asumir que Date() funciona para las comparaciones.
 
-    // Buscar membresía actual activa
-    const membresiaActual = await this.membresiaRepository.findOne({
+    // Buscar membresía actual ACTIVA por la fecha de fin
+    const membresiaActivaExistente = await this.membresiaRepository.findOne({
       where: { CICliente: ci, FechaFin: MoreThanOrEqual(hoy) },
-      order: { FechaFin: 'DESC' },
+      order: { FechaFin: 'DESC' }, // Obtener la más reciente activa
     });
 
-    let fechaInicio: Date;
-    let fechaFin: Date;
-    let mensaje = '';
+    let fechaInicioMembresia: Date;
+    let fechaFinMembresia: Date;
+    let membresiaARegistrar: Membresia;
+    let tipoAccionMembresia: 'extension' | 'nueva' | 'cambio_tipo';
 
-    if (
-      membresiaActual &&
-      membresiaActual.FechaFin >= hoy &&
-      membresiaActual.TipoMembresiaID === tipoNuevo.ID
-    ) {
-      // 🔁 Misma membresía activa → extender duración
-      fechaInicio = membresiaActual.FechaFin;
-      fechaFin = new Date(fechaInicio);
-      fechaFin.setDate(fechaFin.getDate() + tipoNuevo.DuracionDias);
+    if (membresiaActivaExistente) {
+      if (membresiaActivaExistente.TipoMembresiaID === tipoNuevo.ID) {
+        // Caso 1: Extensión de la misma membresía activa
+        fechaInicioMembresia = membresiaActivaExistente.FechaFin; // Inicia el día que termina la actual
+        fechaFinMembresia = new Date(fechaInicioMembresia);
+        fechaFinMembresia.setDate(
+          fechaFinMembresia.getDate() + tipoNuevo.DuracionDias,
+        );
 
-      membresiaActual.FechaFin = fechaFin;
-      await this.membresiaRepository.save(membresiaActual);
+        membresiaActivaExistente.FechaFin = fechaFinMembresia;
+        await this.membresiaRepository.save(membresiaActivaExistente);
+        membresiaARegistrar = membresiaActivaExistente; // Referencia a la entidad actualizada
+        tipoAccionMembresia = 'extension';
+      } else {
+        // Caso 2: Cambio de tipo de membresía activa (la nueva inicia después de que termine la actual)
+        fechaInicioMembresia = membresiaActivaExistente.FechaFin; // Inicia el día que termina la actual
+        fechaFinMembresia = new Date(fechaInicioMembresia);
+        fechaFinMembresia.setDate(
+          fechaFinMembresia.getDate() + tipoNuevo.DuracionDias,
+        );
 
-      mensaje = `Se ha extendido tu membresía hasta el ${fechaFin.toLocaleDateString()}.`;
+        membresiaARegistrar = this.membresiaRepository.create({
+          FechaInicio: fechaInicioMembresia,
+          FechaFin: fechaFinMembresia,
+          PlataformaWeb: 'Presencial', // Asumimos presencial para registrarPago
+          TipoMembresiaID: tipoNuevo.ID,
+          CICliente: ci,
+        });
+        await this.membresiaRepository.save(membresiaARegistrar);
+        tipoAccionMembresia = 'cambio_tipo';
+      }
+    } else {
+      // Caso 3: Nueva membresía (no hay activa o ya venció completamente)
+      fechaInicioMembresia = hoy;
+      fechaFinMembresia = new Date(fechaInicioMembresia);
+      fechaFinMembresia.setDate(
+        fechaFinMembresia.getDate() + tipoNuevo.DuracionDias,
+      );
 
-      // Bitácora
-      await this.bitacoraRepository.save({
-        idUsuario,
-        accion: `Extendió membresía ${tipoNuevo.NombreTipo} de CI ${ci}.`,
-        tablaAfectada: 'membresia',
-        ipMaquina: ip === '::1' ? 'localhost' : ip,
+      membresiaARegistrar = this.membresiaRepository.create({
+        FechaInicio: fechaInicioMembresia,
+        FechaFin: fechaFinMembresia,
+        PlataformaWeb: 'Presencial', // Asumimos presencial para registrarPago
+        TipoMembresiaID: tipoNuevo.ID,
+        CICliente: ci,
       });
-
-      return { mensaje, extendida: true };
+      await this.membresiaRepository.save(membresiaARegistrar);
+      tipoAccionMembresia = 'nueva';
     }
 
-    // 📅 Nueva membresía: diferente tipo o ya vencida
-    fechaInicio =
-      membresiaActual && membresiaActual.FechaFin >= hoy
-        ? new Date(membresiaActual.FechaFin)
-        : hoy;
-
-    fechaFin = new Date(fechaInicio);
-    fechaFin.setDate(fechaFin.getDate() + tipoNuevo.DuracionDias);
-
-    const nuevaMembresia = this.membresiaRepository.create({
-      FechaInicio: fechaInicio,
-      FechaFin: fechaFin,
-      PlataformaWeb: 'Presencial',
-      TipoMembresiaID: tipoNuevo.ID,
-      CICliente: ci,
-    });
-    await this.membresiaRepository.save(nuevaMembresia);
-
+    // SIEMPRE crear el registro de pago y detalle de pago
     const nuevoPago = this.pagosRepository.create({
       Fecha: hoy,
       Monto: monto,
@@ -421,38 +432,54 @@ Adjuntamos el comprobante de tu pago en formato PDF.
 
     const detalle = this.detallePagoRepository.create({
       IDPago: nuevoPago.NroPago,
-      IDMembresia: nuevaMembresia.IDMembresia,
+      IDMembresia: membresiaARegistrar.IDMembresia, // Usa la membresía que se actualizó/creó
       IDClase:
         tipoNuevo.ID === 2 || tipoNuevo.ID === 3 ? (idClase ?? null) : null,
       MontoTotal: monto,
       IDPromo: null,
     });
     await this.detallePagoRepository.save(detalle);
-    console.log('✔️ bien');
-    mensaje =
-      membresiaActual && membresiaActual.FechaFin >= hoy
-        ? `Tu nueva membresía comenzará el ${fechaInicio.toLocaleDateString()} después de finalizar la actual.`
-        : `Tu nueva membresía ha comenzado hoy (${fechaInicio.toLocaleDateString()}).`;
 
-    // Bitácora
+    let mensajeRespuesta = '';
+    if (tipoAccionMembresia === 'extension') {
+      mensajeRespuesta = `Se ha extendido tu membresía de tipo "${tipoNuevo.NombreTipo}" hasta el ${fechaFinMembresia.toLocaleDateString('es-BO')}.`;
+    } else if (tipoAccionMembresia === 'cambio_tipo') {
+      // Corrección aquí: usar tipoNuevo.NombreTipo directamente ya que es el tipo de la nueva membresía.
+      mensajeRespuesta = `Tu nueva membresía (cambio de tipo a "${tipoNuevo.NombreTipo}") comenzará el ${fechaInicioMembresia.toLocaleDateString('es-BO')} y finalizará el ${fechaFinMembresia.toLocaleDateString('es-BO')}.`;
+    } else {
+      // 'nueva'
+      mensajeRespuesta = `Tu nueva membresía de tipo "${tipoNuevo.NombreTipo}" ha comenzado hoy (${fechaInicioMembresia.toLocaleDateString('es-BO')}) y finalizará el ${fechaFinMembresia.toLocaleDateString('es-BO')}.`;
+    }
+
+    // Registro en Bitácora
+    let accionBitacora = '';
+    if (tipoAccionMembresia === 'extension') {
+      accionBitacora = `Extendió membresía ${tipoNuevo.NombreTipo} de CI ${ci}. Nuevo fin: ${fechaFinMembresia.toLocaleDateString('es-BO')}.`;
+    } else {
+      accionBitacora = `Registró pago de $${monto.toFixed(2)} para CI ${ci} con ${tipoAccionMembresia} membresía ${tipoNuevo.NombreTipo}.`;
+    }
+
     await this.bitacoraRepository.save({
       idUsuario,
-      accion: `Registró pago de $${monto.toFixed(2)} para CI ${ci} con nueva membresía ${tipoNuevo.NombreTipo}.`,
+      accion: accionBitacora,
       tablaAfectada: 'pago / membresía / detalle_pago',
       ipMaquina: ip === '::1' ? 'localhost' : ip,
       IDPago: nuevoPago.NroPago,
     });
 
     return {
-      mensaje,
+      mensaje: mensajeRespuesta,
       nroPago: nuevoPago.NroPago,
     };
   }
+
   async previsualizarCambioMembresia(
     ci: string,
     tipoNuevoID: number,
-  ): Promise<{ mensaje: string; accion: 'extender' | 'nueva' }> {
-    // Buscar persona primero (opcional si ya sabes que el CI existe en cliente)
+  ): Promise<{
+    mensaje: string;
+    accion: 'extender' | 'nueva' | 'cambio_tipo';
+  }> {
     const persona = await this.personaRepository.findOneBy({ CI: ci });
     if (!persona) throw new NotFoundException('Persona no encontrada');
 
@@ -466,37 +493,46 @@ Adjuntamos el comprobante de tu pago en formato PDF.
       throw new NotFoundException('Tipo de membresía no encontrado');
 
     const hoy = new Date();
+    // Ajustar 'hoy' para que solo compare fechas, no horas
+    hoy.setHours(0, 0, 0, 0);
 
     const membresiaActual = await this.membresiaRepository.findOne({
-      where: { CICliente: ci },
-      order: { FechaFin: 'DESC' },
+      where: { CICliente: ci, FechaFin: MoreThanOrEqual(hoy) }, // Buscar solo las que terminan hoy o después
+      order: { FechaFin: 'DESC' }, // La más reciente activa
+      relations: ['tipo'], // ✅ Cargar la relación 'tipo' para acceder a NombreTipo
     });
 
-    if (
-      membresiaActual &&
-      membresiaActual.FechaFin >= hoy &&
-      membresiaActual.TipoMembresiaID === tipoNuevoID &&
-      membresiaActual.FechaInicio !== membresiaActual.FechaFin // ⚠️ Previene error con membresía recién creada
-    ) {
-      const nuevaFechaFin = new Date(membresiaActual.FechaFin);
-      nuevaFechaFin.setDate(nuevaFechaFin.getDate() + tipoNuevo.DuracionDias);
+    if (membresiaActual) {
+      if (membresiaActual.TipoMembresiaID === tipoNuevoID) {
+        // Es el mismo tipo de membresía y está activa
+        const nuevaFechaFin = new Date(membresiaActual.FechaFin);
+        nuevaFechaFin.setDate(nuevaFechaFin.getDate() + tipoNuevo.DuracionDias);
+        return {
+          mensaje: `Tienes una membresía activa del mismo tipo ("${tipoNuevo.NombreTipo}"). Se extenderá hasta el ${nuevaFechaFin.toLocaleDateString()}.`,
+          accion: 'extender',
+        };
+      } else {
+        // Hay una membresía activa pero de tipo diferente
+        const nuevaFechaInicio = new Date(membresiaActual.FechaFin); // La nueva membresía comenzará al terminar la actual
+        nuevaFechaInicio.setDate(nuevaFechaInicio.getDate() + 1); // Un día después de que termine la anterior
 
-      return {
-        mensaje: `Tienes una membresía activa del mismo tipo. Se extenderá hasta el ${nuevaFechaFin.toLocaleDateString()}.`,
-        accion: 'extender',
-      };
+        const nuevaFechaFin = new Date(nuevaFechaInicio);
+        nuevaFechaFin.setDate(nuevaFechaFin.getDate() + tipoNuevo.DuracionDias);
+        return {
+          // Corrección aquí: usar membresiaActual.tipo?.NombreTipo para el tipo actual
+          mensaje: `Tienes una membresía activa de tipo "${membresiaActual.tipo?.NombreTipo}". Tu nueva membresía de tipo "${tipoNuevo.NombreTipo}" comenzará el ${nuevaFechaInicio.toLocaleDateString()} y finalizará el ${nuevaFechaFin.toLocaleDateString()}.`,
+          accion: 'cambio_tipo',
+        };
+      }
     }
 
-    const fechaInicio =
-      membresiaActual && membresiaActual.FechaFin >= hoy
-        ? new Date(membresiaActual.FechaFin)
-        : hoy;
-
+    // No hay membresía activa o ya venció
+    const fechaInicio = hoy;
     const fechaFin = new Date(fechaInicio);
     fechaFin.setDate(fechaFin.getDate() + tipoNuevo.DuracionDias);
 
     return {
-      mensaje: `Tu nueva membresía comenzará el ${fechaInicio.toLocaleDateString()} y finalizará el ${fechaFin.toLocaleDateString()}.`,
+      mensaje: `Tu nueva membresía de tipo "${tipoNuevo.NombreTipo}" comenzará hoy (${fechaInicio.toLocaleDateString()}) y finalizará el ${fechaFin.toLocaleDateString()}.`,
       accion: 'nueva',
     };
   }
