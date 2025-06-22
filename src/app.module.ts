@@ -34,7 +34,6 @@ import { SeguimientoClienteModule } from 'paquete-3-control-comercial/seguimient
 import { MembresiasModule } from './paquete-3-control-comercial/membresias/membresias.module';
 import { TipoMembresiaModule } from './paquete-3-control-comercial/membresias/Tipos/tipo_membresia.module';
 
-
 // Seguridad global
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';

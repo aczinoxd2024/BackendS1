@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificacionesService } from './notificaciones.service';
-import { Membresia } from 'paquete-2-servicios-gimnasio/membresias/menbresia.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
-import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
 import { NotificacionesController } from './notificaciones.controller';
+import { Membresia } from 'membresias/membresia.entity';
+import { TipoMembresia } from 'membresias/Tipos/tipo_membresia.entity';
 
 @Module({
   imports: [

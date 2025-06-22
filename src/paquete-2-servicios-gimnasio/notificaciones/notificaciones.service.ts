@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual, Raw } from 'typeorm';
 import { MailerService } from '@nestjs-modules/mailer';
-import { Membresia } from 'paquete-2-servicios-gimnasio/membresias/menbresia.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
-import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
+import { Membresia } from '../../paquete-3-control-comercial/membresias/membresia.entity';
+import { TipoMembresia } from '../../paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
 
 @Injectable()
 export class NotificacionesService {
