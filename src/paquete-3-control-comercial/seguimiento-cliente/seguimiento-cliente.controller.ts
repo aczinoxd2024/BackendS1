@@ -11,7 +11,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { SeguimientoClienteService } from './seguimiento-cliente.service';
-import { CreateSeguimientoDto } from './dto/create-seguimiento.dto';
+import { CreateSeguimientoDto } from '../dto/create-seguimiento.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '@auth/roles/roles.guard';
 import { Roles } from '@auth/roles/roles.decorator';

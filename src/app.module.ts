@@ -11,12 +11,10 @@ import { Request, Response, NextFunction } from 'express';
 import { RawBodyRequest } from './stripe/raw-body-request.interface';
 
 // Módulos funcionales
-import { MembresiasModule } from 'membresias/membresias.module';
 import { SalaModule } from 'salas/sala.module';
 import { ClasesModule } from 'paquete-2-servicios-gimnasio/clases/clases.module';
 import { ReservasModule } from 'paquete-2-servicios-gimnasio/reservas/reservas.module';
 import { DashboardModule } from 'dashboard/dashboard.module';
-import { TipoMembresiaModule } from 'membresias/Tipos/tipo-menbresia.module';
 import { MetodoPagoModule } from 'pagos/metodo-pago/metodo-pago.module';
 import { PersonalModule } from 'paquete-2-servicios-gimnasio/personal/personal.module';
 import { DiaSemanaModule } from 'paquete-2-servicios-gimnasio/dia-semana/dia-semana.module';
@@ -33,6 +31,9 @@ import { PersonaTipoModule } from 'paquete-1-usuarios-accesos/persona-tipo/perso
 import { BitacoraModule } from 'paquete-1-usuarios-accesos/bitacora/bitacora.module';
 
 import { SeguimientoClienteModule } from 'paquete-3-control-comercial/seguimiento-cliente/seguimiento-cliente.module';
+import { MembresiasModule } from './paquete-3-control-comercial/membresias/membresias.module';
+import { TipoMembresiaModule } from './paquete-3-control-comercial/membresias/Tipos/tipo_membresia.module';
+
 
 // Seguridad global
 import { APP_GUARD } from '@nestjs/core';

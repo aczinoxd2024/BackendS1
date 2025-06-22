@@ -8,7 +8,7 @@ import {
   Param,
 } from '@nestjs/common';
 import { MembresiasService } from './membresias.service';
-import { Membresia } from './menbresia.entity';
+import { Membresia } from './membresia.entity';
 
 @Controller('membresias')
 export class MembresiasController {
