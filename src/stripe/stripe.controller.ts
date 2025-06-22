@@ -72,7 +72,6 @@ export class StripeController {
   }
 
   //SE ANADIO ESTA FUNCION PARA OBTENER INFO DEL PAGO PARA LUEGO GENERAR EL COMPROBANTE DESDE FRONT
-  // 🔗 NUEVA RUTA: Obtener NroPago desde session_id
   @Get('success-info')
   async getSuccessInfo(@Query('session_id') sessionId: string) {
     if (!sessionId) {
