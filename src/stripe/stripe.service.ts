@@ -409,25 +409,26 @@ export class StripeService {
     // ✅ Procesar membresía normal (básica / gold)
     const ultimaMembresia = await this.membresiaRepository.findOne({
       where: { CICliente: cliente.CI },
-      order: { FechaFin: 'DESC' },
+      order: {
+        FechaFin: 'DESC',
+        IDMembresia: 'DESC', // como refuerzo
+      },
     });
 
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
+    const mismaMembresia = ultimaMembresia?.TipoMembresiaID === tipo.ID;
 
     let fechaInicio: Date;
     let fechaFin: Date;
-    const mismaMembresia = ultimaMembresia?.TipoMembresiaID === tipo.ID;
 
-    if (
-      ultimaMembresia &&
-      mismaMembresia &&
-      new Date(ultimaMembresia.FechaFin) >= hoy
-    ) {
-      fechaInicio = new Date(ultimaMembresia.FechaInicio);
-      fechaFin = new Date(ultimaMembresia.FechaFin);
-      fechaFin.setDate(fechaFin.getDate() + tipo.DuracionDias);
+    if (ultimaMembresia && new Date(ultimaMembresia.FechaFin) >= hoy) {
+      // ✅ Hay una membresía activa, inicia la nueva justo después
+      fechaInicio = new Date(ultimaMembresia.FechaFin);
+      fechaFin = new Date(fechaInicio);
+      fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
     } else {
+      // ✅ No hay membresía activa, inicia hoy
       fechaInicio = new Date();
       fechaFin = new Date();
       fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
