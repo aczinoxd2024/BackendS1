@@ -10,5 +10,6 @@ import { Personal } from 'paquete-2-servicios-gimnasio/personal/personal.entity'
   imports: [TypeOrmModule.forFeature([InventarioResponsable, Inventario, Personal])],
   providers: [InventarioResponsableService],
   controllers: [InventarioResponsableController],
+  
 })
 export class InventarioResponsableModule {}
