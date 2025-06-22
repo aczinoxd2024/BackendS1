@@ -4,13 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-<<<<<<< HEAD:src/paquete-2-servicios-gimnasio/membresias/membresias.service.ts
-import { Repository, Raw } from 'typeorm';
-import { Membresia } from './menbresia.entity';
-=======
-import { Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
 import { Membresia } from './membresia.entity';
->>>>>>> 32cc31e21ed457933af0c06ffc06a9f503712877:src/paquete-3-control-comercial/membresias/membresias.service.ts
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { TipoMembresia } from './Tipos/tipo_membresia.entity';
 
