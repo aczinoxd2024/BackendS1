@@ -110,7 +110,6 @@ export class ClientesController {
     }
   }
   @Roles('cliente') // primero
-  @UseGuards(JwtAuthGuard, RolesGuard) // después
   @Get('perfil-renovar')
   async obtenerPerfilParaRenovacion(@Req() req: UserRequest) {
     const correo = req.user?.correo;
