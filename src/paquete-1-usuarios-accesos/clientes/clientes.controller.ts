@@ -20,6 +20,7 @@ import { Request } from 'express';
 import { ClienteCrearDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteCrear.dto';
 import { ClienteActualizarDto } from 'paquete-1-usuarios-accesos/auth/dto/clienteActualizar.dto';
 import { JwtAuthGuard } from 'paquete-1-usuarios-accesos/auth/jwt.auth.guard';
+import { RolesGuard } from '@auth/roles/roles.guard';
 
 @Controller('clientes')
 export class ClientesController {
@@ -108,8 +109,8 @@ export class ClientesController {
       );
     }
   }
-  @UseGuards(JwtAuthGuard)
-  @Roles('cliente')
+  @Roles('cliente') // primero
+  @UseGuards(JwtAuthGuard, RolesGuard) // después
   @Get('perfil-renovar')
   async obtenerPerfilParaRenovacion(@Req() req: UserRequest) {
     const correo = req.user?.correo;
