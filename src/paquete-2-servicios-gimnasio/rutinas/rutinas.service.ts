@@ -165,10 +165,10 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase) {
     throw new BadRequestException('Debe agregar al menos un ejercicio a la rutina');
   }
 
-  // 1. Eliminar los detalles actuales
+  // Eliminar detalles actuales
   await this.detalleRepo.remove(rutina.detalles);
 
-  // 2. Crear nuevos detalles con relaciones validadas
+  // Crear nuevos detalles
   const nuevosDetalles = await Promise.all(
     dto.detalles.map(async (d) => {
       const ejercicio = await this.ejercicioRepo.findOne({ where: { id: d.idEjercicio } });
@@ -184,14 +184,14 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase) {
         series: d.series,
         repeticiones: d.repeticiones,
         descanso: d.descanso,
-        rutina: rutina
+        rutina
       });
     })
   );
 
   await this.detalleRepo.save(nuevosDetalles);
 
-  // 3. Actualizar campos generales de la rutina
+  // Actualizar rutina
   rutina.nombre = dto.nombre;
   rutina.objetivo = dto.objetivo;
   rutina.generoObjetivo = dto.generoObjetivo;
@@ -203,20 +203,31 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase) {
   await this.rutinaRepo.save(rutina);
   await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.ACTUALIZAR_RUTINA, 'rutina');
 
-  // 4. Devolver rutina actualizada con relaciones (pero protegida)
+  // Intentar cargar la rutina actualizada con relaciones
   try {
-    const rutinaActualizada = await this.rutinaRepo.findOne({
+    const rutinaConRelaciones = await this.rutinaRepo.findOne({
       where: { id: rutina.id },
       relations: ['detalles', 'detalles.ejercicio', 'detalles.dia']
     });
-    return rutinaActualizada;
+
+    // Si alguna relación falla o viene null, devolvemos solo los datos planos
+    if (!rutinaConRelaciones || !rutinaConRelaciones.detalles) {
+      return {
+        mensaje: 'Rutina actualizada, pero los detalles no pudieron cargarse completamente.',
+        rutinaBasica: rutina
+      };
+    }
+
+    return rutinaConRelaciones;
   } catch (error) {
-    console.error('❌ Error al devolver rutina actualizada:', error);
+    console.error('❌ Error al devolver rutina con relaciones:', error);
     return {
-      mensaje: 'La rutina fue actualizada correctamente, pero ocurrió un error al devolver los datos.',
+      mensaje: 'Rutina actualizada correctamente, pero ocurrió un error al devolver los datos completos.',
+      rutinaBasica: rutina
     };
   }
 }
+
 
 
   async remove(id: number, req: Request): Promise<void> {
