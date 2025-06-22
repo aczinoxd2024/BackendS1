@@ -224,35 +224,38 @@ export class PagosService {
       where: { IDPago: nroPago },
       relations: ['membresia', 'membresia.tipo'],
     });
-
+    let tipoAccion = 'Nueva membresía';
     const membresiaActual = detalles[0]?.membresia;
 
-    let tipoAccion = 'Nueva membresía';
-    const membresiasPrevias = await this.membresiaRepository.find({
-      where: { CICliente: pago.CIPersona },
-      order: { FechaFin: 'DESC' },
-    });
+    if (membresiaActual?.CICliente) {
+      const membresiasPrevias = await this.membresiaRepository.find({
+        where: { CICliente: membresiaActual.CICliente },
+        order: { FechaFin: 'DESC' },
+      });
 
-    if (membresiasPrevias.length > 1) {
-      const ultimaMembresia = membresiasPrevias[1];
-      const fechaFinAnterior = new Date(ultimaMembresia.FechaFin);
-      const fechaInicioNueva = new Date(membresiaActual.FechaInicio);
-
-      const diferenciaDias = Math.ceil(
-        (fechaInicioNueva.getTime() - fechaFinAnterior.getTime()) /
-          (1000 * 60 * 60 * 24),
+      const anteriores = membresiasPrevias.filter(
+        (m) => m.IDMembresia !== membresiaActual.IDMembresia,
       );
 
-      if (
-        ultimaMembresia.TipoMembresiaID === membresiaActual.TipoMembresiaID &&
-        diferenciaDias <= 1
-      ) {
-        tipoAccion = 'Extensión de membresía';
-      } else if (
-        ultimaMembresia.TipoMembresiaID !== membresiaActual.TipoMembresiaID &&
-        diferenciaDias <= 1
-      ) {
-        tipoAccion = 'Cambio de tipo de membresía';
+      if (anteriores.length > 0) {
+        const ultima = anteriores[0];
+        const fechaFinUltima = new Date(ultima.FechaFin);
+        const fechaInicioNueva = new Date(membresiaActual.FechaInicio);
+
+        const diferenciaDias = Math.floor(
+          (fechaInicioNueva.getTime() - fechaFinUltima.getTime()) /
+            (1000 * 60 * 60 * 24),
+        );
+
+        if (diferenciaDias === 1) {
+          if (ultima.TipoMembresiaID === membresiaActual.TipoMembresiaID) {
+            tipoAccion = 'Extensión de membresía';
+          } else {
+            tipoAccion = 'Cambio de tipo de membresía';
+          }
+        } else {
+          tipoAccion = 'Nueva membresía';
+        }
       }
     }
 
