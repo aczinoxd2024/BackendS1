@@ -229,6 +229,7 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase) {
 }
 
 
+
   async remove(id: number, req: Request): Promise<void> {
     const rutina = await this.findOne(id);
     rutina.activo = false;
