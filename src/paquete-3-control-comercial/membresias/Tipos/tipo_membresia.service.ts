@@ -22,9 +22,7 @@ export class TipoMembresiaService {
   ) {}
 
   async obtenerTipos(): Promise<TipoMembresia[]> {
-    return this.tipoRepo.find({
-      relations: ['promocion'],
-    });
+    return this.tipoRepo.find();
   }
 
   async obtenerPorId(id: number): Promise<TipoMembresia> {

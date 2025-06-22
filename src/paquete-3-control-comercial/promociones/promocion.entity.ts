@@ -16,4 +16,5 @@ FechaInicio: Date;
 
 @Column({ type: 'date' })
 FechaFin: Date;
+
 }

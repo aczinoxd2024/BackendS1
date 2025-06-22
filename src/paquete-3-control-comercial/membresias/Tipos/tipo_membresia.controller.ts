@@ -27,7 +27,6 @@ export class TipoMembresiaController {
   constructor(private readonly tipoMembresiaService: TipoMembresiaService) {}
 
   // ✅ Público autenticado: obtener todos
-  @UseGuards(JwtAuthGuard)
   @Get()
   obtenerTipos(): Promise<TipoMembresia[]> {
     return this.tipoMembresiaService.obtenerTipos();
