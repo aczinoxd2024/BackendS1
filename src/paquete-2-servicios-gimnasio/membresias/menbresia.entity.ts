@@ -5,6 +5,7 @@ import {
   OneToMany,
   ManyToOne,
   JoinColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { DetallePago } from 'pagos/detalle-pago/detalle-pago.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
@@ -40,4 +41,7 @@ export class Membresia {
 
   @OneToMany(() => DetallePago, (detalle) => detalle.membresia)
   detalles: DetallePago[];
+
+  @UpdateDateColumn({ type: 'timestamp', nullable: true })
+  updatedAt: Date; // <-- Este campo se actualiza automáticamente en cada save()
 }
