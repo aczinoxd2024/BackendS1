@@ -42,4 +42,5 @@ ciInstructor?: string;
   @ValidateNested({ each: true })
   @Type(() => DetalleRutinaDto)
   detalles?: DetalleRutinaDto[];
+  
 }
