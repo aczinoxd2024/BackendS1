@@ -158,7 +158,7 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase) {
   }
 
   
-  async update(id: number, dto: UpdateRutinaDto, req: Request): Promise<Rutina> {
+ async update(id: number, dto: UpdateRutinaDto, req: Request): Promise<any> {
   const rutina = await this.findOne(id);
 
   if (!dto.detalles || dto.detalles.length === 0) {
@@ -198,11 +198,25 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase) {
   rutina.nivel = dto.nivel;
   rutina.tipoAcceso = dto.tipoAcceso;
   rutina.descripcion = dto.descripcion || '';
+  rutina.ciInstructor = dto.ciInstructor || rutina.ciInstructor;
 
+  await this.rutinaRepo.save(rutina);
   await this.bitacoraService.registrarDesdeRequest(req, AccionBitacora.ACTUALIZAR_RUTINA, 'rutina');
-  return this.rutinaRepo.save(rutina);
-}
 
+  // 4. Devolver rutina actualizada con relaciones (pero protegida)
+  try {
+    const rutinaActualizada = await this.rutinaRepo.findOne({
+      where: { id: rutina.id },
+      relations: ['detalles', 'detalles.ejercicio', 'detalles.dia']
+    });
+    return rutinaActualizada;
+  } catch (error) {
+    console.error('❌ Error al devolver rutina actualizada:', error);
+    return {
+      mensaje: 'La rutina fue actualizada correctamente, pero ocurrió un error al devolver los datos.',
+    };
+  }
+}
 
 
   async remove(id: number, req: Request): Promise<void> {
