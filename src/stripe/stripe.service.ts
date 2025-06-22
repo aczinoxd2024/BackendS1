@@ -8,8 +8,8 @@ import { Pago } from 'pagos/pagos.entity';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { DetallePago } from 'pagos/detalle-pago/detalle-pago.entity';
-import { Membresia } from 'membresias/menbresia.entity';
-import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
+import { Membresia } from 'paquete-3-control-comercial/membresias/membresia.entity';
+import { TipoMembresia } from 'paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 
 import { PagosService } from 'pagos/pagos.service';
@@ -415,23 +415,26 @@ export class StripeService {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    let fechaInicio: Date;
-    let fechaFin: Date;
-    const mismaMembresia = ultimaMembresia?.TipoMembresiaID === tipo.ID;
+    // ✅ Calcular fechas para nueva membresía (evitando solapamiento con membresía activa)
+let fechaInicio: Date;
+let fechaFin: Date;
 
-    if (
-      ultimaMembresia &&
-      mismaMembresia &&
-      new Date(ultimaMembresia.FechaFin) >= hoy
-    ) {
-      fechaInicio = new Date(ultimaMembresia.FechaInicio);
-      fechaFin = new Date(ultimaMembresia.FechaFin);
-      fechaFin.setDate(fechaFin.getDate() + tipo.DuracionDias);
-    } else {
-      fechaInicio = new Date();
-      fechaFin = new Date();
-      fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
-    }
+/*
+  Si el cliente ya tiene una membresía activa (es decir, cuya fecha de fin es hoy o en el futuro),
+  entonces la nueva membresía debe comenzar justo al día siguiente de que termine la actual.
+  Esto asegura que no se "pierdan días" ni se solapen fechas de vigencia.
+*/
+if (ultimaMembresia && new Date(ultimaMembresia.FechaFin) >= hoy) {
+  fechaInicio = new Date(ultimaMembresia.FechaFin);
+  fechaInicio.setDate(fechaInicio.getDate() + 1); // nueva empieza un día después de que termina la actual
+} else {
+  fechaInicio = new Date(); // si no tiene membresía activa, empieza desde hoy
+}
+
+// La nueva fecha de fin es X días después de la fecha de inicio
+fechaFin = new Date(fechaInicio);
+fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias - 1); // restamos 1 para no superponer días
+
 
     // ✅ Validación extra para evitar membresía duplicada
     const yaExisteMembresia = await this.membresiaRepository.findOne({
@@ -474,11 +477,15 @@ export class StripeService {
     cliente.IDEstado = 1;
     await this.clienteRepository.save(cliente);
 
-    const mensajeAccion = ultimaMembresia
-      ? mismaMembresia
-        ? `Renovó su membresía "${tipo.NombreTipo}". Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`
-        : `Cambiaron su membresía a "${tipo.NombreTipo}". Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`
-      : `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`;
+    let mensajeAccion = '';
+
+if (!ultimaMembresia) {
+  mensajeAccion = `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}".`;
+} else if (new Date(ultimaMembresia.FechaFin) >= hoy) {
+  mensajeAccion = `Renovó anticipadamente su membresía "${tipo.NombreTipo}". La nueva vigencia será del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}.`;
+} else {
+  mensajeAccion = `Adquirió una nueva membresía "${tipo.NombreTipo}". Vigente del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}.`;
+}
 
     await this.bitacoraRepository.save({
       idUsuario: usuario.id,

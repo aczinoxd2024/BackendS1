@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Membresia } from './menbresia.entity';
+import { Membresia } from './membresia.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
-import { TipoMembresia } from './Tipos/tipo_menbresia.entity';
+import { TipoMembresia } from './Tipos/tipo_membresia.entity';
 
 @Injectable()
 export class MembresiasService {

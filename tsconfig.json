@@ -17,7 +17,7 @@
 
       // Paquete 2 – Servicios del Gimnasio
       "paquete-2-servicios-gimnasio/*": ["paquete-2-servicios-gimnasio/*"],
-      "membresias/*": ["paquete-2-servicios-gimnasio/membresias/*"],
+      "membresias/*": ["paquete-3-control-comercial/membresias/*"],
       "salas/*": ["paquete-2-servicios-gimnasio/salas/*"],
       "clases/*": ["paquete-2-servicios-gimnasio/clases/*"],
       "horarios/*": ["paquete-2-servicios-gimnasio/horarios/*"],

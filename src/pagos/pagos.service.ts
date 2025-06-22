@@ -8,9 +8,9 @@ import { MoreThanOrEqual, Repository } from 'typeorm';
 
 import { Pago } from './pagos.entity';
 import { DetallePago } from './detalle-pago/detalle-pago.entity';
-import { Membresia } from 'membresias/menbresia.entity';
+import { Membresia } from 'membresias/membresia.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
-import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
+import { TipoMembresia } from 'paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
 import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';

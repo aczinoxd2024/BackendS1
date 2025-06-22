@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Not, Raw, Repository } from 'typeorm';
-import { Membresia } from 'paquete-2-servicios-gimnasio/membresias/menbresia.entity';
+import { Membresia } from 'paquete-3-control-comercial/membresias/membresia.entity';
 import { Pago } from 'pagos/pagos.entity';
-import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
+import { TipoMembresia } from 'paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
 
 @Injectable()
 export class ReportesEstadisticasService {

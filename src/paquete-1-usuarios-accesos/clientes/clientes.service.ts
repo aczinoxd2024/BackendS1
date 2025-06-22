@@ -16,8 +16,8 @@ import { UsuarioPerfil } from 'paquete-1-usuarios-accesos/usuarios/usuario-perfi
 import { Perfil } from 'paquete-1-usuarios-accesos/usuarios/perfil.entity';
 import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 import { Cliente } from './cliente.entity';
-import { TipoMembresia } from 'paquete-2-servicios-gimnasio/membresias/Tipos/tipo_menbresia.entity';
-import { Membresia } from 'paquete-2-servicios-gimnasio/membresias/menbresia.entity';
+import { TipoMembresia } from 'paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
+import { Membresia } from 'paquete-3-control-comercial/membresias/membresia.entity';
 import { MetodoPago } from 'pagos/metodo-pago/metodo-pago.entity';
 import { Pago } from 'pagos/pagos.entity';
 import { EstadoCliente } from './estado-cliente/estado-cliente.entity';

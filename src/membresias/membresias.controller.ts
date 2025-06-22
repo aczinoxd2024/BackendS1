@@ -1,5 +1,5 @@
-import { Membresia } from 'paquete-2-servicios-gimnasio/membresias/menbresia.entity';
-import { MembresiasService } from '../paquete-2-servicios-gimnasio/membresias/membresias.service';
+import { Membresia } from 'paquete-3-control-comercial/membresias/membresia.entity';
+import { MembresiasService } from '../paquete-3-control-comercial/membresias/membresias.service';
 import {
   Controller,
   Post,

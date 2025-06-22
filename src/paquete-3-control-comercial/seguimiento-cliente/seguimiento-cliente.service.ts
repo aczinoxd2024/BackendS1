@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { SeguimientoCliente } from './seguimiento-cliente.entity';
-import { CreateSeguimientoDto } from './dto/create-seguimiento.dto';
+import { CreateSeguimientoDto } from '../dto/create-seguimiento.dto';
 import { toZonedTime, format } from 'date-fns-tz';
 
 @Injectable()
