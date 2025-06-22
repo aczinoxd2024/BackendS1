@@ -176,6 +176,7 @@ export class PagosService {
   }
 
   // ✅ enviarComprobantePorCorreo (con mejoras de fecha de membresía)
+  // ✅ enviarComprobantePorCorreo (con mejoras de fecha de membresía y usando plantilla)
   async enviarComprobantePorCorreo(nroPago: number): Promise<void> {
     const pdfBuffer = await this.generarComprobantePDF(nroPago);
 
@@ -292,22 +293,24 @@ export class PagosService {
       );
     }
 
+    // ✅ CAMBIO AQUÍ: Usar 'template' y 'context' en lugar de 'text'
     await this.mailerService.sendMail({
       to: usuario.correo,
       subject: 'Tu comprobante de pago - GoFit GYM',
-      text: `Hola ${persona?.Nombre},
-
-Gracias por tu ${tipoAccion.toLowerCase()} realizada el ${fechaPago} mediante ${metodoNombre}.
-
-🧾 Número de comprobante: #${pago.NroPago}
-📅 Fecha actual de vencimiento: ${membresiaActual?.FechaFin ? new Date(membresiaActual.FechaFin).toLocaleDateString('es-BO') : 'No definida'}
-🔜 Nueva membresía activa desde: ${nuevaFechaInicio.toLocaleDateString('es-BO')}
-🏁 Nueva membresía válida hasta: ${nuevaFechaFin.toLocaleDateString('es-BO')}
-
-Adjuntamos el comprobante de tu pago en formato PDF.
-
-¡Gracias por formar parte de GoFit GYM!
-`,
+      template: 'comprobante', // <--- Usa el nombre del archivo de la plantilla (sin la extensión .hbs)
+      context: {
+        // <--- Pasa tus variables a la plantilla aquí
+        nombrePersona: persona?.Nombre,
+        tipoAccionLower: tipoAccion.toLowerCase(),
+        fechaPago: fechaPago,
+        metodoNombre: metodoNombre,
+        nroPago: pago.NroPago,
+        fechaVencimientoActual: membresiaActual?.FechaFin
+          ? new Date(membresiaActual.FechaFin).toLocaleDateString('es-BO')
+          : 'No definida',
+        nuevaFechaInicio: nuevaFechaInicio.toLocaleDateString('es-BO'),
+        nuevaFechaFin: nuevaFechaFin.toLocaleDateString('es-BO'),
+      },
       attachments: [
         {
           filename: `comprobante_pago_${nroPago}.pdf`,
