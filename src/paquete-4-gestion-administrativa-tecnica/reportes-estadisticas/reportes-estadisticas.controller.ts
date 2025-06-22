@@ -45,10 +45,11 @@ export class ReportesEstadisticasController {
 
   }
 
-  @Get('clases/reporte')
-@Roles('Administrador', 'Recepcionista')
-obtenerReporteClases() {
-  return this.service.generarReporteClases();
+@Get('clases/reporte')
+@Roles('Administrador')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+async obtenerReporteClases(@Query('instructor') nombreInstructor?: string) {
+  return this.service.generarReporteClases(nombreInstructor);
 }
 
 @Get('clases/activas')
@@ -57,11 +58,15 @@ async obtenerClasesActivas() {
   return this.service.obtenerClasesActivas();
 }
 
+
 @Get('reservas/clases')
 @Roles('Administrador', 'Recepcionista')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
-obtenerReporteReservasClases() {
-  return this.service.generarReporteReservasClases();
+obtenerReporteReservasClases(
+  @Query('inicio') inicio?: string,
+  @Query('fin') fin?: string,
+) {
+  return this.service.generarReporteReservasClases(inicio, fin);
 }
 
 }

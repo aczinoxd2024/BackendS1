@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Not, Raw, Repository } from 'typeorm';
-import { Membresia } from 'paquete-3-control-comercial/membresias/membresia.entity';
 import { Pago } from 'pagos/pagos.entity';
-import { TipoMembresia } from 'paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
 import { Personal } from 'paquete-2-servicios-gimnasio/personal/personal.entity';
 import { AsistenciaPersonal } from 'paquete-2-servicios-gimnasio/personal/asistencia_personal.entity';
 import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
 import { Reserva } from 'paquete-2-servicios-gimnasio/reservas/reserva.entity';
+import { Membresia } from 'membresias/membresia.entity';
+import { TipoMembresia } from 'membresias/Tipos/tipo_membresia.entity';
+
 
 @Injectable()
 export class ReportesEstadisticasService {
@@ -143,26 +144,50 @@ async obtenerAsistenciasPorCargo(cargo: string, inicio: string, fin: string) {
   return asistencias;
 }
 
-   async generarReporteClases() {
-    const clases = await this.claseRepo.find({
-      relations: [
-        'sala',
-        'horarios',
-        'horarios.diaSemana',
-        'claseInstructores',
-        'claseInstructores.instructor',
-        'claseInstructores.instructor.persona',
-      ],
-    });
 
-    return clases.map((clase) => {
+async generarReporteClases(nombreInstructor?: string) {
+  const clases = await this.claseRepo.find({
+    relations: [
+      'sala',
+      'horarios',
+      'horarios.diaSemana',
+      'claseInstructores',
+      'claseInstructores.instructor',
+      'claseInstructores.instructor.persona',
+    ],
+  });
+
+  return clases
+    .filter((clase) => {
+      if (!nombreInstructor) return true;
+
+      const filtroNormalizado = nombreInstructor
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+      const coincide = clase.claseInstructores.some((ci) => {
+        const persona = ci.instructor.persona;
+        if (!persona) return false;
+
+        const nombreCompleto = `${persona.Nombre} ${persona.Apellido}`
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+
+        return nombreCompleto.includes(filtroNormalizado);
+      });
+
+      return coincide;
+    })
+    .map((clase) => {
       const instructores = clase.claseInstructores.map((ci) => {
         const p = ci.instructor.persona;
         return p ? `${p.Nombre} ${p.Apellido}` : ci.instructor.CI;
       });
 
       const horarios = clase.horarios.map(
-        (h) => `${h.diaSemana?.Dia}: ${h.HoraIni} - ${h.HoraFin}`
+        (h) => `${h.diaSemana?.Dia}: ${h.HoraIni} - ${h.HoraFin}`,
       );
 
       return {
@@ -176,7 +201,9 @@ async obtenerAsistenciasPorCargo(cargo: string, inicio: string, fin: string) {
         Sala: clase.sala?.Descripcion || 'Sin sala asignada',
       };
     });
-  }
+}
+
+
 
   async obtenerClasesActivas() {
   const clases = await this.claseRepo.find({
@@ -203,11 +230,11 @@ async obtenerAsistenciasPorCargo(cargo: string, inicio: string, fin: string) {
   }));
 }
 
-async generarReporteReservasClases() {
-  const reservas = await this.reservasRepository
+async generarReporteReservasClases(fechaInicio?: string, fechaFin?: string) {
+  const query = this.reservasRepository
     .createQueryBuilder('reserva')
     .leftJoin('reserva.cliente', 'cliente')
-    .leftJoin('persona', 'persona', 'persona.CI = cliente.CI') // JOIN manual
+    .leftJoin('persona', 'persona', 'persona.CI = cliente.CI')
     .leftJoin('reserva.estado', 'estado')
     .leftJoin('reserva.clase', 'clase')
     .leftJoin('reserva.horario', 'horario')
@@ -224,8 +251,16 @@ async generarReporteReservasClases() {
       'horario.HoraIni',
       'horario.HoraFin',
     ])
-    .orderBy('reserva.FechaReserva', 'DESC')
-    .getRawMany();
+    .orderBy('reserva.FechaReserva', 'DESC');
+
+  if (fechaInicio && fechaFin) {
+    query.andWhere('reserva.FechaReserva BETWEEN :inicio AND :fin', {
+      inicio: fechaInicio,
+      fin: fechaFin,
+    });
+  }
+
+  const reservas = await query.getRawMany();
 
   return reservas.map((r) => ({
     IDReserva: r.reserva_IDReserva,
@@ -241,4 +276,3 @@ async generarReporteReservasClases() {
 }
 
 }
-
