@@ -332,6 +332,7 @@ Adjuntamos el comprobante de tu pago en formato PDF.
     });
   }
 
+  // ✅ MÉTODO registrarPago REFORMULADO
   async registrarPago(data: {
     ci: string;
     monto: number;
