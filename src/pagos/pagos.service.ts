@@ -110,17 +110,22 @@ export class PagosService {
     );
     if (membresiasAnteriores.length > 0) {
       const ultimaMembresia = membresiasAnteriores[0];
-      const mismaFecha =
-        new Date(ultimaMembresia.FechaFin).toDateString() ===
-        new Date(membresia.FechaInicio).toDateString();
+      const fechaFinAnterior = new Date(ultimaMembresia.FechaFin);
+      const fechaInicioNueva = new Date(membresia.FechaInicio);
+
+      const diferenciaDias = Math.ceil(
+        (fechaInicioNueva.getTime() - fechaFinAnterior.getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+
       if (
         ultimaMembresia.TipoMembresiaID === membresia.TipoMembresiaID &&
-        mismaFecha
+        diferenciaDias <= 1
       ) {
         tipoAccion = 'Extensión de membresía';
       } else if (
         ultimaMembresia.TipoMembresiaID !== membresia.TipoMembresiaID &&
-        mismaFecha
+        diferenciaDias <= 1
       ) {
         tipoAccion = 'Cambio de tipo de membresía';
       }
@@ -231,17 +236,22 @@ export class PagosService {
 
     if (membresiasPrevias.length > 1) {
       const ultimaMembresia = membresiasPrevias[1];
+      const fechaFinAnterior = new Date(ultimaMembresia.FechaFin);
+      const fechaInicioNueva = new Date(membresiaActual.FechaInicio);
+
+      const diferenciaDias = Math.ceil(
+        (fechaInicioNueva.getTime() - fechaFinAnterior.getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
 
       if (
         ultimaMembresia.TipoMembresiaID === membresiaActual.TipoMembresiaID &&
-        new Date(ultimaMembresia.FechaFin) >=
-          new Date(membresiaActual.FechaInicio)
+        diferenciaDias <= 1
       ) {
         tipoAccion = 'Extensión de membresía';
       } else if (
         ultimaMembresia.TipoMembresiaID !== membresiaActual.TipoMembresiaID &&
-        new Date(ultimaMembresia.FechaFin) >=
-          new Date(membresiaActual.FechaInicio)
+        diferenciaDias <= 1
       ) {
         tipoAccion = 'Cambio de tipo de membresía';
       }
