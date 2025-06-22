@@ -106,26 +106,25 @@ export class PagosService {
 
     let tipoAccion = 'Nueva membresía';
     const membresiasAnteriores = membresiasPrevias.filter(
-      (m) => m.IDMembresia !== membresia?.IDMembresia,
+      (m) =>
+        m.IDMembresia !== membresia?.IDMembresia &&
+        new Date(m.FechaFin) >= new Date(membresia.FechaInicio),
     );
+
     if (membresiasAnteriores.length > 0) {
       const ultimaMembresia = membresiasAnteriores[0];
-      const fechaFinAnterior = new Date(ultimaMembresia.FechaFin);
-      const fechaInicioNueva = new Date(membresia.FechaInicio);
-
-      const diferenciaDias = Math.ceil(
-        (fechaInicioNueva.getTime() - fechaFinAnterior.getTime()) /
-          (1000 * 60 * 60 * 24),
-      );
+      const mismaFecha =
+        new Date(ultimaMembresia.FechaFin).toDateString() ===
+        new Date(membresia.FechaInicio).toDateString();
 
       if (
         ultimaMembresia.TipoMembresiaID === membresia.TipoMembresiaID &&
-        diferenciaDias <= 1
+        mismaFecha
       ) {
         tipoAccion = 'Extensión de membresía';
       } else if (
         ultimaMembresia.TipoMembresiaID !== membresia.TipoMembresiaID &&
-        diferenciaDias <= 1
+        mismaFecha
       ) {
         tipoAccion = 'Cambio de tipo de membresía';
       }
