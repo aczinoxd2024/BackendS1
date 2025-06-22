@@ -217,6 +217,7 @@ if (dto.tipoAcceso === TipoAccesoRutina.clase) {
         rutinaBasica: rutina
       };
     }
+    
 
     return rutinaConRelaciones;
   } catch (error) {
