@@ -475,7 +475,8 @@ Adjuntamos el comprobante de tu pago en formato PDF.
     if (
       membresiaActual &&
       membresiaActual.FechaFin >= hoy &&
-      membresiaActual.TipoMembresiaID === tipoNuevoID
+      membresiaActual.TipoMembresiaID === tipoNuevoID &&
+      membresiaActual.FechaInicio !== membresiaActual.FechaFin // ⚠️ Previene error con membresía recién creada
     ) {
       const nuevaFechaFin = new Date(membresiaActual.FechaFin);
       nuevaFechaFin.setDate(nuevaFechaFin.getDate() + tipoNuevo.DuracionDias);

@@ -286,93 +286,171 @@ export class StripeService {
   }*/
 
   //metodo de prueba para ver si se pone doble membresia aqui
-async handleEvent(event: Stripe.Event): Promise<void> {
-  console.log('📩 Evento recibido desde Stripe:', event.type);
+  async handleEvent(event: Stripe.Event): Promise<void> {
+    console.log('📩 Evento recibido desde Stripe:', event.type);
 
-  if (event.type !== 'checkout.session.completed') {
-    console.log(`⚠️ Evento no manejado: ${event.type}`);
-    return;
-  }
+    if (event.type !== 'checkout.session.completed') {
+      console.log(`⚠️ Evento no manejado: ${event.type}`);
+      return;
+    }
 
-  const session = event.data.object;
-  const email = session.metadata?.email ?? null;
-  const descripcion = session.metadata?.descripcion ?? null;
-  const idClase = session.metadata?.idClase
-    ? parseInt(session.metadata.idClase)
-    : null;
-  const amount = session.amount_total ?? 0;
-  const paymentIntent = session.payment_intent as string;
+    const session = event.data.object;
+    const email = session.metadata?.email ?? null;
+    const descripcion = session.metadata?.descripcion ?? null;
+    const idClase = session.metadata?.idClase
+      ? parseInt(session.metadata.idClase)
+      : null;
+    const amount = session.amount_total ?? 0;
+    const paymentIntent = session.payment_intent as string;
 
-  if (!email || !descripcion || !amount) {
-    console.log('❌ Faltan datos necesarios del evento. Abortando guardado.');
-    return;
-  }
+    if (!email || !descripcion || !amount) {
+      console.log('❌ Faltan datos necesarios del evento. Abortando guardado.');
+      return;
+    }
 
-  // ✅ Validación estricta de duplicado
-  const yaExiste = await this.pagoRepository.exist({
-    where: { StripeEventId: event.id },
-  });
+    // ✅ Validación estricta de duplicado
+    const yaExiste = await this.pagoRepository.exist({
+      where: { StripeEventId: event.id },
+    });
 
-  if (yaExiste) {
-    console.log(`⛔ Evento duplicado detectado (StripeEventId: ${event.id})`);
-    return;
-  }
+    if (yaExiste) {
+      console.log(`⛔ Evento duplicado detectado (StripeEventId: ${event.id})`);
+      return;
+    }
 
-  const usuario = await this.usuarioRepository.findOne({
-    where: { correo: email },
-    relations: ['idPersona'],
-  });
+    const usuario = await this.usuarioRepository.findOne({
+      where: { correo: email },
+      relations: ['idPersona'],
+    });
 
-  if (!usuario || !usuario.idPersona?.CI) {
-    console.log('❌ Usuario o CI no encontrado para correo:', email);
-    return;
-  }
+    if (!usuario || !usuario.idPersona?.CI) {
+      console.log('❌ Usuario o CI no encontrado para correo:', email);
+      return;
+    }
 
-  const cliente = await this.clienteRepository.findOne({
-    where: { CI: usuario.idPersona.CI },
-  });
+    const cliente = await this.clienteRepository.findOne({
+      where: { CI: usuario.idPersona.CI },
+    });
 
-  if (!cliente) {
-    console.log('❌ Cliente no encontrado con CI:', usuario.idPersona.CI);
-    return;
-  }
+    if (!cliente) {
+      console.log('❌ Cliente no encontrado con CI:', usuario.idPersona.CI);
+      return;
+    }
 
-  const fechaHoraBolivia = new Date();
-  fechaHoraBolivia.setHours(fechaHoraBolivia.getHours() - 4);
+    const fechaHoraBolivia = new Date();
+    fechaHoraBolivia.setHours(fechaHoraBolivia.getHours() - 4);
 
-  const nuevoPago = this.pagoRepository.create({
-    Fecha: fechaHoraBolivia,
-    Monto: amount / 100,
-    MetodoPago: 2,
-    CIPersona: usuario.idPersona.CI,
-    StripeEventId: event.id,
-    StripePaymentIntentId: paymentIntent,
-  });
+    const nuevoPago = this.pagoRepository.create({
+      Fecha: fechaHoraBolivia,
+      Monto: amount / 100,
+      MetodoPago: 2,
+      CIPersona: usuario.idPersona.CI,
+      StripeEventId: event.id,
+      StripePaymentIntentId: paymentIntent,
+    });
 
-  console.log('💾 Guardando nuevo pago en DB...');
-  const pagoGuardado = await this.pagoRepository.save(nuevoPago);
-  console.log('✅ Pago guardado con Nro:', pagoGuardado.NroPago);
+    console.log('💾 Guardando nuevo pago en DB...');
+    const pagoGuardado = await this.pagoRepository.save(nuevoPago);
+    console.log('✅ Pago guardado con Nro:', pagoGuardado.NroPago);
 
-  const tipo = await this.tipoMembresiaRepository.findOne({
-    where: { NombreTipo: descripcion },
-  });
+    const tipo = await this.tipoMembresiaRepository.findOne({
+      where: { NombreTipo: descripcion },
+    });
 
-  if (!tipo) {
-    console.log(`❌ Tipo de membresía "${descripcion}" no encontrada.`);
-    return;
-  }
+    if (!tipo) {
+      console.log(`❌ Tipo de membresía "${descripcion}" no encontrada.`);
+      return;
+    }
 
-  const esDisciplina = tipo.ID === 3;
+    const esDisciplina = tipo.ID === 3;
 
-  // ✅ Membresía tipo DISCIPLINA
-  if (esDisciplina) {
-    console.log('🟩 Procesando tipo DISCIPLINA...');
+    // ✅ Membresía tipo DISCIPLINA
+    if (esDisciplina) {
+      console.log('🟩 Procesando tipo DISCIPLINA...');
 
-    const fechaInicio = new Date();
-    const fechaFin = new Date();
-    fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
+      const fechaInicio = new Date();
+      const fechaFin = new Date();
+      fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
 
-    const nuevaDisciplina = this.membresiaRepository.create({
+      const nuevaDisciplina = this.membresiaRepository.create({
+        FechaInicio: fechaInicio,
+        FechaFin: fechaFin,
+        PlataformaWeb: 'Web',
+        TipoMembresiaID: tipo.ID,
+        CICliente: cliente.CI,
+      });
+
+      await this.membresiaRepository.save(nuevaDisciplina);
+      console.log('🧾 Disciplina creada:', nuevaDisciplina.IDMembresia);
+
+      const detalleDisciplina = this.detallePagoRepository.create({
+        IDPago: pagoGuardado.NroPago,
+        IDMembresia: nuevaDisciplina.IDMembresia,
+        IDClase: idClase,
+        MontoTotal: amount / 100,
+        IDPromo: null,
+      });
+
+      await this.detallePagoRepository.save(detalleDisciplina);
+
+      await this.bitacoraRepository.save({
+        idUsuario: usuario.id,
+        accion: `Cliente adquirió disciplina "${descripcion}" del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`,
+        tablaAfectada: 'membresia / detalle_pago',
+        ipMaquina: 'web-stripe',
+        IDPago: pagoGuardado.NroPago,
+      });
+
+      await this.pagosService.enviarComprobantePorCorreo(pagoGuardado.NroPago);
+      console.log('📧 Comprobante enviado para disciplina.');
+      return; // Salir aquí
+    }
+
+    // ✅ Procesar membresía normal (básica / gold)
+    const ultimaMembresia = await this.membresiaRepository.findOne({
+      where: { CICliente: cliente.CI },
+      order: { FechaFin: 'DESC' },
+    });
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    let fechaInicio: Date;
+    let fechaFin: Date;
+    const mismaMembresia = ultimaMembresia?.TipoMembresiaID === tipo.ID;
+
+    if (
+      ultimaMembresia &&
+      mismaMembresia &&
+      new Date(ultimaMembresia.FechaFin) >= hoy
+    ) {
+      fechaInicio = new Date(ultimaMembresia.FechaInicio);
+      fechaFin = new Date(ultimaMembresia.FechaFin);
+      fechaFin.setDate(fechaFin.getDate() + tipo.DuracionDias);
+    } else {
+      fechaInicio = new Date();
+      fechaFin = new Date();
+      fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
+    }
+
+    // ✅ Validación extra para evitar membresía duplicada
+    const yaExisteMembresia = await this.membresiaRepository.findOne({
+      where: {
+        CICliente: cliente.CI,
+        FechaInicio: fechaInicio,
+        FechaFin: fechaFin,
+        TipoMembresiaID: tipo.ID,
+      },
+    });
+
+    if (yaExisteMembresia) {
+      console.log(
+        '⛔ Membresía ya existe con las mismas fechas y tipo. Abortando.',
+      );
+      return;
+    }
+
+    const nuevaMembresia = this.membresiaRepository.create({
       FechaInicio: fechaInicio,
       FechaFin: fechaFin,
       PlataformaWeb: 'Web',
@@ -380,118 +458,39 @@ async handleEvent(event: Stripe.Event): Promise<void> {
       CICliente: cliente.CI,
     });
 
-    await this.membresiaRepository.save(nuevaDisciplina);
-    console.log('🧾 Disciplina creada:', nuevaDisciplina.IDMembresia);
+    await this.membresiaRepository.save(nuevaMembresia);
+    console.log('✅ Membresía registrada con ID:', nuevaMembresia.IDMembresia);
 
-    const detalleDisciplina = this.detallePagoRepository.create({
+    const detalle = this.detallePagoRepository.create({
       IDPago: pagoGuardado.NroPago,
-      IDMembresia: nuevaDisciplina.IDMembresia,
-      IDClase: idClase,
+      IDMembresia: nuevaMembresia.IDMembresia,
+      IDClase: tipo.ID === 2 ? idClase : null,
       MontoTotal: amount / 100,
       IDPromo: null,
     });
 
-    await this.detallePagoRepository.save(detalleDisciplina);
+    await this.detallePagoRepository.save(detalle);
+
+    cliente.IDEstado = 1;
+    await this.clienteRepository.save(cliente);
+
+    const mensajeAccion = ultimaMembresia
+      ? mismaMembresia
+        ? `Renovó su membresía "${tipo.NombreTipo}". Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`
+        : `Cambiaron su membresía a "${tipo.NombreTipo}". Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`
+      : `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`;
 
     await this.bitacoraRepository.save({
       idUsuario: usuario.id,
-      accion: `Cliente adquirió disciplina "${descripcion}" del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`,
-      tablaAfectada: 'membresia / detalle_pago',
+      accion: `Cliente CI ${usuario.id} realizó un pago de $${(amount / 100).toFixed(2)}. ${mensajeAccion}`,
+      tablaAfectada: 'membresia / pago / detalle_pago',
       ipMaquina: 'web-stripe',
       IDPago: pagoGuardado.NroPago,
     });
 
     await this.pagosService.enviarComprobantePorCorreo(pagoGuardado.NroPago);
-    console.log('📧 Comprobante enviado para disciplina.');
-    return; // Salir aquí
+    console.log('📧 Comprobante final enviado.');
   }
-
-  // ✅ Procesar membresía normal (básica / gold)
-  const ultimaMembresia = await this.membresiaRepository.findOne({
-    where: { CICliente: cliente.CI },
-    order: { FechaFin: 'DESC' },
-  });
-
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-
-  let fechaInicio: Date;
-  let fechaFin: Date;
-  const mismaMembresia = ultimaMembresia?.TipoMembresiaID === tipo.ID;
-
-  if (
-    ultimaMembresia &&
-    mismaMembresia &&
-    new Date(ultimaMembresia.FechaFin) >= hoy
-  ) {
-    fechaInicio = new Date(ultimaMembresia.FechaInicio);
-    fechaFin = new Date(ultimaMembresia.FechaFin);
-    fechaFin.setDate(fechaFin.getDate() + tipo.DuracionDias);
-  } else {
-    fechaInicio = new Date();
-    fechaFin = new Date();
-    fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias);
-  }
-
-  // ✅ Validación extra para evitar membresía duplicada
-  const yaExisteMembresia = await this.membresiaRepository.findOne({
-    where: {
-      CICliente: cliente.CI,
-      FechaInicio: fechaInicio,
-      FechaFin: fechaFin,
-      TipoMembresiaID: tipo.ID,
-    },
-  });
-
-  if (yaExisteMembresia) {
-    console.log(
-      '⛔ Membresía ya existe con las mismas fechas y tipo. Abortando.',
-    );
-    return;
-  }
-
-  const nuevaMembresia = this.membresiaRepository.create({
-    FechaInicio: fechaInicio,
-    FechaFin: fechaFin,
-    PlataformaWeb: 'Web',
-    TipoMembresiaID: tipo.ID,
-    CICliente: cliente.CI,
-  });
-
-  await this.membresiaRepository.save(nuevaMembresia);
-  console.log('✅ Membresía registrada con ID:', nuevaMembresia.IDMembresia);
-
-  const detalle = this.detallePagoRepository.create({
-    IDPago: pagoGuardado.NroPago,
-    IDMembresia: nuevaMembresia.IDMembresia,
-    IDClase: tipo.ID === 2 ? idClase : null,
-    MontoTotal: amount / 100,
-    IDPromo: null,
-  });
-
-  await this.detallePagoRepository.save(detalle);
-
-  cliente.IDEstado = 1;
-  await this.clienteRepository.save(cliente);
-
-  const mensajeAccion = ultimaMembresia
-    ? mismaMembresia
-      ? `Renovó su membresía "${tipo.NombreTipo}". Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`
-      : `Cambiaron su membresía a "${tipo.NombreTipo}". Nueva vigencia: del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}`
-    : `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}"`;
-
-  await this.bitacoraRepository.save({
-    idUsuario: usuario.id,
-    accion: `Cliente CI ${usuario.id} realizó un pago de $${(amount / 100).toFixed(2)}. ${mensajeAccion}`,
-    tablaAfectada: 'membresia / pago / detalle_pago',
-    ipMaquina: 'web-stripe',
-    IDPago: pagoGuardado.NroPago,
-  });
-
-  await this.pagosService.enviarComprobantePorCorreo(pagoGuardado.NroPago);
-  console.log('📧 Comprobante final enviado.');
-}
-
 
   async obtenerPagosPorCliente(ci: string): Promise<Pago[]> {
     return this.pagoRepository.find({
