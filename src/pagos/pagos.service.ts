@@ -51,41 +51,34 @@ export class PagosService {
     private readonly mailerService: MailerService,
   ) {}
 
-  //  Método original de registrar pago (sin tocar)
   async generarComprobantePDF(nroPago: number): Promise<Buffer> {
     const pago = await this.pagosRepository.findOne({
       where: { NroPago: nroPago },
     });
-
     if (!pago) throw new NotFoundException('Pago no encontrado');
 
     const detalles = await this.detallePagoRepository.find({
       where: { IDPago: nroPago },
       relations: ['membresia', 'clase'],
     });
-
-    if (!detalles || detalles.length === 0) {
+    if (!detalles || detalles.length === 0)
       throw new NotFoundException('Detalle de pago no encontrado');
-    }
 
     const detalle = detalles[0];
     const persona = await this.personaRepository.findOne({
       where: { CI: pago.CIPersona },
     });
-
     if (!persona) throw new NotFoundException('Persona no encontrada');
 
     const usuario = await this.usuarioRepository.findOne({
       where: { idPersona: { CI: persona.CI } },
     });
-
     const membresia = detalle.membresia;
     const tipo = membresia?.TipoMembresiaID
       ? await this.tipoMembresiaRepository.findOne({
           where: { ID: membresia.TipoMembresiaID },
         })
       : null;
-
     const clase = detalle.clase;
 
     let metodoNombre = 'Desconocido';
@@ -106,26 +99,28 @@ export class PagosService {
         metodoNombre = 'Otro';
     }
 
-    // Determinar si fue extensión o nueva membresía
     const membresiasPrevias = await this.membresiaRepository.find({
       where: { CICliente: pago.CIPersona },
       order: { FechaFin: 'DESC' },
     });
 
     let tipoAccion = 'Nueva membresía';
-
-    // Verificamos si hay otra membresía anterior a esta
-    if (membresiasPrevias.length > 1) {
-      const ultimaMembresia = membresiasPrevias[1]; // la anterior a la actual
-
+    const membresiasAnteriores = membresiasPrevias.filter(
+      (m) => m.IDMembresia !== membresia?.IDMembresia,
+    );
+    if (membresiasAnteriores.length > 0) {
+      const ultimaMembresia = membresiasAnteriores[0];
+      const mismaFecha =
+        new Date(ultimaMembresia.FechaFin).toDateString() ===
+        new Date(membresia.FechaInicio).toDateString();
       if (
         ultimaMembresia.TipoMembresiaID === membresia.TipoMembresiaID &&
-        new Date(ultimaMembresia.FechaFin) >= new Date(membresia.FechaInicio)
+        mismaFecha
       ) {
         tipoAccion = 'Extensión de membresía';
       } else if (
         ultimaMembresia.TipoMembresiaID !== membresia.TipoMembresiaID &&
-        new Date(ultimaMembresia.FechaFin) >= new Date(membresia.FechaInicio)
+        mismaFecha
       ) {
         tipoAccion = 'Cambio de tipo de membresía';
       }
@@ -150,7 +145,6 @@ export class PagosService {
         {
           text: `Tipo de acción: ${tipoAccion === 'Cambio de tipo de membresía' ? 'Cambio de tipo (Básica → Gold, etc.)' : tipoAccion}`,
         },
-
         '\n',
         { text: '🧾 Detalles:' },
         { text: `Membresía: ${tipo?.NombreTipo ?? 'Sin membresía'}` },
