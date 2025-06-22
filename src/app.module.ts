@@ -53,7 +53,6 @@ import { InventarioUsoModule } from './paquete-4-gestion-administrativa-tecnica/
 import { InventarioResponsableModule } from './paquete-4-gestion-administrativa-tecnica/inventario-responsable/inventario-responsable.module';
 import { ReportesEstadisticasModule } from 'paquete-4-gestion-administrativa-tecnica/reportes-estadisticas/reportes-estadisticas.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -126,7 +125,7 @@ import { ReportesEstadisticasModule } from 'paquete-4-gestion-administrativa-tec
     EstadoInventarioModule,
     InventarioUsoModule,
     InventarioResponsableModule,
-    ReportesEstadisticasModule
+    ReportesEstadisticasModule,
   ],
   providers: [
     {

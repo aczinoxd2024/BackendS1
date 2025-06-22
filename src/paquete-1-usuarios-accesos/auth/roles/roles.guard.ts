@@ -24,10 +24,10 @@ export class RolesGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // ✅ Cambiado a solo obtener del handler (NO de la clase)
-    const requiredRoles = this.reflector.get<string[]>(
-      'roles',
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
       context.getHandler(),
-    );
+      context.getClass(),
+    ]);
 
     if (!requiredRoles) {
       // No se definieron roles, acceso permitido (puede ser ruta pública o no protegida por roles)
