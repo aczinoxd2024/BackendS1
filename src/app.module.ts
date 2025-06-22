@@ -52,6 +52,7 @@ import { EstadoInventarioModule } from './paquete-4-gestion-administrativa-tecni
 import { InventarioUsoModule } from './paquete-4-gestion-administrativa-tecnica/inventario-uso/inventario-uso.module';
 import { InventarioResponsableModule } from './paquete-4-gestion-administrativa-tecnica/inventario-responsable/inventario-responsable.module';
 import { ReportesEstadisticasModule } from 'paquete-4-gestion-administrativa-tecnica/reportes-estadisticas/reportes-estadisticas.module';
+import { NotificacionesModule } from 'paquete-2-servicios-gimnasio/notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -59,20 +60,18 @@ import { ReportesEstadisticasModule } from 'paquete-4-gestion-administrativa-tec
     StripeModule,
 
     MailerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: () => ({
         transport: {
-          host: 'smtp.gmail.com',
-          port: 587,
+          host: process.env.MAIL_HOST,
+          port: parseInt(process.env.MAIL_PORT || '587', 10), // ✅ Maneja undefined
           secure: false,
           auth: {
-            user: configService.get<string>('EMAIL_USER'),
-            pass: configService.get<string>('EMAIL_PASS'),
+            user: process.env.MAIL_USER,
+            pass: process.env.MAIL_PASS,
           },
         },
         defaults: {
-          from: `"GoFit GYM" <${configService.get<string>('EMAIL_USER')}>`,
+          from: `"GoFit GYM" <${process.env.MAIL_FROM}>`,
         },
         template: {
           dir: join(__dirname, 'templates'),
@@ -126,6 +125,7 @@ import { ReportesEstadisticasModule } from 'paquete-4-gestion-administrativa-tec
     InventarioUsoModule,
     InventarioResponsableModule,
     ReportesEstadisticasModule,
+    NotificacionesModule,
   ],
   providers: [
     {

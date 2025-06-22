@@ -54,4 +54,13 @@ export class MembresiasController {
   ) {
     return await this.membresiasService.asignarMembresia(data);
   }
+  // ✅ NUEVA RUTA: Obtener días restantes de la membresía actual de un cliente
+  @Get('dias-restantes/:ci')
+  async obtenerDiasRestantes(@Param('ci') ci: string) {
+    return await this.membresiasService.obtenerDiasRestantes(ci);
+  }
+  @Get('actual/:ci')
+  async obtenerMembresiaYDias(@Param('ci') ci: string) {
+    return this.membresiasService.obtenerMembresiaActualYDiasRestantes(ci);
+  }
 }
