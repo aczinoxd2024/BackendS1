@@ -218,7 +218,8 @@ export class NotificacionesService {
     return membresias.map((m) => ({
       IDMembresia: m.IDMembresia,
       CICliente: m.CICliente,
-      FechaFin: m.FechaFin.toISOString().split('T')[0],
+      // CAMBIO AQUÍ: Asegurar que m.FechaFin sea un objeto Date antes de llamar toISOString()
+      FechaFin: new Date(m.FechaFin).toISOString().split('T')[0],
       TipoMembresiaID: m.TipoMembresiaID,
       PlataformaWeb: m.PlataformaWeb,
       tipoNombre: m.tipo?.NombreTipo || 'Desconocido',
