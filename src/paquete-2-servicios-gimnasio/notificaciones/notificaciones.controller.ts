@@ -3,6 +3,8 @@ import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { NotificacionesService } from './notificaciones.service';
 
 import { UseGuards } from '@nestjs/common';
+import { RolesGuard } from '../../paquete-1-usuarios-accesos/auth/roles/roles.guard';
+import { JwtAuthGuard } from '@auth/jwt.auth.guard';
 
 @Controller('notificaciones')
 export class NotificacionesController {
