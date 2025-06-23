@@ -43,6 +43,7 @@ export class TipoMembresiaController {
     }
     return tipo;
   }
+  
 
   // ✅ Crear (admin o recepcionista)
   @Post()
