@@ -422,7 +422,7 @@ Adjuntamos el comprobante de tu pago en formato PDF.
       membresiaARegistrar = this.membresiaRepository.create({
         FechaInicio: fechaInicio,
         FechaFin: fechaFin,
-        PlataformaWeb: 'Presencial',
+        PlataformaWeb: 'Web',
         TipoMembresiaID: tipoNuevo.ID,
         CICliente: ci,
       });
@@ -437,7 +437,7 @@ Adjuntamos el comprobante de tu pago en formato PDF.
       membresiaARegistrar = this.membresiaRepository.create({
         FechaInicio: fechaInicio,
         FechaFin: fechaFin,
-        PlataformaWeb: 'Presencial',
+        PlataformaWeb: 'Web',
         TipoMembresiaID: tipoNuevo.ID,
         CICliente: ci,
       });

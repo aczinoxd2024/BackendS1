@@ -58,7 +58,7 @@ export class StripeService {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: 'bob',
             product_data: {
               name: data.description,
             },
