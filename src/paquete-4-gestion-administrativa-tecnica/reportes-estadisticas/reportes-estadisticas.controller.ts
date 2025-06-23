@@ -69,4 +69,11 @@ obtenerReporteReservasClases(
   return this.service.generarReporteReservasClases(inicio, fin);
 }
 
+@Get('instructores-desde-clases')
+@Roles('Administrador')
+async obtenerInstructoresDesdeClases() {
+  return this.service.obtenerNombresInstructoresUnicos();
+}
+
+
 }
