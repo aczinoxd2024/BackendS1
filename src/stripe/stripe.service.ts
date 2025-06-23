@@ -420,25 +420,24 @@ export class StripeService {
     const mismaMembresia = ultimaMembresia?.TipoMembresiaID === tipo.ID;
 
     // ✅ Calcular fechas para nueva membresía (evitando solapamiento con membresía activa)
-let fechaInicio: Date;
-let fechaFin: Date;
+    let fechaInicio: Date;
+    let fechaFin: Date;
 
-/*
+    /*
   Si el cliente ya tiene una membresía activa (es decir, cuya fecha de fin es hoy o en el futuro),
   entonces la nueva membresía debe comenzar justo al día siguiente de que termine la actual.
   Esto asegura que no se "pierdan días" ni se solapen fechas de vigencia.
 */
-if (ultimaMembresia && new Date(ultimaMembresia.FechaFin) >= hoy) {
-  fechaInicio = new Date(ultimaMembresia.FechaFin);
-  fechaInicio.setDate(fechaInicio.getDate() + 1); // nueva empieza un día después de que termina la actual
-} else {
-  fechaInicio = new Date(); // si no tiene membresía activa, empieza desde hoy
-}
+    if (ultimaMembresia && new Date(ultimaMembresia.FechaFin) >= hoy) {
+      fechaInicio = new Date(ultimaMembresia.FechaFin);
+      fechaInicio.setDate(fechaInicio.getDate() + 1); // nueva empieza un día después de que termina la actual
+    } else {
+      fechaInicio = new Date(); // si no tiene membresía activa, empieza desde hoy
+    }
 
-// La nueva fecha de fin es X días después de la fecha de inicio
-fechaFin = new Date(fechaInicio);
-fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias - 1); // restamos 1 para no superponer días
-
+    // La nueva fecha de fin es X días después de la fecha de inicio
+    fechaFin = new Date(fechaInicio);
+    fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias - 1); // restamos 1 para no superponer días
 
     // ✅ Validación extra para evitar membresía duplicada
     const yaExisteMembresia = await this.membresiaRepository.findOne({
@@ -483,13 +482,13 @@ fechaFin.setDate(fechaInicio.getDate() + tipo.DuracionDias - 1); // restamos 1 p
 
     let mensajeAccion = '';
 
-if (!ultimaMembresia) {
-  mensajeAccion = `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}".`;
-} else if (new Date(ultimaMembresia.FechaFin) >= hoy) {
-  mensajeAccion = `Renovó anticipadamente su membresía "${tipo.NombreTipo}". La nueva vigencia será del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}.`;
-} else {
-  mensajeAccion = `Adquirió una nueva membresía "${tipo.NombreTipo}". Vigente del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}.`;
-}
+    if (!ultimaMembresia) {
+      mensajeAccion = `Adquirió su primera membresía del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()} por tipo "${tipo.NombreTipo}".`;
+    } else if (new Date(ultimaMembresia.FechaFin) >= hoy) {
+      mensajeAccion = `Renovó anticipadamente su membresía "${tipo.NombreTipo}". La nueva vigencia será del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}.`;
+    } else {
+      mensajeAccion = `Adquirió una nueva membresía "${tipo.NombreTipo}". Vigente del ${fechaInicio.toLocaleDateString()} al ${fechaFin.toLocaleDateString()}.`;
+    }
 
     await this.bitacoraRepository.save({
       idUsuario: usuario.id,
@@ -509,7 +508,6 @@ if (!ultimaMembresia) {
       order: { Fecha: 'DESC' },
     });
   }
-  
 
   //SE ANADIO ESTA FUNCION PARA OBTENER INFO DEL PAGO PARA LUEGO GENERAR EL COMPROBANTE DESDE FRONT
   async obtenerInfoPagoDesdeSession(

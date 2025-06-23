@@ -1,10 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Raw, LessThanOrEqual } from 'typeorm';
+// Asegúrate de importar Between, Not, IsNull, y And
+import {
+  Repository,
+  Raw,
+  LessThanOrEqual,
+  Not,
+  IsNull,
+  And,
+  Between,
+} from 'typeorm';
 import { MailerService } from '@nestjs-modules/mailer';
-import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
-import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
-import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
+import { Cliente } from '../../paquete-1-usuarios-accesos/clientes/cliente.entity';
+import { Persona } from '../../paquete-1-usuarios-accesos/personas/persona.entity';
+import { Usuario } from '../../paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { Membresia } from '../../paquete-3-control-comercial/membresias/membresia.entity';
 import { TipoMembresia } from '../../paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
 
@@ -65,16 +74,23 @@ export class NotificacionesService {
       where: {
         FechaFin: LessThanOrEqual(alertDate),
         PlataformaWeb: Raw((alias) => `${alias} != 'Incluida'`),
+        CICliente: And(Not(IsNull()), Not('')), // Filtra CICliente no NULL ni vacío
       },
       relations: ['cliente', 'tipo'],
     });
 
     const clientsToNotify = new Map<string, Membresia[]>();
     for (const m of memberships) {
-      if (!clientsToNotify.has(m.CICliente)) {
-        clientsToNotify.set(m.CICliente, []);
+      if (m.CICliente && m.CICliente.trim() !== '') {
+        if (!clientsToNotify.has(m.CICliente)) {
+          clientsToNotify.set(m.CICliente, []);
+        }
+        clientsToNotify.get(m.CICliente)!.push(m);
+      } else {
+        console.warn(
+          `⚠️ Membresía ${m.IDMembresia} descartada: CICliente es nulo o vacío.`,
+        );
       }
-      clientsToNotify.get(m.CICliente)!.push(m);
     }
 
     const results: EmailResult[] = [];
@@ -102,14 +118,13 @@ export class NotificacionesService {
         try {
           await this.mailerService.sendMail({
             to: usuario.correo,
-            subject:
-              '🔔 Alerta de Vencimiento: Tu(s) membresía(s) GoFit está(n) por vencer',
+            subject: `🔔 Alerta de Vencimiento: Tu(s) membresía(s) GoFit está(n) por vencer`,
             html: `
               <p>Hola <strong>${persona.Nombre} ${persona.Apellido}</strong>,</p>
               <p>Queremos recordarte que la(s) siguiente(s) membresía(s) que tienes con GoFit GYM está(n) próxima(s) a vencer:</p>
               <ul>${membershipsSummary}</ul>
               <p>Para no perder tu progreso ni tus beneficios, te invitamos a renovar tu(s) membresía(s) lo antes posible.</p>
-              <p>Puedes hacerlo desde nuestra plataforma web o visitando la recepción del gimnasio.</p>
+              <p>Puedes hacerlo fácilmente desde nuestra plataforma web o visitando la recepción del gimnasio.</p>
               <br><p>¡Gracias por ser parte de la comunidad GoFit GYM! 💪</p>
             `,
           });
@@ -136,7 +151,7 @@ export class NotificacionesService {
         results.push({
           recipient: usuario?.correo || 'Correo no disponible',
           status: 'failed',
-          message: 'No se envió: correo no válido o datos incompletos.',
+          message: `No se envió: ${usuario?.correo ? 'correo no válido o no es Gmail' : 'datos de usuario/persona incompletos'}.`,
         });
       }
     }
@@ -165,8 +180,14 @@ export class NotificacionesService {
         try {
           await this.mailerService.sendMail({
             to: usuario.correo,
-            subject,
-            html: htmlContent,
+            subject: subject,
+            template: 'promocional_email',
+            context: {
+              subject: subject,
+              htmlContent: htmlContent,
+              nombrePersona: persona?.Nombre || 'Cliente',
+              currentYear: new Date().getFullYear(),
+            },
           });
           results.push({
             recipient: usuario.correo,
@@ -204,13 +225,20 @@ export class NotificacionesService {
     MembresiaVencimientoData[]
   > {
     const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Establecer la hora a 00:00:00.000 para 'hoy'
+
     const tresDiasDespues = new Date();
     tresDiasDespues.setDate(hoy.getDate() + 3);
+    // Establecer la hora a 23:59:59.999 para incluir todo el día de 'tresDiasDespues'
+    tresDiasDespues.setHours(23, 59, 59, 999);
 
     const membresias = await this.membresiaRepo.find({
       where: {
-        FechaFin: LessThanOrEqual(tresDiasDespues),
+        // CAMBIO: Filtrar por FechaFin entre hoy y tresDiasDespues (inclusive)
+        FechaFin: Between(hoy, tresDiasDespues),
         PlataformaWeb: Raw((alias) => `${alias} != 'Incluida'`),
+        // CAMBIO: Filtrar CICliente que no sea NULL ni cadena vacía para la visualización de la tabla
+        CICliente: And(Not(IsNull()), Not('')),
       },
       relations: ['tipo'],
     });
@@ -218,7 +246,6 @@ export class NotificacionesService {
     return membresias.map((m) => ({
       IDMembresia: m.IDMembresia,
       CICliente: m.CICliente,
-      // CAMBIO AQUÍ: Asegurar que m.FechaFin sea un objeto Date antes de llamar toISOString()
       FechaFin: new Date(m.FechaFin).toISOString().split('T')[0],
       TipoMembresiaID: m.TipoMembresiaID,
       PlataformaWeb: m.PlataformaWeb,
@@ -229,4 +256,6 @@ export class NotificacionesService {
       ),
     }));
   }
+
+  // Métodos de pagos, etc. (se mantienen como están en tu archivo)
 }
