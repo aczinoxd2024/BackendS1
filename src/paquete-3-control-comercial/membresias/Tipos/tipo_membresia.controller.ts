@@ -36,7 +36,7 @@ export class TipoMembresiaController {
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   async obtenerPorId(
-    @Param('id', ParseIntPipe) id: number
+    @Param('id', ParseIntPipe) id: number,
   ): Promise<TipoMembresia> {
     const tipo = await this.tipoMembresiaService.obtenerPorId(id);
     if (!tipo) {
@@ -47,32 +47,41 @@ export class TipoMembresiaController {
 
   // ✅ Crear (admin o recepcionista)
   @Post()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('administrador', 'recepcionista')
-crear(@Body() data: CreateTipoMembresiaDto, @Req() req: Request): Promise<TipoMembresia> {
-  return this.tipoMembresiaService.crear(data, req);
-}
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('administrador', 'recepcionista')
+  crear(
+    @Body() data: CreateTipoMembresiaDto,
+    @Req() req: Request,
+  ): Promise<TipoMembresia> {
+    return this.tipoMembresiaService.crear(data, req);
+  }
 
   // ✅ Actualizar (admin o recepcionista)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrador', 'recepcionista')
   @Put(':id')
- actualizar(@Param('id', ParseIntPipe) id: number, @Body() data: UpdateTipoMembresiaDto, @Req() req: Request): Promise<TipoMembresia> {
-  return this.tipoMembresiaService.actualizar(id, data, req);
-}
+  actualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() data: UpdateTipoMembresiaDto,
+    @Req() req: Request,
+  ): Promise<TipoMembresia> {
+    return this.tipoMembresiaService.actualizar(id, data, req);
+  }
 
   // ✅ Eliminar (admin o recepcionista)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrador', 'recepcionista')
   @Delete(':id')
-  eliminar(@Param('id', ParseIntPipe) id: number, @Req() req: Request): Promise<{ mensaje: string }> {
-  return this.tipoMembresiaService.eliminar(id, req);
-}
+  eliminar(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ): Promise<{ mensaje: string }> {
+    return this.tipoMembresiaService.eliminar(id, req);
+  }
 
-@UseGuards(JwtAuthGuard)
-@Get('con-promocion-activa')
-async obtenerConPromocionActiva(): Promise<TipoMembresia[]> {
-  return this.tipoMembresiaService.obtenerConPromocionActiva();
-}
-
+  @UseGuards(JwtAuthGuard)
+  @Get('con-promocion-activa')
+  async obtenerConPromocionActiva(): Promise<TipoMembresia[]> {
+    return this.tipoMembresiaService.obtenerConPromocionActiva();
+  }
 }

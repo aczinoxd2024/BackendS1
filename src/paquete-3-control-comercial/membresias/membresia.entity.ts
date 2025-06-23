@@ -11,8 +11,6 @@ import { DetallePago } from 'pagos/detalle-pago/detalle-pago.entity';
 import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
 import { TipoMembresia } from '../membresias/Tipos/tipo_membresia.entity';
 
-
-
 @Entity('membresia')
 export class Membresia {
   @PrimaryGeneratedColumn()

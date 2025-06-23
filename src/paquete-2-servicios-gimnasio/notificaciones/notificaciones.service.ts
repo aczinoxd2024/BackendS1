@@ -91,7 +91,8 @@ export class NotificacionesService {
     const membresias = await this.membresiaRepo
       .createQueryBuilder('m')
       .leftJoinAndSelect('m.cliente', 'cliente')
-      .leftJoin('m.tipo', 'tipo') // 👈 Agregamos esta línea para traer el nombre del tipo
+      .leftJoin('m.tipo', 'tipo')
+
       .where('m.FechaFin BETWEEN :hoy AND :tresDias', {
         hoy: hoy.toISOString().split('T')[0],
         tresDias: tresDiasDespues.toISOString().split('T')[0],
@@ -104,7 +105,7 @@ export class NotificacionesService {
         'm.FechaFin AS FechaFin',
         'm.TipoMembresiaID AS TipoMembresiaID',
         'm.PlataformaWeb AS PlataformaWeb',
-        'tipo.Nombre AS tipoNombre', // 👈 Aquí obtenemos el nombre real
+        'tipo.NombreTipo AS tipoNombre',
       ])
       .addSelect(`DATEDIFF(m.FechaFin, CURDATE())`, 'diasRestantes') // 👈 Esto calcula directamente los días
       .getRawMany();
