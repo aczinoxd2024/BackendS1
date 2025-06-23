@@ -509,6 +509,7 @@ if (!ultimaMembresia) {
       order: { Fecha: 'DESC' },
     });
   }
+  
 
   //SE ANADIO ESTA FUNCION PARA OBTENER INFO DEL PAGO PARA LUEGO GENERAR EL COMPROBANTE DESDE FRONT
   async obtenerInfoPagoDesdeSession(
