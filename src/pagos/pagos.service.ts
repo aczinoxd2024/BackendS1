@@ -144,7 +144,7 @@ export class PagosService {
         {
           text: `Fecha del Pago: ${new Date(pago.Fecha).toLocaleDateString()}`,
         },
-        { text: `Monto Pagado: $${(+pago.Monto).toFixed(2)} USD` },
+        { text: `Monto Pagado: $${(+pago.Monto).toFixed(2)} BOB` },
         { text: `Método de Pago: ${metodoNombre}` },
         { text: `Número de Comprobante: #${pago.NroPago}` },
         {
