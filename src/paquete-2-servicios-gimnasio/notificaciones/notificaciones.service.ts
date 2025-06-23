@@ -8,6 +8,13 @@ import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { Membresia } from '../../paquete-3-control-comercial/membresias/membresia.entity';
 import { TipoMembresia } from '../../paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
 
+// Define la interfaz EmailResult directamente en este archivo
+export interface EmailResult {
+  recipient: string;
+  status: 'success' | 'failed';
+  message: string;
+}
+
 @Injectable()
 export class NotificacionesService {
   constructor(
@@ -25,14 +32,23 @@ export class NotificacionesService {
   ) {}
 
   private esCorreoGmailValido(correo: string): boolean {
-    // Expresión regular estricta para correos @gmail.com válidos
     const regex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     return regex.test(correo);
   }
 
+  // Nueva función de guardia de tipo para manejar errores
+  private isErrorWithMessage(error: unknown): error is { message: string } {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof (error as { message: unknown }).message === 'string'
+    );
+  }
+
   async sendMembershipExpirationAlerts(
     daysBeforeExpiration: number,
-  ): Promise<string> {
+  ): Promise<EmailResult[]> {
     const today = new Date();
     const alertDate = new Date();
     alertDate.setDate(today.getDate() + daysBeforeExpiration);
@@ -45,7 +61,7 @@ export class NotificacionesService {
       relations: ['cliente'],
     });
 
-    let enviados = 0;
+    const results: EmailResult[] = [];
 
     for (const m of expiring) {
       const persona = await this.personaRepo.findOne({
@@ -74,15 +90,39 @@ export class NotificacionesService {
               <br><p><strong>GoFit GYM</strong></p>
             `,
           });
-          enviados++;
-        } catch (error) {
+          results.push({
+            recipient: usuario.correo,
+            status: 'success',
+            message: 'Correo enviado exitosamente.',
+          });
+        } catch (error: unknown) {
+          let errorMessage = 'Error desconocido al enviar correo.';
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else if (this.isErrorWithMessage(error)) {
+            // Usar la nueva guardia de tipo
+            errorMessage = error.message;
+          }
           console.error(`❌ Error al enviar a ${usuario.correo}:`, error);
+          results.push({
+            recipient: usuario.correo,
+            status: 'failed',
+            message: `Error: ${errorMessage}`,
+          });
         }
+      } else {
+        results.push({
+          recipient: usuario?.correo || 'Correo no disponible',
+          status: 'failed',
+          message:
+            'No se envió: correo no válido o datos de usuario incompletos.',
+        });
       }
     }
 
-    return `✔️ Correos enviados: ${enviados}`;
+    return results;
   }
+
   async obtenerMembresiasProximasAVencer(): Promise<any[]> {
     const hoy = new Date();
     const tresDiasDespues = new Date();
@@ -92,7 +132,6 @@ export class NotificacionesService {
       .createQueryBuilder('m')
       .leftJoinAndSelect('m.cliente', 'cliente')
       .leftJoin('m.tipo', 'tipo')
-
       .where('m.FechaFin BETWEEN :hoy AND :tresDias', {
         hoy: hoy.toISOString().split('T')[0],
         tresDias: tresDiasDespues.toISOString().split('T')[0],
@@ -107,7 +146,7 @@ export class NotificacionesService {
         'm.PlataformaWeb AS PlataformaWeb',
         'tipo.NombreTipo AS tipoNombre',
       ])
-      .addSelect(`DATEDIFF(m.FechaFin, CURDATE())`, 'diasRestantes') // 👈 Esto calcula directamente los días
+      .addSelect(`DATEDIFF(m.FechaFin, CURDATE())`, 'diasRestantes')
       .getRawMany();
 
     return membresias;
@@ -116,9 +155,9 @@ export class NotificacionesService {
   async sendPromotionalEmail(
     subject: string,
     htmlContent: string,
-  ): Promise<string> {
+  ): Promise<EmailResult[]> {
     const clientes = await this.clienteRepo.find();
-    let enviados = 0;
+    const results: EmailResult[] = [];
 
     for (const c of clientes) {
       const persona = await this.personaRepo.findOne({ where: { CI: c.CI } });
@@ -137,13 +176,36 @@ export class NotificacionesService {
             subject,
             html: htmlContent,
           });
-          enviados++;
-        } catch (error) {
+          results.push({
+            recipient: usuario.correo,
+            status: 'success',
+            message: 'Correo promocional enviado exitosamente.',
+          });
+        } catch (error: unknown) {
+          let errorMessage = 'Error desconocido al enviar correo promocional.';
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          } else if (this.isErrorWithMessage(error)) {
+            // Usar la nueva guardia de tipo
+            errorMessage = error.message;
+          }
           console.error(`❌ Falló enviar a ${usuario.correo}:`, error);
+          results.push({
+            recipient: usuario.correo,
+            status: 'failed',
+            message: `Error: ${errorMessage}`,
+          });
         }
+      } else {
+        results.push({
+          recipient: usuario?.correo || 'Correo no disponible',
+          status: 'failed',
+          message:
+            'No se envió: correo no válido o datos de usuario incompletos.',
+        });
       }
     }
 
-    return `📢 Promociones enviadas: ${enviados}`;
+    return results;
   }
 }
