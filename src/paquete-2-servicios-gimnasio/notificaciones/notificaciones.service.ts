@@ -91,25 +91,26 @@ export class NotificacionesService {
     const membresias = await this.membresiaRepo
       .createQueryBuilder('m')
       .leftJoinAndSelect('m.cliente', 'cliente')
+      .leftJoin('m.tipo', 'tipo')
+
       .where('m.FechaFin BETWEEN :hoy AND :tresDias', {
         hoy: hoy.toISOString().split('T')[0],
         tresDias: tresDiasDespues.toISOString().split('T')[0],
       })
       .andWhere("m.PlataformaWeb != 'Incluida'")
       .orderBy('m.FechaFin', 'ASC')
-      .getMany();
+      .select([
+        'm.IDMembresia AS IDMembresia',
+        'm.CICliente AS CICliente',
+        'm.FechaFin AS FechaFin',
+        'm.TipoMembresiaID AS TipoMembresiaID',
+        'm.PlataformaWeb AS PlataformaWeb',
+        'tipo.NombreTipo AS tipoNombre',
+      ])
+      .addSelect(`DATEDIFF(m.FechaFin, CURDATE())`, 'diasRestantes') // 👈 Esto calcula directamente los días
+      .getRawMany();
 
-    return membresias.map((m) => ({
-      IDMembresia: m.IDMembresia,
-      CICliente: m.CICliente,
-      FechaFin: m.FechaFin,
-      TipoMembresiaID: m.TipoMembresiaID,
-      PlataformaWeb: m.PlataformaWeb,
-      diasRestantes: Math.ceil(
-        (new Date(m.FechaFin).getTime() - hoy.getTime()) /
-          (1000 * 60 * 60 * 24),
-      ),
-    }));
+    return membresias;
   }
 
   async sendPromotionalEmail(

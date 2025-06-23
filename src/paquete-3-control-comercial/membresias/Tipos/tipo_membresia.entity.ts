@@ -1,4 +1,10 @@
-import {Entity,PrimaryGeneratedColumn,Column,ManyToOne,JoinColumn,} from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Promocion } from '../../promociones/promocion.entity';
 
 @Entity('tipo_membresia')
@@ -22,11 +28,10 @@ export class TipoMembresia {
   Beneficios: string;
 
   // 🔗 Relación con Promoción
-@ManyToOne(() => Promocion, { nullable: true, eager: true }) // ← eager para que cargue automáticamente
-@JoinColumn({ name: 'IDPromocion' })
-promocion?: Promocion;
+  @ManyToOne(() => Promocion, { nullable: true, eager: true }) // ← eager para que cargue automáticamente
+  @JoinColumn({ name: 'IDPromocion' })
+  promocion?: Promocion;
 
-
-@Column({ nullable: true })
-IDPromocion?: number;
+  @Column({ nullable: true })
+  IDPromocion?: number;
 }
