@@ -33,7 +33,6 @@ export class TipoMembresiaController {
   }
 
   // ✅ Público autenticado: obtener por ID
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async obtenerPorId(
     @Param('id', ParseIntPipe) id: number
