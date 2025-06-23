@@ -19,6 +19,8 @@ import { Bitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora.entity';
 import { MailerService } from '@nestjs-modules/mailer';
 // ✅ Importación de pdfmake y asignación de fuentes VFS
 import pdfMake from '../utils/pdf.config';
+import { TDocumentDefinitions } from 'pdfmake/interfaces';
+
 
 @Injectable()
 export class PagosService {
@@ -52,129 +54,194 @@ export class PagosService {
     private readonly mailerService: MailerService,
   ) {}
 
-  async generarComprobantePDF(nroPago: number): Promise<Buffer> {
-    const pago = await this.pagosRepository.findOne({
-      where: { NroPago: nroPago },
-    });
-    if (!pago) throw new NotFoundException('Pago no encontrado');
+async generarComprobantePDF(nroPago: number): Promise<Buffer> {
+  const pago = await this.pagosRepository.findOne({
+    where: { NroPago: nroPago },
+  });
+  if (!pago) throw new NotFoundException('Pago no encontrado');
 
-    const detalles = await this.detallePagoRepository.find({
-      where: { IDPago: nroPago },
-      relations: ['membresia', 'clase'],
-    });
-    if (!detalles || detalles.length === 0)
-      throw new NotFoundException('Detalle de pago no encontrado');
+  const detalles = await this.detallePagoRepository.find({
+    where: { IDPago: nroPago },
+    relations: ['membresia', 'clase'],
+  });
+  if (!detalles || detalles.length === 0)
+    throw new NotFoundException('Detalle de pago no encontrado');
 
-    const detalle = detalles[0];
-    const persona = await this.personaRepository.findOne({
-      where: { CI: pago.CIPersona },
-    });
-    if (!persona) throw new NotFoundException('Persona no encontrada');
+  const detalle = detalles[0];
+  const persona = await this.personaRepository.findOne({
+    where: { CI: pago.CIPersona },
+  });
+  if (!persona) throw new NotFoundException('Persona no encontrada');
 
-    const usuario = await this.usuarioRepository.findOne({
-      where: { idPersona: { CI: persona.CI } },
-    });
-    const membresia = detalle.membresia;
-    const tipo = membresia?.TipoMembresiaID
-      ? await this.tipoMembresiaRepository.findOne({
-          where: { ID: membresia.TipoMembresiaID },
-        })
-      : null;
-    const clase = detalle.clase;
+  const usuario = await this.usuarioRepository.findOne({
+    where: { idPersona: { CI: persona.CI } },
+  });
+  const membresia = detalle.membresia;
+  const tipo = membresia?.TipoMembresiaID
+    ? await this.tipoMembresiaRepository.findOne({
+        where: { ID: membresia.TipoMembresiaID },
+      })
+    : null;
+  const clase = detalle.clase;
 
-    let metodoNombre = 'Desconocido';
-    switch (pago.MetodoPago) {
-      case 1:
-        metodoNombre = 'Efectivo';
-        break;
-      case 2:
-        metodoNombre = 'Tarjeta';
-        break;
-      case 3:
-        metodoNombre = 'Transferencia';
-        break;
-      case 4:
-        metodoNombre = 'Pago en Línea';
-        break;
-      default:
-        metodoNombre = 'Otro';
-    }
-
-    const membresiasPrevias = await this.membresiaRepository.find({
-      where: { CICliente: pago.CIPersona },
-      order: { FechaFin: 'DESC' },
-    });
-
-    let tipoAccion = 'Nueva membresía';
-    const membresiasAnteriores = membresiasPrevias.filter(
-      (m) =>
-        m.IDMembresia !== membresia?.IDMembresia &&
-        new Date(m.FechaFin) >= new Date(membresia.FechaInicio),
-    );
-
-    if (membresiasAnteriores.length > 0) {
-      const ultimaMembresia = membresiasAnteriores[0];
-      const mismaFecha =
-        new Date(ultimaMembresia.FechaFin).toDateString() ===
-        new Date(membresia.FechaInicio).toDateString();
-
-      if (
-        ultimaMembresia.TipoMembresiaID === membresia.TipoMembresiaID &&
-        mismaFecha
-      ) {
-        tipoAccion = 'Extensión de membresía';
-      } else if (
-        ultimaMembresia.TipoMembresiaID !== membresia.TipoMembresiaID &&
-        mismaFecha
-      ) {
-        tipoAccion = 'Cambio de tipo de membresía';
-      }
-    }
-
-    const fechaInicio = new Date(membresia.FechaInicio);
-    const fechaFin = new Date(membresia.FechaFin);
-
-    const docDefinition = {
-      content: [
-        { text: '🏋️‍ Comprobante de Pago - GoFit GYM', style: 'header' },
-        '\n',
-        { text: `Cliente: ${persona.Nombre} ${persona.Apellido}` },
-        { text: `CI: ${persona.CI}` },
-        { text: `Correo: ${usuario?.correo ?? 'N/D'}` },
-        {
-          text: `Fecha del Pago: ${new Date(pago.Fecha).toLocaleDateString()}`,
-        },
-        { text: `Monto Pagado: $${(+pago.Monto).toFixed(2)} BOB` },
-        { text: `Método de Pago: ${metodoNombre}` },
-        { text: `Número de Comprobante: #${pago.NroPago}` },
-        {
-          text: `Tipo de acción: ${tipoAccion === 'Cambio de tipo de membresía' ? 'Cambio de tipo (Básica → Gold, etc.)' : tipoAccion}`,
-        },
-        '\n',
-        { text: '🧾 Detalles:' },
-        { text: `Membresía: ${tipo?.NombreTipo ?? 'Sin membresía'}` },
-        { text: `Plataforma: ${membresia?.PlataformaWeb ?? 'N/A'}` },
-        { text: `Duración: ${tipo?.DuracionDias ?? '-'} días` },
-        { text: `Fecha Inicio: ${fechaInicio.toLocaleDateString()}` },
-        { text: `Fecha Fin: ${fechaFin.toLocaleDateString()}` },
-        { text: `Clase incluida: ${clase?.Nombre ?? 'Ninguna'}` },
-      ],
-      styles: {
-        header: {
-          fontSize: 18,
-          bold: true,
-          alignment: 'center' as const,
-        },
-      },
-    };
-
-    return new Promise((resolve) => {
-      const pdfDoc = pdfMake.createPdf(docDefinition);
-      pdfDoc.getBuffer((buffer: Buffer) => {
-        resolve(buffer);
-      });
-    });
+  let metodoNombre = 'Desconocido';
+  switch (pago.MetodoPago) {
+    case 1:
+      metodoNombre = 'Efectivo';
+      break;
+    case 2:
+      metodoNombre = 'Tarjeta';
+      break;
+    case 3:
+      metodoNombre = 'Transferencia';
+      break;
+    case 4:
+      metodoNombre = 'Pago en Línea';
+      break;
+    default:
+      metodoNombre = 'Otro';
   }
+
+  const membresiasPrevias = await this.membresiaRepository.find({
+    where: { CICliente: pago.CIPersona },
+    order: { FechaFin: 'DESC' },
+  });
+
+  let tipoAccion = 'Nueva membresía';
+  const membresiasAnteriores = membresiasPrevias.filter(
+    (m) =>
+      m.IDMembresia !== membresia?.IDMembresia &&
+      new Date(m.FechaFin) >= new Date(membresia.FechaInicio),
+  );
+
+  if (membresiasAnteriores.length > 0) {
+    const ultimaMembresia = membresiasAnteriores[0];
+    const mismaFecha =
+      new Date(ultimaMembresia.FechaFin).toDateString() ===
+      new Date(membresia.FechaInicio).toDateString();
+
+    if (
+      ultimaMembresia.TipoMembresiaID === membresia.TipoMembresiaID &&
+      mismaFecha
+    ) {
+      tipoAccion = 'Extensión de membresía';
+    } else if (
+      ultimaMembresia.TipoMembresiaID !== membresia.TipoMembresiaID &&
+      mismaFecha
+    ) {
+      tipoAccion = 'Cambio de tipo de membresía';
+    }
+  }
+
+  const fechaInicio = new Date(membresia.FechaInicio);
+  const fechaFin = new Date(membresia.FechaFin);
+
+ const docDefinition: TDocumentDefinitions = {
+  content: [
+    {
+      columns: [
+        { width: '*', text: '' },
+        {
+          width: 'auto',
+          text: '🏋️‍ Comprobante de Pago',
+          style: 'header',
+        },
+        { width: '*', text: '' },
+      ],
+    },
+    { text: 'GoFit GYM', style: 'subheader', alignment: 'center' },
+    { text: '\n' },
+    {
+      table: {
+        widths: ['*', '*'],
+        body: [
+          [
+            { text: 'Nombre del Cliente:', bold: true },
+            `${persona.Nombre} ${persona.Apellido}`,
+          ],
+          [{ text: 'CI:', bold: true }, `${persona.CI}`],
+          [
+            { text: 'Correo:', bold: true },
+            `${usuario?.correo ?? 'N/D'}`,
+          ],
+          [
+            { text: 'Fecha del Pago:', bold: true },
+            `${new Date(pago.Fecha).toLocaleDateString('es-BO')}`,
+          ],
+          [
+            { text: 'Monto Pagado:', bold: true },
+            `${(+pago.Monto).toFixed(2)} BOB`,
+          ],
+          [
+            { text: 'Método de Pago:', bold: true },
+            `${metodoNombre}`,
+          ],
+          [
+            { text: 'N° Comprobante:', bold: true },
+            `#${pago.NroPago}`,
+          ],
+          [
+            { text: 'Tipo de Acción:', bold: true },
+            tipoAccion === 'Cambio de tipo de membresía'
+              ? 'Cambio de tipo (Básica → Gold, etc.)'
+              : tipoAccion,
+          ],
+        ],
+      },
+      layout: 'lightHorizontalLines',
+    },
+    { text: '\n\n' },
+    { text: '📋 Detalles de Membresía', style: 'sectionHeader' },
+    {
+      ul: [
+        `Membresía: ${tipo?.NombreTipo ?? 'Sin membresía'}`,
+        `Plataforma: ${membresia?.PlataformaWeb ?? 'N/A'}`,
+        `Duración: ${tipo?.DuracionDias ?? '-'} días`,
+        `Fecha Inicio: ${fechaInicio.toLocaleDateString('es-BO')}`,
+        `Fecha Fin: ${fechaFin.toLocaleDateString('es-BO')}`,
+        `Clase incluida: ${clase?.Nombre ?? 'Ninguna'}`,
+      ],
+    },
+    { text: '\n\n' },
+    {
+      text:
+        'Gracias por tu confianza.\nEste documento es una constancia válida de tu transacción.\nNos vemos en GoFit GYM 💪',
+      style: 'footer',
+      alignment: 'center',
+    },
+  ],
+  styles: {
+    header: {
+      fontSize: 18,
+      bold: true,
+    },
+    subheader: {
+      fontSize: 14,
+      bold: true,
+      margin: [0, 0, 0, 10],
+    },
+    sectionHeader: {
+      fontSize: 13,
+      bold: true,
+      margin: [0, 10, 0, 5],
+    },
+    footer: {
+      fontSize: 10,
+      italics: true,
+      color: 'gray',
+    },
+  },
+};
+
+return new Promise((resolve) => {
+  const pdfDoc = pdfMake.createPdf(docDefinition);
+  pdfDoc.getBuffer((buffer: Buffer) => {
+    resolve(buffer);
+  });
+});
+
+}
+
 
   // ✅ enviarComprobantePorCorreo (con mejoras de fecha de membresía)
   async enviarComprobantePorCorreo(nroPago: number): Promise<void> {
