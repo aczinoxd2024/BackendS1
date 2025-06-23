@@ -28,22 +28,16 @@ export class ReportesEstadisticasController {
   }
 
 
-  @Get('asistencias-personal')
-  @Roles('Administrador')
-  async obtenerAsistenciasPorCargo(
-    @Query('cargo') cargo: string,
-    @Query('inicio') inicio: string,
-    @Query('fin') fin: string,
-  ) {
-    if (!cargo || !inicio || !fin) {
-      throw new BadRequestException(
-        'Debe proporcionar cargo, inicio y fin como parámetros',
-      );
-    }
+@Get('asistencias-personal')
+@Roles('Administrador')
+async obtenerAsistenciasPorCargo(
+  @Query('cargo') cargo?: string,
+  @Query('inicio') inicio?: string,
+  @Query('fin') fin?: string,
+) {
+  return this.service.obtenerAsistenciasPorCargo(cargo, inicio, fin);
+}
 
-   return this.service.obtenerAsistenciasPorCargo(cargo, inicio, fin);
-
-  }
 
 @Get('clases/reporte')
 @Roles('Administrador')

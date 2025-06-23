@@ -119,33 +119,32 @@ private readonly personaRepo: Repository<Persona>,
     }));
   }
 
-async obtenerAsistenciasPorCargo(cargo: string, inicio: string, fin: string) {
-  // Obtener personal según el cargo (verifica mayúsculas en cargo)
- const personas = await this.personalRepo
-  .createQueryBuilder('p')
-  .where('LOWER(p.Cargo) LIKE LOWER(:cargo)', { cargo: `%${cargo}%` })
-  .getMany();
-
-  const ciList = personas.map((p) => p.CI);
-  if (ciList.length === 0) {
-    console.log('⚠️ No se encontró personal con ese cargo');
-    return [];
-  }
-
-  console.log('✅ CI encontrados:', ciList);
-
-  const asistencias = await this.asistenciaRepo
+async obtenerAsistenciasPorCargo(cargo?: string, inicio?: string, fin?: string) {
+  let query = this.asistenciaRepo
     .createQueryBuilder('a')
     .leftJoinAndSelect('a.persona', 'persona')
-    .leftJoinAndSelect('a.responsable', 'responsable')
-    .where('a.ci IN (:...ciList)', { ciList })
-    .andWhere('a.fecha BETWEEN :inicio AND :fin', { inicio, fin })
-    .orderBy('a.fecha', 'DESC')
-    .getMany();
+    .leftJoinAndSelect('a.responsable', 'responsable');
 
-  console.log(`🎯 Resultados: ${asistencias.length}`);
+  if (cargo) {
+    const personas = await this.personalRepo
+      .createQueryBuilder('p')
+      .where('LOWER(p.Cargo) LIKE LOWER(:cargo)', { cargo: `%${cargo}%` })
+      .getMany();
 
-  return asistencias;
+    const ciList = personas.map((p) => p.CI);
+    if (ciList.length === 0) {
+      console.log('⚠️ No se encontró personal con ese cargo');
+      return [];
+    }
+
+    query = query.andWhere('a.ci IN (:...ciList)', { ciList });
+  }
+
+  if (inicio && fin) {
+    query = query.andWhere('a.fecha BETWEEN :inicio AND :fin', { inicio, fin });
+  }
+
+  return query.orderBy('a.fecha', 'DESC').getMany();
 }
 
 
