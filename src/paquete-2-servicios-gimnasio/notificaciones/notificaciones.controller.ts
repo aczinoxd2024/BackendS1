@@ -1,11 +1,9 @@
-import { Roles } from './../../paquete-1-usuarios-accesos/auth/roles/roles.decorator';
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { NotificacionesService } from './notificaciones.service';
-
-import { UseGuards } from '@nestjs/common';
-
-import { JwtAuthGuard } from '@auth/jwt.auth.guard';
-import { RolesGuard } from '@auth/roles/roles.guard';
+import { Roles } from './../../paquete-1-usuarios-accesos/auth/roles/roles.decorator';
+// Importaciones corregidas para JwtAuthGuard y RolesGuard
+import { JwtAuthGuard } from './../../paquete-1-usuarios-accesos/auth/jwt.auth.guard';
+import { RolesGuard } from './../../paquete-1-usuarios-accesos/auth/roles/roles.guard';
 
 @Controller('notificaciones')
 export class NotificacionesController {
@@ -49,7 +47,8 @@ export class NotificacionesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('recepcionista') // Asegura que solo los recepcionistas puedan acceder
   async obtenerMembresiasProximasAVencer() {
-    return this.notificacionesService.obtenerMembresiasProximasAVencer();
+    // CORRECCIÓN: Se añadió 'await' aquí para satisfacer la regla 'require-await' de ESLint
+    return await this.notificacionesService.obtenerMembresiasProximasAVencer();
   }
 
   @Post('notificar-vencimientos')
