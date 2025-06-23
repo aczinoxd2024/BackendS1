@@ -8,6 +8,7 @@ import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
 import { Reserva } from 'paquete-2-servicios-gimnasio/reservas/reserva.entity';
 import { Membresia } from 'membresias/membresia.entity';
 import { TipoMembresia } from 'membresias/Tipos/tipo_membresia.entity';
+import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
 
 
 @Injectable()
@@ -33,6 +34,9 @@ export class ReportesEstadisticasService {
 
     @InjectRepository(Reserva)
 private readonly reservasRepository: Repository<Reserva>,
+
+@InjectRepository(Persona)
+private readonly personaRepo: Repository<Persona>,
 
   ) {}
 
@@ -274,5 +278,30 @@ async generarReporteReservasClases(fechaInicio?: string, fechaFin?: string) {
     HoraFin: r.horario_HoraFin,
   }));
 }
+
+async obtenerNombresInstructoresUnicos(): Promise<string[]> {
+  const clases = await this.claseRepo.find({
+    relations: [
+      'claseInstructores',
+      'claseInstructores.instructor',
+      'claseInstructores.instructor.persona',
+    ],
+  });
+
+  const nombresSet = new Set<string>();
+
+  for (const clase of clases) {
+    for (const ci of clase.claseInstructores) {
+      const persona = ci.instructor.persona;
+      if (persona) {
+        const nombreCompleto = `${persona.Nombre} ${persona.Apellido}`;
+        nombresSet.add(nombreCompleto);
+      }
+    }
+  }
+
+  return Array.from(nombresSet);
+}
+
 
 }
