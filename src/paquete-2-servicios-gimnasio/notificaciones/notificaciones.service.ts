@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-// Asegúrate de importar Between, Not, IsNull, y And
 import {
   Repository,
   Raw,
@@ -75,7 +74,7 @@ export class NotificacionesService {
       where: {
         FechaFin: LessThanOrEqual(alertDate),
         PlataformaWeb: Raw((alias) => `${alias} != 'Incluida'`),
-        CICliente: And(Not(IsNull()), Not('')), // CICliente válido
+        CICliente: And(Not(IsNull()), Not('')),
       },
       relations: ['cliente', 'tipo'],
     });
@@ -87,10 +86,6 @@ export class NotificacionesService {
           clientsToNotify.set(m.CICliente, []);
         }
         clientsToNotify.get(m.CICliente)!.push(m);
-      } else {
-        console.warn(
-          `⚠️ Membresía ${m.IDMembresia} descartada: CICliente vacío.`,
-        );
       }
     }
 
@@ -115,11 +110,7 @@ export class NotificacionesService {
               (new Date(m.FechaFin).getTime() - today.getTime()) /
                 (1000 * 60 * 60 * 24),
             );
-            return `<li>
-            Membresía: <strong>${m.tipo?.NombreTipo || 'Desconocido'}</strong> -
-            Vence el: <strong>${new Date(m.FechaFin).toLocaleDateString('es-BO')}</strong>
-            (<strong>${diasRestantes} día(s)</strong> restante${diasRestantes !== 1 ? 's' : ''}).
-          </li>`;
+            return `<li>Membresía: <strong>${m.tipo?.NombreTipo || 'Desconocido'}</strong> - Vence el: <strong>${new Date(m.FechaFin).toLocaleDateString('es-BO')}</strong> (<strong>${diasRestantes} día(s)</strong> restante${diasRestantes !== 1 ? 's' : ''}).</li>`;
           })
           .join('');
 
@@ -128,28 +119,23 @@ export class NotificacionesService {
             to: usuario.correo,
             subject: `🔔 Alerta de Vencimiento: Tu(s) membresía(s) GoFit está(n) por vencer`,
             html: `
-            <div style="text-align: center;">
-              <img src="cid:gofit-banner" alt="GoFit GYM" style="max-width: 100%; height: auto; border-radius: 10px;" />
-            </div>
-            <p>Hola <strong>${persona.Nombre} ${persona.Apellido}</strong>,</p>
-            <p>Queremos recordarte que la(s) siguiente(s) membresía(s) que tienes con GoFit GYM está(n) próxima(s) a vencer:</p>
-            <ul>${membershipsSummary}</ul>
-            <p>Puedes renovar fácilmente tu membresía haciendo clic en el siguiente botón:</p>
-            <p>
-              <a href="https://proyectosis120252.netlify.app/renovar-membresia?ci=${ciCliente}" 
-                style="background-color: #ff4b5c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                Renovar Membresía
-              </a>
-            </p>
-            <p>O si lo prefieres, visítanos en la recepción del gimnasio.</p>
-            <br><p>¡Gracias por ser parte de la comunidad GoFit GYM! 💪</p>
-          `,
+              <div style="text-align: center;">
+                <img src="cid:gofit-banner" alt="GoFit GYM" style="max-width: 100%; height: auto; border-radius: 10px;" />
+              </div>
+              <p>Hola <strong>${persona.Nombre} ${persona.Apellido}</strong>,</p>
+              <p>Queremos recordarte que la(s) siguiente(s) membresía(s) que tienes con GoFit GYM está(n) próxima(s) a vencer:</p>
+              <ul>${membershipsSummary}</ul>
+              <p>Puedes renovar fácilmente tu membresía haciendo clic en el siguiente botón:</p>
+              <p><a href="https://proyectosis120252.netlify.app/renovar-membresia?ci=${ciCliente}" style="background-color: #ff4b5c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Renovar Membresía</a></p>
+              <p>O si lo prefieres, visítanos en la recepción del gimnasio.</p>
+              <br><p>¡Gracias por ser parte de la comunidad GoFit GYM! 💪</p>
+            `,
             attachments: [
               {
                 filename: 'gofit-banner.png',
                 path: path.resolve(
-                  __dirname,
-                  '../../assets/images/gofit-banner.png',
+                  process.cwd(),
+                  'public/images/gofit-banner.png',
                 ),
                 cid: 'gofit-banner',
               },
@@ -179,17 +165,15 @@ export class NotificacionesService {
         results.push({
           recipient: usuario?.correo || 'Correo no disponible',
           status: 'failed',
-          message: `No se envió: ${
-            usuario?.correo
-              ? 'correo no válido o no es Gmail'
-              : 'datos incompletos'
-          }.`,
+          message: `No se envió: ${usuario?.correo ? 'correo no válido o no es Gmail' : 'datos incompletos'}.`,
         });
       }
     }
 
     return results;
   }
+
+  // Los otros métodos (sendPromotionalEmail, obtenerMembresiasProximasAVencer) permanecen igual y puedes añadirles attachments si deseas.
 
   async sendPromotionalEmail(
     subject: string,
