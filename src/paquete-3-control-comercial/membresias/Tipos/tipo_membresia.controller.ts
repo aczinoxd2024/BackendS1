@@ -27,22 +27,31 @@ export class TipoMembresiaController {
   constructor(private readonly tipoMembresiaService: TipoMembresiaService) {}
 
   // ✅ Público autenticado: obtener todos
-  @Get()
-  obtenerTipos(): Promise<TipoMembresia[]> {
-    return this.tipoMembresiaService.obtenerTipos();
+@Get(':id')
+async obtenerPorId(
+  @Param('id', ParseIntPipe) id: number,
+): Promise<any> {
+  const tipo = await this.tipoMembresiaService.obtenerPorId(id);
+  if (!tipo) {
+    throw new NotFoundException('Tipo de membresía no encontrado');
   }
 
-  // ✅ Público autenticado: obtener por ID
-  @Get(':id')
-  async obtenerPorId(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<TipoMembresia> {
-    const tipo = await this.tipoMembresiaService.obtenerPorId(id);
-    if (!tipo) {
-      throw new NotFoundException('Tipo de membresía no encontrado');
+  let clasesArray: number[] = [];
+
+  if (tipo.Clases) {
+    try {
+      clasesArray = JSON.parse(tipo.Clases);
+    } catch (error) {
+      console.warn('Error al parsear Clases:', error);
     }
-    return tipo;
   }
+
+  return {
+    ...tipo,
+    Clases: clasesArray, // 👈 aquí lo sobrescribimos como array solo para la respuesta
+  };
+}
+
 
   // ✅ Crear (admin o recepcionista)
   @Post()
