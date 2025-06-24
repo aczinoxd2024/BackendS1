@@ -28,9 +28,9 @@ export class UpdateTipoMembresiaDto {
 IDPromocion?: number;
 
 @IsOptional()
-clases?: number[];
+Clases?: number[];
 
 @IsOptional()
-cantidadClasesCliente?: number;
+CantidadClasesCliente?: number;
 
 }

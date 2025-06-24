@@ -31,7 +31,7 @@ export class TipoMembresiaService {
   }
 
   async obtenerPorId(id: number): Promise<TipoMembresia> {
-    const tipo = await this.tipoRepo.findOne({ where: { id } })
+    const tipo = await this.tipoRepo.findOne({ where: { ID: id } })
     if (!tipo) throw new NotFoundException('Tipo de membresía no encontrado');
     return tipo;
   }
@@ -57,14 +57,14 @@ async crear(
 console.log('📥 Data recibida en backend:', data);
   // 🔹 Crear tipo de membresía (sin corchetes)
 const tipo = this.tipoRepo.create({
-  nombreTipo: data.nombreTipo,
-  descripcion: data.descripcion,
-  precio: data.precio,
-  duracionDias: data.duracionDias,
-  beneficios: data.beneficios,
+  NombreTipo: data.NombreTipo,
+  Descripcion: data.Descripcion,
+  Precio: data.Precio,
+  DuracionDias: data.DuracionDias,
+  Beneficios: data.Beneficios,
   IDPromocion: data.IDPromocion ?? undefined,
-  clases: data.clases ? JSON.stringify(data.clases) : undefined,
-  cantidadClasesCliente: data.cantidadClasesCliente ?? undefined
+  Clases: data.Clases ? JSON.stringify(data.Clases) : undefined,
+  CantidadClasesCliente: data.CantidadClasesCliente ?? undefined
 });
 
 console.log('💾 Objeto que se guardará:', tipo);
@@ -108,11 +108,16 @@ console.log('💾 Objeto que se guardará:', tipo);
 
   // Asignar cambios, incluyendo clases y cantidadClasesCliente
   Object.assign(existente, {
-    ...data,
-    IDPromocion: data.IDPromocion ?? existente.IDPromocion,
-    clases: Array.isArray(data.clases) ? JSON.stringify(data.clases) : existente.clases,
-    cantidadClasesCliente: data.cantidadClasesCliente ?? existente.cantidadClasesCliente,
-  });
+  NombreTipo: data.NombreTipo ?? existente.NombreTipo,
+  Descripcion: data.Descripcion ?? existente.Descripcion,
+  Precio: data.Precio ?? existente.Precio,
+  DuracionDias: data.DuracionDias ?? existente.DuracionDias,
+  Beneficios: data.Beneficios ?? existente.Beneficios,
+  IDPromocion: data.IDPromocion ?? existente.IDPromocion,
+  Clases: Array.isArray(data.Clases) ? JSON.stringify(data.Clases) : existente.Clases,
+  CantidadClasesCliente: data.CantidadClasesCliente ?? existente.CantidadClasesCliente,
+});
+
 
   const guardado = await this.tipoRepo.save(existente);
 
@@ -142,7 +147,7 @@ console.log('💾 Objeto que se guardará:', tipo);
     }
 
     return {
-      mensaje: `Tipo de membresía "${tipo.nombreTipo}" eliminado correctamente.`,
+      mensaje: `Tipo de membresía "${tipo.NombreTipo}" eliminado correctamente.`,
 
     };
   }

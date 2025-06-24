@@ -10,22 +10,22 @@ import { Promocion } from '../../promociones-Crud/promocion.entity';
 @Entity('tipo_membresia')
 export class TipoMembresia {
   @PrimaryGeneratedColumn()
-  id: number;
+  ID: number;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  nombreTipo: string;
+  NombreTipo: string;
 
   @Column({ type: 'text', nullable: true })
-  descripcion: string;
+  Descripcion: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  precio: number;
+  Precio: number;
 
   @Column({ type: 'int', nullable: true })
-  duracionDias: number;
+  DuracionDias: number;
 
   @Column({ type: 'text', nullable: true })
-  beneficios: string;
+  Beneficios: string;
 
   @ManyToOne(() => Promocion, { nullable: true, eager: true })
   @JoinColumn({ name: 'IDPromocion' })
@@ -35,9 +35,9 @@ export class TipoMembresia {
   IDPromocion?: number;
 
   @Column({ type: 'text', nullable: true })
-  clases?: string;
+  Clases?: string;
 
   @Column({ type: 'int', nullable: true })
-  cantidadClasesCliente?: number;
+  CantidadClasesCliente?: number;
 }
 
