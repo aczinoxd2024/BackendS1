@@ -11,7 +11,6 @@ import {
   BadRequestException,
   Get,
   Body,
-  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
