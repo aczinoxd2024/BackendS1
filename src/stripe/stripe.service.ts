@@ -543,7 +543,6 @@ async checkoutRenovacion(data: {
   tipoMembresiaId: number;
   correo: string;
 }): Promise<{ url: string }> {
-  // Buscar tipo de membresía desde la BD
   const tipo = await this.tipoMembresiaRepository.findOne({
     where: { ID: data.tipoMembresiaId }
   });
@@ -562,6 +561,7 @@ async checkoutRenovacion(data: {
     metadata: {
       ci: data.ci,
       tipoMembresiaId: data.tipoMembresiaId.toString(),
+      descripcion: nombreTipo, // ✅ esto es lo que faltaba
     },
     line_items: [
       {
@@ -585,7 +585,6 @@ async checkoutRenovacion(data: {
 
   return { url: session.url };
 }
-
 
 
 }
