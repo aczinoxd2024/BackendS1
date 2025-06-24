@@ -53,6 +53,7 @@ import { InventarioUsoModule } from './paquete-4-gestion-administrativa-tecnica/
 import { InventarioResponsableModule } from './paquete-4-gestion-administrativa-tecnica/inventario-responsable/inventario-responsable.module';
 import { ReportesEstadisticasModule } from 'paquete-4-gestion-administrativa-tecnica/reportes-estadisticas/reportes-estadisticas.module';
 import { NotificacionesModule } from 'paquete-2-servicios-gimnasio/notificaciones/notificaciones.module';
+import { PromocionesModule } from 'paquete-2-servicios-gimnasio/promociones/promociones.module';
 
 @Module({
   imports: [
@@ -126,6 +127,7 @@ import { NotificacionesModule } from 'paquete-2-servicios-gimnasio/notificacione
     InventarioResponsableModule,
     ReportesEstadisticasModule,
     NotificacionesModule,
+    PromocionesModule,
   ],
   providers: [
     {

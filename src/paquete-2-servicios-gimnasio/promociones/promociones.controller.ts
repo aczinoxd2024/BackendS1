@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   BadRequestException,
+  Get,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -55,5 +56,11 @@ export class PromocionesController {
   )
   async enviarPromocionConImagen(@UploadedFile() file: Express.Multer.File) {
     return this.promocionesService.enviarCorreosConImagen(file.path);
+  }
+  @Get('clientes-vigentes')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('recepcionista')
+  async listarClientesVigentes(): Promise<any[]> {
+    return await this.promocionesService.obtenerClientesVigentes();
   }
 }
