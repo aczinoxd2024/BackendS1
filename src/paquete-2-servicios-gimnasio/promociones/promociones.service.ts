@@ -50,8 +50,8 @@ export class PromocionesService {
             subject: '¡Promoción exclusiva para ti en GoFit GYM!',
             html: `
   <p>Hola ${c.Nombre} ${c.Apellido},</p>
-  <p>Tu membresía actual es: <b>${c.TipoMembresia}</b>.</p>
   <p>${mensaje}</p>
+  <p>¡Te esperamos en GoFit GYM!</p>
   <img src="cid:promo-img"/>
 `,
 
