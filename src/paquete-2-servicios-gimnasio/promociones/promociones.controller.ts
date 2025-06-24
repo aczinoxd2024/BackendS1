@@ -10,6 +10,8 @@ import {
   UseInterceptors,
   BadRequestException,
   Get,
+  Body,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -28,8 +30,7 @@ export class PromocionesController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
           cb(null, uniqueSuffix + extname(file.originalname));
         },
       }),
@@ -50,17 +51,33 @@ export class PromocionesController {
         }
       },
       limits: {
-        fileSize: 1 * 1024 * 1024, // 1 MB
+        fileSize: 5 * 1024 * 1024, // 5 MB
       },
     }),
   )
-  async enviarPromocionConImagen(@UploadedFile() file: Express.Multer.File) {
-    return this.promocionesService.enviarCorreosConImagen(file.path);
+  async enviarPromocionConImagen(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('mensaje') mensaje: string,
+    @Body('tipoMembresia') tipoMembresia: string, // <-- nuevo campo para filtro
+  ) {
+    if (!file) {
+      throw new BadRequestException('No se proporcionó ninguna imagen.');
+    }
+    if (!mensaje) {
+      throw new BadRequestException('El mensaje promocional es obligatorio.');
+    }
+
+    return this.promocionesService.enviarCorreosConImagen(
+      file.path,
+      mensaje,
+      tipoMembresia,
+    );
   }
+
   @Get('clientes-vigentes')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('recepcionista')
-  async listarClientesVigentes(): Promise<any[]> {
-    return await this.promocionesService.obtenerClientesVigentes();
+  @Roles('recepcionista') // O más roles si deseas permitir a otros
+  async obtenerClientesVigentes() {
+    return this.promocionesService.obtenerClientesVigentes();
   }
 }
