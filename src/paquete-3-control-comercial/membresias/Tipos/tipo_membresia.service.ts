@@ -12,6 +12,9 @@ import { Request } from 'express';
 import { BitacoraService } from 'paquete-1-usuarios-accesos/bitacora/bitacora.service';
 import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
 import { Promocion } from '../../promociones-Crud/promocion.entity';
+import { In } from 'typeorm';
+import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
+
 
 
 @Injectable()
@@ -24,6 +27,10 @@ export class TipoMembresiaService {
 
     @InjectRepository(Promocion)
     private readonly promoRepo: Repository<Promocion>,
+
+    @InjectRepository(Clase)
+private readonly claseRepo: Repository<Clase>,
+
   ) {}
 
   async obtenerTipos(): Promise<TipoMembresia[]> {

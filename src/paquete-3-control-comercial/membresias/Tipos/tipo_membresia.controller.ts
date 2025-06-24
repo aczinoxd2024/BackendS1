@@ -16,15 +16,25 @@ import { CreateTipoMembresiaDto } from '../../dto/create-tipo_membresia.dto';
 import { UpdateTipoMembresiaDto } from '../../dto/update-tipo_membresia.dto';
 import { Request } from 'express';
 import { Req } from '@nestjs/common';
+import { In } from 'typeorm';
+import { Clase } from 'paquete-2-servicios-gimnasio/clases/clase.entity';
+import { Repository, } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+
 
 // 🔐 Guards y Decoradores
 import { JwtAuthGuard } from 'paquete-1-usuarios-accesos/auth/jwt.auth.guard';
 import { RolesGuard } from 'paquete-1-usuarios-accesos/auth/roles/roles.guard';
 import { Roles } from 'paquete-1-usuarios-accesos/auth/roles/roles.decorator';
 
+
 @Controller('tipo_membresia')
 export class TipoMembresiaController {
-  constructor(private readonly tipoMembresiaService: TipoMembresiaService) {}
+  constructor(private readonly tipoMembresiaService: TipoMembresiaService, 
+  @InjectRepository(Clase)
+  private readonly claseRepo: Repository<Clase> ) {}
+
+  
 
   // ✅ Público autenticado: obtener todos
 @Get(':id')
@@ -36,21 +46,24 @@ async obtenerPorId(
     throw new NotFoundException('Tipo de membresía no encontrado');
   }
 
-  let clasesArray: number[] = [];
+ let clasesArray: number[] = [];
+let clasesInfo: Clase[] = [];
 
-  if (tipo.Clases) {
-    try {
-      clasesArray = JSON.parse(tipo.Clases);
-    } catch (error) {
-      console.warn('Error al parsear Clases:', error);
-    }
+if (tipo.Clases) {
+  try {
+    clasesArray = JSON.parse(tipo.Clases);
+    clasesInfo = await this.claseRepo.findBy({ IDClase: In(clasesArray) });
+  } catch (error) {
+    console.warn('Error al parsear Clases:', error);
   }
+}
 
   return {
     ...tipo,
-    Clases: clasesArray, // 👈 aquí lo sobrescribimos como array solo para la respuesta
+    clasesIncluidas: clasesInfo, // ✅ ahora sí definida correctamente
   };
 }
+
 
 
   // ✅ Crear (admin o recepcionista)
