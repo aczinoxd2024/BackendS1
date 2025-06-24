@@ -499,24 +499,24 @@ Adjuntamos el comprobante de tu pago en formato PDF.
       tipoAccion = 'nueva';
     }
 
-    // 💳 Crear pago
-    const nuevoPago = this.pagosRepository.create({
-      Fecha: new Date(),
-      Monto: monto,
-      MetodoPago: metodoPago,
-      CIPersona: ci,
-    });
-    await this.pagosRepository.save(nuevoPago);
+   // 💳 Crear pago
+const nuevoPago = this.pagosRepository.create({
+  Fecha: new Date(),
+  Monto: monto,
+  MetodoPago: metodoPago,
+  CIPersona: ci,
+});
+await this.pagosRepository.save(nuevoPago);
 
-    const detalle = this.detallePagoRepository.create({
+// ✅ Guardar detalle de pago incluyendo IDClase si corresponde
+const detalle = this.detallePagoRepository.create({
   IDPago: nuevoPago.NroPago,
   IDMembresia: membresiaARegistrar.IDMembresia,
-  IDClase: idClase ?? null,  // ✅ guardamos siempre si viene
+  IDClase: idClase ?? null, // 🔁 Cambio aquí: ahora siempre se guarda si viene
   MontoTotal: monto,
   IDPromo: null,
 });
-
-    await this.detallePagoRepository.save(detalle);
+await this.detallePagoRepository.save(detalle);
 
     // 📝 Bitácora
     const accionBitacora =
