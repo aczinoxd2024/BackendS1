@@ -537,4 +537,43 @@ export class StripeService {
       correo: usuario?.correo ?? 'correo no encontrado',
     };
   }
+
+  async checkoutRenovacion(data: {
+  ci: string;
+  tipoMembresiaId: number;
+  correo: string;
+  amount: number;
+  description: string;
+}): Promise<{ url: string }> {
+  const session = await this.stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    mode: 'payment',
+    customer_email: data.correo,
+    metadata: {
+      ci: data.ci,
+      tipoMembresiaId: data.tipoMembresiaId.toString(),
+    },
+    line_items: [
+      {
+        price_data: {
+          currency: 'bob',
+          product_data: {
+            name: data.description,
+          },
+          unit_amount: data.amount * 100, // ✅ en centavos
+        },
+        quantity: 1,
+      },
+    ],
+    success_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/cancel`,
+  });
+
+  if (!session.url) {
+    throw new Error('No se pudo generar la sesión de Stripe');
+  }
+
+  return { url: session.url };
+}
+
 }

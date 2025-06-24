@@ -32,6 +32,16 @@ export class StripeController {
     console.log('📦 Datos recibidos en /stripe/checkout:', body);
     return this.stripeService.createCheckoutSession(body);
   }
+@Post('checkout-renovacion')
+async checkoutRenovacion(@Body() data: {
+  ci: string;
+  tipoMembresiaId: number;
+  correo: string;
+  amount: number;
+  description: string;
+}) {
+  return this.stripeService.checkoutRenovacion(data);
+}
 
   @Post('webhook')
   async handleStripeWebhook(@Req() req: RawBodyRequest, @Res() res: Response) {
