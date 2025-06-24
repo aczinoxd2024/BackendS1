@@ -11,6 +11,7 @@ import {
   BadRequestException,
   Get,
   Body,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -57,6 +58,7 @@ export class PromocionesController {
   async enviarPromocionConImagen(
     @UploadedFile() file: Express.Multer.File,
     @Body('mensaje') mensaje: string,
+    @Body('tipoMembresia') tipoMembresia: string, // <-- nuevo campo para filtro
   ) {
     if (!file) {
       throw new BadRequestException('No se proporcionó ninguna imagen.');
@@ -65,7 +67,11 @@ export class PromocionesController {
       throw new BadRequestException('El mensaje promocional es obligatorio.');
     }
 
-    return this.promocionesService.enviarCorreosConImagen(file.path, mensaje);
+    return this.promocionesService.enviarCorreosConImagen(
+      file.path,
+      mensaje,
+      tipoMembresia,
+    );
   }
 
   @Get('clientes-vigentes')
