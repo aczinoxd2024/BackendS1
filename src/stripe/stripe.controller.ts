@@ -37,11 +37,10 @@ async checkoutRenovacion(@Body() data: {
   ci: string;
   tipoMembresiaId: number;
   correo: string;
-  amount: number;
-  description: string;
 }) {
-  return this.stripeService.checkoutRenovacion(data);
+  return this.stripeService.checkoutRenovacion(data); // ✅ usa el nombre correcto
 }
+
 
   @Post('webhook')
   async handleStripeWebhook(@Req() req: RawBodyRequest, @Res() res: Response) {

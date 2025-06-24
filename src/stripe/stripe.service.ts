@@ -542,9 +542,13 @@ export class StripeService {
   ci: string;
   tipoMembresiaId: number;
   correo: string;
-  amount: number;
-  description: string;
 }): Promise<{ url: string }> {
+  const tipo = await this.tipoMembresiaRepository.findOneBy({ ID: data.tipoMembresiaId });
+
+  if (!tipo) {
+    throw new Error('❌ Tipo de membresía no encontrado');
+  }
+
   const session = await this.stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'payment',
@@ -552,15 +556,16 @@ export class StripeService {
     metadata: {
       ci: data.ci,
       tipoMembresiaId: data.tipoMembresiaId.toString(),
+      descripcion: tipo.NombreTipo,
     },
     line_items: [
       {
         price_data: {
           currency: 'bob',
           product_data: {
-            name: data.description,
+            name: tipo.NombreTipo,
           },
-          unit_amount: data.amount * 100, // ✅ en centavos
+          unit_amount: Math.round(tipo.Precio * 100),
         },
         quantity: 1,
       },
@@ -570,10 +575,11 @@ export class StripeService {
   });
 
   if (!session.url) {
-    throw new Error('No se pudo generar la sesión de Stripe');
+    throw new Error('❌ No se pudo generar la sesión de Stripe');
   }
 
   return { url: session.url };
 }
+
 
 }
