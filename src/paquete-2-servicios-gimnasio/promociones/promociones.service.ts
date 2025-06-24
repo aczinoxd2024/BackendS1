@@ -20,7 +20,7 @@ export class PromocionesService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async enviarCorreosConImagen(imagenPath: string) {
+  async enviarCorreosConImagen(imagenPath: string, mensaje: string) {
     const clientes: ClienteVigente[] = await this.dataSource.query(`
       SELECT Nombre, Apellido, Correo, TipoMembresia, FechaInicio, FechaFin
       FROM (
@@ -49,11 +49,12 @@ export class PromocionesService {
             to: c.Correo,
             subject: '¡Promoción exclusiva para ti en GoFit GYM!',
             html: `
-              <p>Hola ${c.Nombre} ${c.Apellido},</p>
-              <p>Tu membresía actual es: <b>${c.TipoMembresia}</b>.</p>
-              <p>Te compartimos una promoción especial. ¡No te la pierdas!</p>
-              <img src="cid:promo-img"/>
-            `,
+  <p>Hola ${c.Nombre} ${c.Apellido},</p>
+  <p>Tu membresía actual es: <b>${c.TipoMembresia}</b>.</p>
+  <p>${mensaje}</p>
+  <img src="cid:promo-img"/>
+`,
+
             attachments: [
               {
                 filename: 'promocion.jpg',
