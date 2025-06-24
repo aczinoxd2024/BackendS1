@@ -13,6 +13,7 @@ import { BitacoraService } from 'paquete-1-usuarios-accesos/bitacora/bitacora.se
 import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
 import { Promocion } from '../../promociones-Crud/promocion.entity';
 
+
 @Injectable()
 export class TipoMembresiaService {
   constructor(
@@ -30,86 +31,102 @@ export class TipoMembresiaService {
   }
 
   async obtenerPorId(id: number): Promise<TipoMembresia> {
-    const tipo = await this.tipoRepo.findOne({ where: { ID: id } });
+    const tipo = await this.tipoRepo.findOne({ where: { id } })
     if (!tipo) throw new NotFoundException('Tipo de membresía no encontrado');
     return tipo;
   }
 
-  async crear(
-    data: CreateTipoMembresiaDto,
-    req: Request,
-  ): Promise<TipoMembresia> {
-    if (data.IDPromocion) {
-      const promo = await this.promoRepo.findOne({
-        where: { IDPromo: data.IDPromocion },
-      });
-      if (!promo)
-        throw new NotFoundException('La promoción especificada no existe.');
-      const hoy = new Date();
-      if (promo.FechaFin < hoy) {
-        throw new BadRequestException(
-          'La promoción está vencida y no puede ser asignada.',
-        );
-      }
-    }
-
-    const tipo = this.tipoRepo.create({
-      ...data,
-      IDPromocion: data.IDPromocion ?? undefined,
+async crear(
+  data: CreateTipoMembresiaDto,
+  req: Request,
+): Promise<TipoMembresia> {
+  // 🔹 Validación de promoción (si aplica)
+  if (data.IDPromocion) {
+    const promo = await this.promoRepo.findOne({
+      where: { IDPromo: data.IDPromocion },
     });
-
-    const nuevo = await this.tipoRepo.save(tipo);
-
-    const usuario = req.user as any;
-    if (usuario?.rol !== 'administrador') {
-      await this.bitacoraService.registrarDesdeRequest(
-        req,
-        AccionBitacora.CREAR_TIPO_MEMBRESIA,
-        'tipo_membresia',
+    if (!promo)
+      throw new NotFoundException('La promoción especificada no existe.');
+    const hoy = new Date();
+    if (promo.FechaFin < hoy) {
+      throw new BadRequestException(
+        'La promoción está vencida y no puede ser asignada.',
       );
     }
-    return nuevo;
+  }
+console.log('📥 Data recibida en backend:', data);
+  // 🔹 Crear tipo de membresía (sin corchetes)
+const tipo = this.tipoRepo.create({
+  nombreTipo: data.nombreTipo,
+  descripcion: data.descripcion,
+  precio: data.precio,
+  duracionDias: data.duracionDias,
+  beneficios: data.beneficios,
+  IDPromocion: data.IDPromocion ?? undefined,
+  clases: data.clases ? JSON.stringify(data.clases) : undefined,
+  cantidadClasesCliente: data.cantidadClasesCliente ?? undefined
+});
+
+console.log('💾 Objeto que se guardará:', tipo);
+  const nuevo = await this.tipoRepo.save(tipo);
+
+  // 🔹 Bitácora si no es admin
+  const usuario = req.user as any;
+  if (usuario?.rol !== 'administrador') {
+    await this.bitacoraService.registrarDesdeRequest(
+      req,
+      AccionBitacora.CREAR_TIPO_MEMBRESIA,
+      'tipo_membresia',
+    );
   }
 
-  async actualizar(
-    id: number,
-    data: UpdateTipoMembresiaDto,
-    req: Request,
-  ): Promise<TipoMembresia> {
-    const existente = await this.obtenerPorId(id);
+  return nuevo;
+}
 
-    if (data.IDPromocion) {
-      const promo = await this.promoRepo.findOne({
-        where: { IDPromo: data.IDPromocion },
-      });
-      if (!promo)
-        throw new NotFoundException('La promoción especificada no existe.');
-      const hoy = new Date();
-      if (promo.FechaFin < hoy) {
-        throw new BadRequestException(
-          'La promoción está vencida y no puede ser asignada.',
-        );
-      }
-    }
 
-    Object.assign(existente, {
-      ...data,
-      IDPromocion: data.IDPromocion ?? existente.IDPromocion,
+ async actualizar(
+  id: number,
+  data: UpdateTipoMembresiaDto,
+  req: Request,
+): Promise<TipoMembresia> {
+  const existente = await this.obtenerPorId(id);
+
+  // Validación de promoción (si aplica)
+  if (data.IDPromocion) {
+    const promo = await this.promoRepo.findOne({
+      where: { IDPromo: data.IDPromocion },
     });
-
-    const guardado = await this.tipoRepo.save(existente);
-
-    const usuario = req.user as any;
-    if (usuario?.rol !== 'administrador') {
-      await this.bitacoraService.registrarDesdeRequest(
-        req,
-        AccionBitacora.ACTUALIZAR_TIPO_MEMBRESIA,
-        'tipo_membresia',
+    if (!promo)
+      throw new NotFoundException('La promoción especificada no existe.');
+    const hoy = new Date();
+    if (promo.FechaFin < hoy) {
+      throw new BadRequestException(
+        'La promoción está vencida y no puede ser asignada.',
       );
     }
-
-    return guardado;
   }
+
+  // Asignar cambios, incluyendo clases y cantidadClasesCliente
+  Object.assign(existente, {
+    ...data,
+    IDPromocion: data.IDPromocion ?? existente.IDPromocion,
+    clases: Array.isArray(data.clases) ? JSON.stringify(data.clases) : existente.clases,
+    cantidadClasesCliente: data.cantidadClasesCliente ?? existente.cantidadClasesCliente,
+  });
+
+  const guardado = await this.tipoRepo.save(existente);
+
+  const usuario = req.user as any;
+  if (usuario?.rol !== 'administrador') {
+    await this.bitacoraService.registrarDesdeRequest(
+      req,
+      AccionBitacora.ACTUALIZAR_TIPO_MEMBRESIA,
+      'tipo_membresia',
+    );
+  }
+
+  return guardado;
+}
 
   async eliminar(id: number, req: Request): Promise<{ mensaje: string }> {
     const tipo = await this.obtenerPorId(id);
@@ -125,7 +142,8 @@ export class TipoMembresiaService {
     }
 
     return {
-      mensaje: `Tipo de membresía "${tipo.NombreTipo}" eliminado correctamente.`,
+      mensaje: `Tipo de membresía "${tipo.nombreTipo}" eliminado correctamente.`,
+
     };
   }
 

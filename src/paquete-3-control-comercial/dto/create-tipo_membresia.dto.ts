@@ -3,27 +3,33 @@ import { IsString, IsNotEmpty, IsNumber, Min, IsOptional } from 'class-validator
 export class CreateTipoMembresiaDto {
   @IsNotEmpty()
   @IsString()
-  NombreTipo: string;
+  nombreTipo: string;
 
   @IsNotEmpty()
   @IsString()
-  Descripcion: string;
+  descripcion: string;
 
   @IsNotEmpty()
   @IsNumber()
   @Min(0)
-  Precio: number;
+  precio: number;
 
   @IsNotEmpty()
   @IsNumber()
   @Min(1)
-  DuracionDias: number;
+  duracionDias: number;
 
   @IsNotEmpty()
   @IsString()
-  Beneficios: string;
+  beneficios: string;
 
   @IsOptional()
   @IsNumber()
-  IDPromocion?: number; // 👈 Agregado para relacionar con la tabla promoción
+  IDPromocion?: number;
+
+  @IsOptional()
+  clases?: number[];
+
+  @IsOptional()
+  cantidadClasesCliente?: number;
 }
