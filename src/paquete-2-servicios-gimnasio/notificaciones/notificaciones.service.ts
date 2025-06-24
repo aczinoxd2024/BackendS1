@@ -181,7 +181,8 @@ export class NotificacionesService {
           await this.mailerService.sendMail({
             to: usuario.correo,
             subject: subject,
-            template: 'promocional_email',
+            html: htmlContent,
+            /* template: 'promocional_email',*/
             context: {
               subject: subject,
               htmlContent: htmlContent,
