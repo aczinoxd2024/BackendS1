@@ -35,6 +35,10 @@ export class TipoMembresiaController {
   private readonly claseRepo: Repository<Clase> ) {}
 
   
+  @Get()
+async obtenerTodos(): Promise<TipoMembresia[]> {
+  return this.tipoMembresiaService.obtenerTipos();
+}
 
   // ✅ Público autenticado: obtener todos
 @Get(':id')
