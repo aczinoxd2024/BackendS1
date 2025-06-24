@@ -40,6 +40,13 @@ export class TipoMembresiaController {
   async obtenerTodos(): Promise<TipoMembresia[]> {
     return this.tipoMembresiaService.obtenerTiposActivos(); // ⬅️ Nombre actualizado
   }
+  @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('administrador', 'recepcionista')
+@Get('inactivas')
+async obtenerInactivas(): Promise<TipoMembresia[]> {
+  return this.tipoMembresiaService.obtenerPorEstado('Inactivo');
+}
+
 
   // ✅ GET: Obtener por ID
   @Get(':id')
@@ -119,11 +126,6 @@ restaurar(
     return this.tipoMembresiaService.obtenerConPromocionActiva();
   }
 
-  @Get('inactivas')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('administrador', 'recepcionista')
-async obtenerInactivas(): Promise<TipoMembresia[]> {
-  return this.tipoMembresiaService.obtenerPorEstado('Inactivo');
-}
+
 
 }
