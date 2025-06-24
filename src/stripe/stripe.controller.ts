@@ -38,7 +38,7 @@ async checkoutRenovacion(@Body() data: {
   tipoMembresiaId: number;
   correo: string;
 }) {
-  return this.stripeService.checkoutRenovacion(data); // ✅ usa el nombre correcto
+  return this.stripeService.checkoutRenovacion(data);
 }
 
 

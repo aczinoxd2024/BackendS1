@@ -538,16 +538,22 @@ export class StripeService {
     };
   }
 
-  async checkoutRenovacion(data: {
+async checkoutRenovacion(data: {
   ci: string;
   tipoMembresiaId: number;
   correo: string;
 }): Promise<{ url: string }> {
-  const tipo = await this.tipoMembresiaRepository.findOneBy({ ID: data.tipoMembresiaId });
+  // Buscar tipo de membresía desde la BD
+  const tipo = await this.tipoMembresiaRepository.findOne({
+    where: { ID: data.tipoMembresiaId }
+  });
 
   if (!tipo) {
-    throw new Error('❌ Tipo de membresía no encontrado');
+    throw new Error('Tipo de membresía no encontrado');
   }
+
+  const precio = tipo.Precio;
+  const nombreTipo = tipo.NombreTipo;
 
   const session = await this.stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -556,16 +562,15 @@ export class StripeService {
     metadata: {
       ci: data.ci,
       tipoMembresiaId: data.tipoMembresiaId.toString(),
-      descripcion: tipo.NombreTipo,
     },
     line_items: [
       {
         price_data: {
           currency: 'bob',
           product_data: {
-            name: tipo.NombreTipo,
+            name: nombreTipo,
           },
-          unit_amount: Math.round(tipo.Precio * 100),
+          unit_amount: precio * 100,
         },
         quantity: 1,
       },
@@ -575,11 +580,12 @@ export class StripeService {
   });
 
   if (!session.url) {
-    throw new Error('❌ No se pudo generar la sesión de Stripe');
+    throw new Error('No se pudo generar la sesión de Stripe');
   }
 
   return { url: session.url };
 }
+
 
 
 }
