@@ -1,12 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, Raw } from 'typeorm';
+// Asegúrate de importar Between, Not, IsNull, y And
+import {
+  Repository,
+  Raw,
+  LessThanOrEqual,
+  Not,
+  IsNull,
+  And,
+  Between,
+} from 'typeorm';
 import { MailerService } from '@nestjs-modules/mailer';
-import { Cliente } from 'paquete-1-usuarios-accesos/clientes/cliente.entity';
-import { Persona } from 'paquete-1-usuarios-accesos/personas/persona.entity';
-import { Usuario } from 'paquete-1-usuarios-accesos/usuarios/usuario.entity';
+import { Cliente } from '../../paquete-1-usuarios-accesos/clientes/cliente.entity';
+import { Persona } from '../../paquete-1-usuarios-accesos/personas/persona.entity';
+import { Usuario } from '../../paquete-1-usuarios-accesos/usuarios/usuario.entity';
 import { Membresia } from '../../paquete-3-control-comercial/membresias/membresia.entity';
 import { TipoMembresia } from '../../paquete-3-control-comercial/membresias/Tipos/tipo_membresia.entity';
+
+export interface EmailResult {
+  recipient: string;
+  status: 'success' | 'failed';
+  message: string;
+}
+
+export interface MembresiaVencimientoData {
+  IDMembresia: number;
+  CICliente: string;
+  FechaFin: string;
+  TipoMembresiaID: number;
+  PlataformaWeb: string;
+  tipoNombre: string;
+  diasRestantes: number;
+}
 
 @Injectable()
 export class NotificacionesService {
@@ -25,37 +50,57 @@ export class NotificacionesService {
   ) {}
 
   private esCorreoGmailValido(correo: string): boolean {
-    // Expresión regular estricta para correos @gmail.com válidos
     const regex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     return regex.test(correo);
   }
 
+  private isErrorWithMessage(error: unknown): error is { message: string } {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof (error as { message: unknown }).message === 'string'
+    );
+  }
+
   async sendMembershipExpirationAlerts(
     daysBeforeExpiration: number,
-  ): Promise<string> {
+  ): Promise<EmailResult[]> {
     const today = new Date();
     const alertDate = new Date();
     alertDate.setDate(today.getDate() + daysBeforeExpiration);
 
-    const expiring = await this.membresiaRepo.find({
+    const memberships = await this.membresiaRepo.find({
       where: {
         FechaFin: LessThanOrEqual(alertDate),
         PlataformaWeb: Raw((alias) => `${alias} != 'Incluida'`),
+        CICliente: And(Not(IsNull()), Not('')), // Filtra CICliente no NULL ni vacío
       },
-      relations: ['cliente'],
+      relations: ['cliente', 'tipo'],
     });
 
-    let enviados = 0;
+    const clientsToNotify = new Map<string, Membresia[]>();
+    for (const m of memberships) {
+      if (m.CICliente && m.CICliente.trim() !== '') {
+        if (!clientsToNotify.has(m.CICliente)) {
+          clientsToNotify.set(m.CICliente, []);
+        }
+        clientsToNotify.get(m.CICliente)!.push(m);
+      } else {
+        console.warn(
+          `⚠️ Membresía ${m.IDMembresia} descartada: CICliente es nulo o vacío.`,
+        );
+      }
+    }
 
-    for (const m of expiring) {
+    const results: EmailResult[] = [];
+
+    for (const [ciCliente, clientMemberships] of clientsToNotify.entries()) {
       const persona = await this.personaRepo.findOne({
-        where: { CI: m.CICliente },
+        where: { CI: ciCliente },
       });
       const usuario = await this.usuarioRepo.findOne({
-        where: { idPersona: { CI: m.CICliente } },
-      });
-      const tipo = await this.tipoMembresiaRepo.findOne({
-        where: { ID: m.TipoMembresiaID },
+        where: { idPersona: { CI: ciCliente } },
       });
 
       if (
@@ -63,62 +108,63 @@ export class NotificacionesService {
         usuario?.correo &&
         this.esCorreoGmailValido(usuario.correo)
       ) {
+        const membershipsSummary = clientMemberships
+          .map(
+            (m) =>
+              `<li>Membresía: <strong>${m.tipo?.NombreTipo || 'Desconocido'}</strong> - Vence el: <strong>${new Date(m.FechaFin).toLocaleDateString('es-BO')}</strong>.</li>`,
+          )
+          .join('');
+
         try {
           await this.mailerService.sendMail({
             to: usuario.correo,
-            subject: `🔔 Tu membresía ${tipo?.NombreTipo || 'GoFit'} está por vencer`,
+            subject: `🔔 Alerta de Vencimiento: Tu(s) membresía(s) GoFit está(n) por vencer`,
             html: `
               <p>Hola <strong>${persona.Nombre} ${persona.Apellido}</strong>,</p>
-              <p>Tu membresía <strong>${tipo?.NombreTipo}</strong> vence el <strong>${new Date(m.FechaFin).toLocaleDateString('es-BO')}</strong>.</p>
-              <p>No pierdas tu progreso. Puedes renovarla desde la web o en recepción.</p>
-              <br><p><strong>GoFit GYM</strong></p>
+              <p>Queremos recordarte que la(s) siguiente(s) membresía(s) que tienes con GoFit GYM está(n) próxima(s) a vencer:</p>
+              <ul>${membershipsSummary}</ul>
+              <p>Para no perder tu progreso ni tus beneficios, te invitamos a renovar tu(s) membresía(s) lo antes posible.</p>
+              <p>Puedes hacerlo fácilmente desde nuestra plataforma web o visitando la recepción del gimnasio.</p>
+              <br><p>¡Gracias por ser parte de la comunidad GoFit GYM! 💪</p>
             `,
           });
-          enviados++;
-        } catch (error) {
+          results.push({
+            recipient: usuario.correo,
+            status: 'success',
+            message: 'Correo enviado exitosamente.',
+          });
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : this.isErrorWithMessage(error)
+                ? error.message
+                : 'Error desconocido al enviar correo.';
           console.error(`❌ Error al enviar a ${usuario.correo}:`, error);
+          results.push({
+            recipient: usuario.correo,
+            status: 'failed',
+            message: `Error: ${errorMessage}`,
+          });
         }
+      } else {
+        results.push({
+          recipient: usuario?.correo || 'Correo no disponible',
+          status: 'failed',
+          message: `No se envió: ${usuario?.correo ? 'correo no válido o no es Gmail' : 'datos de usuario/persona incompletos'}.`,
+        });
       }
     }
 
-    return `✔️ Correos enviados: ${enviados}`;
-  }
-  async obtenerMembresiasProximasAVencer(): Promise<any[]> {
-    const hoy = new Date();
-    const tresDiasDespues = new Date();
-    tresDiasDespues.setDate(hoy.getDate() + 3);
-
-    const membresias = await this.membresiaRepo
-      .createQueryBuilder('m')
-      .leftJoinAndSelect('m.cliente', 'cliente')
-      .leftJoin('m.tipo', 'tipo')
-
-      .where('m.FechaFin BETWEEN :hoy AND :tresDias', {
-        hoy: hoy.toISOString().split('T')[0],
-        tresDias: tresDiasDespues.toISOString().split('T')[0],
-      })
-      .andWhere("m.PlataformaWeb != 'Incluida'")
-      .orderBy('m.FechaFin', 'ASC')
-      .select([
-        'm.IDMembresia AS IDMembresia',
-        'm.CICliente AS CICliente',
-        'm.FechaFin AS FechaFin',
-        'm.TipoMembresiaID AS TipoMembresiaID',
-        'm.PlataformaWeb AS PlataformaWeb',
-        'tipo.NombreTipo AS tipoNombre',
-      ])
-      .addSelect(`DATEDIFF(m.FechaFin, CURDATE())`, 'diasRestantes') // 👈 Esto calcula directamente los días
-      .getRawMany();
-
-    return membresias;
+    return results;
   }
 
   async sendPromotionalEmail(
     subject: string,
     htmlContent: string,
-  ): Promise<string> {
+  ): Promise<EmailResult[]> {
     const clientes = await this.clienteRepo.find();
-    let enviados = 0;
+    const results: EmailResult[] = [];
 
     for (const c of clientes) {
       const persona = await this.personaRepo.findOne({ where: { CI: c.CI } });
@@ -134,16 +180,82 @@ export class NotificacionesService {
         try {
           await this.mailerService.sendMail({
             to: usuario.correo,
-            subject,
-            html: htmlContent,
+            subject: subject,
+            template: 'promocional_email',
+            context: {
+              subject: subject,
+              htmlContent: htmlContent,
+              nombrePersona: persona?.Nombre || 'Cliente',
+              currentYear: new Date().getFullYear(),
+            },
           });
-          enviados++;
-        } catch (error) {
+          results.push({
+            recipient: usuario.correo,
+            status: 'success',
+            message: 'Correo promocional enviado exitosamente.',
+          });
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : this.isErrorWithMessage(error)
+                ? error.message
+                : 'Error desconocido al enviar correo promocional.';
           console.error(`❌ Falló enviar a ${usuario.correo}:`, error);
+          results.push({
+            recipient: usuario.correo,
+            status: 'failed',
+            message: `Error: ${errorMessage}`,
+          });
         }
+      } else {
+        results.push({
+          recipient: usuario?.correo || 'Correo no disponible',
+          status: 'failed',
+          message:
+            'No se envió: correo no válido o datos de usuario incompletos.',
+        });
       }
     }
 
-    return `📢 Promociones enviadas: ${enviados}`;
+    return results;
   }
+
+  async obtenerMembresiasProximasAVencer(): Promise<
+    MembresiaVencimientoData[]
+  > {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Establecer la hora a 00:00:00.000 para 'hoy'
+
+    const tresDiasDespues = new Date();
+    tresDiasDespues.setDate(hoy.getDate() + 3);
+    // Establecer la hora a 23:59:59.999 para incluir todo el día de 'tresDiasDespues'
+    tresDiasDespues.setHours(23, 59, 59, 999);
+
+    const membresias = await this.membresiaRepo.find({
+      where: {
+        // CAMBIO: Filtrar por FechaFin entre hoy y tresDiasDespues (inclusive)
+        FechaFin: Between(hoy, tresDiasDespues),
+        PlataformaWeb: Raw((alias) => `${alias} != 'Incluida'`),
+        // CAMBIO: Filtrar CICliente que no sea NULL ni cadena vacía para la visualización de la tabla
+        CICliente: And(Not(IsNull()), Not('')),
+      },
+      relations: ['tipo'],
+    });
+
+    return membresias.map((m) => ({
+      IDMembresia: m.IDMembresia,
+      CICliente: m.CICliente,
+      FechaFin: new Date(m.FechaFin).toISOString().split('T')[0],
+      TipoMembresiaID: m.TipoMembresiaID,
+      PlataformaWeb: m.PlataformaWeb,
+      tipoNombre: m.tipo?.NombreTipo || 'Desconocido',
+      diasRestantes: Math.ceil(
+        (new Date(m.FechaFin).getTime() - hoy.getTime()) /
+          (1000 * 60 * 60 * 24),
+      ),
+    }));
+  }
+
+  // Métodos de pagos, etc. (se mantienen como están en tu archivo)
 }

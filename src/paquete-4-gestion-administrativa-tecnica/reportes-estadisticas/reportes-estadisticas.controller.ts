@@ -21,29 +21,31 @@ export class ReportesEstadisticasController {
     return this.service.obtenerResumenMembresias();
   }
 
-  @Get('pagos/mensuales')
-  @Roles('Administrador')
-  obtenerReportePagosMensuales() {
-    return this.service.obtenerReportePagosMensuales();
-  }
+  @Get('pagos')
+@Roles('Administrador')
+obtenerReportePagos(
+  @Query('membresia') membresia?: string,
+  @Query('inicio') inicio?: string,
+  @Query('fin') fin?: string,
+  @Query('promocion') promocion?: string,
+) {
+  return this.service.obtenerReportePagos({ membresia, inicio, fin, promocion });
+}
 
 
-  @Get('asistencias-personal')
-  @Roles('Administrador')
-  async obtenerAsistenciasPorCargo(
-    @Query('cargo') cargo: string,
-    @Query('inicio') inicio: string,
-    @Query('fin') fin: string,
-  ) {
-    if (!cargo || !inicio || !fin) {
-      throw new BadRequestException(
-        'Debe proporcionar cargo, inicio y fin como parámetros',
-      );
-    }
 
-   return this.service.obtenerAsistenciasPorCargo(cargo, inicio, fin);
 
-  }
+
+@Get('asistencias-personal')
+@Roles('Administrador')
+async obtenerAsistenciasPorCargo(
+  @Query('cargo') cargo?: string,
+  @Query('inicio') inicio?: string,
+  @Query('fin') fin?: string,
+) {
+  return this.service.obtenerAsistenciasPorCargo(cargo, inicio, fin);
+}
+
 
 @Get('clases/reporte')
 @Roles('Administrador')

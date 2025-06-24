@@ -1,42 +1,66 @@
-import { Controller, Get, Query, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import { NotificacionesService } from './notificaciones.service';
-import { Roles } from '@auth/roles/roles.decorator';
-import { JwtAuthGuard } from '@auth/jwt.auth.guard';
-import { RolesGuard } from '@auth/roles/roles.guard';
+import { Roles } from './../../paquete-1-usuarios-accesos/auth/roles/roles.decorator';
+// Importaciones corregidas para JwtAuthGuard y RolesGuard
+import { JwtAuthGuard } from './../../paquete-1-usuarios-accesos/auth/jwt.auth.guard';
+import { RolesGuard } from './../../paquete-1-usuarios-accesos/auth/roles/roles.guard';
 
 @Controller('notificaciones')
 export class NotificacionesController {
   constructor(private readonly notificacionesService: NotificacionesService) {}
 
-  // 👉 GET /notificaciones/alertas?dias=3
   @Get('alertas')
-  async enviarAlertas(@Query('dias') dias: string): Promise<string> {
-    const cantidadDias = parseInt(dias, 10) || 3;
-    return this.notificacionesService.sendMembershipExpirationAlerts(
-      cantidadDias,
-    );
+  @UseGuards(JwtAuthGuard) // Proteger el endpoint
+  async sendMembershipExpirationAlerts(
+    @Query('dias') diasBeforeExpiration: number = 3,
+  ) {
+    const results =
+      await this.notificacionesService.sendMembershipExpirationAlerts(
+        diasBeforeExpiration,
+      );
+    // Devolver los resultados detallados como JSON
+    return {
+      message: 'Proceso de envío de alertas completado.',
+      details: results,
+    };
   }
 
-  // 👉 POST /notificaciones/promocional
   @Post('promocional')
-  async enviarCorreoPromocional(
-    @Body() body: { asunto: string; contenidoHTML: string },
-  ): Promise<string> {
-    return this.notificacionesService.sendPromotionalEmail(
-      body.asunto,
-      body.contenidoHTML,
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('administrador')
+  async sendPromotionalEmail(
+    @Body('subject') subject: string,
+    @Body('htmlContent') htmlContent: string,
+  ) {
+    const results = await this.notificacionesService.sendPromotionalEmail(
+      subject,
+      htmlContent,
     );
+    // Devolver los resultados detallados como JSON
+    return {
+      message: 'Proceso de envío de correos promocionales completado.',
+      details: results,
+    };
   }
+
   @Get('listar-vencimientos')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('recepcionista')
-  async listarVencimientos() {
-    return this.notificacionesService.obtenerMembresiasProximasAVencer();
+  @Roles('recepcionista') // Asegura que solo los recepcionistas puedan acceder
+  async obtenerMembresiasProximasAVencer() {
+    // CORRECCIÓN: Se añadió 'await' aquí para satisfacer la regla 'require-await' de ESLint
+    return await this.notificacionesService.obtenerMembresiasProximasAVencer();
   }
+
   @Post('notificar-vencimientos')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('recepcionista')
-  async notificar() {
-    return this.notificacionesService.sendMembershipExpirationAlerts(3);
+  async notificarVencimientos() {
+    const results =
+      await this.notificacionesService.sendMembershipExpirationAlerts(3);
+    // Devolver los resultados detallados como JSON
+    return {
+      message: 'Notificaciones de vencimiento enviadas.',
+      details: results,
+    };
   }
 }

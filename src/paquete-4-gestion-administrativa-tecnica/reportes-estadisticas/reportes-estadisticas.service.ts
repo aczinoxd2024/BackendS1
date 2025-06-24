@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Not, Raw, Repository } from 'typeorm';
+import { DataSource, In, Not, Raw, Repository } from 'typeorm';
 import { Pago } from 'pagos/pagos.entity';
 import { Personal } from 'paquete-2-servicios-gimnasio/personal/personal.entity';
 import { AsistenciaPersonal } from 'paquete-2-servicios-gimnasio/personal/asistencia_personal.entity';
@@ -37,6 +37,7 @@ private readonly reservasRepository: Repository<Reserva>,
 
 @InjectRepository(Persona)
 private readonly personaRepo: Repository<Persona>,
+private dataSource: DataSource,
 
   ) {}
 
@@ -84,68 +85,85 @@ private readonly personaRepo: Repository<Persona>,
     };
   }
 
-  async obtenerReportePagosMensuales() {
-    const pagos = await this.pagoRepo
-      .createQueryBuilder('p')
-      .select([
-        'MONTH(p.Fecha) AS mes',
-        'COUNT(*) AS totalPagos',
-        'SUM(p.Monto) AS montoTotal',
-      ])
-      .groupBy('MONTH(p.Fecha)')
-      .orderBy('mes', 'ASC')
-      .getRawMany();
 
-    const meses = [
-      '',
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre',
-    ];
+async obtenerReportePagos(params: {
+  membresia?: string;
+  inicio?: string;
+  fin?: string;
+  promocion?: string; // ← nuevo filtro
+}) {
+  const query = this.dataSource
+    .createQueryBuilder()
+    .select([
+      'p.NroPago AS nroPago',
+      'p.Fecha AS fecha',
+      'p.Monto AS monto',
+      't.NombreTipo AS tipoMembresia',
+      `CASE WHEN t.IDPromocion IS NOT NULL THEN 'Sí' ELSE 'No' END AS promocion`,
+      'c.Nombre AS clase',
+    ])
+    .from('pago', 'p')
+    .leftJoin('detalle_pago', 'd', 'd.IDPago = p.NroPago')
+    .leftJoin('membresia', 'm', 'm.IDMembresia = d.IDMembresia')
+    .leftJoin('tipo_membresia', 't', 't.ID = m.TipoMembresiaID')
+    .leftJoin('clase', 'c', 'c.IDClase = d.IDClase');
 
-    return pagos.map((p) => ({
-      mes: meses[parseInt(p.mes)],
-      totalPagos: parseInt(p.totalPagos),
-      montoTotal: parseFloat(p.montoTotal),
-    }));
+  // Filtrado por fechas
+  if (params.inicio && params.fin) {
+    query.where('p.Fecha BETWEEN :inicio AND :fin', {
+      inicio: params.inicio,
+      fin: params.fin,
+    });
   }
 
-async obtenerAsistenciasPorCargo(cargo: string, inicio: string, fin: string) {
-  // Obtener personal según el cargo (verifica mayúsculas en cargo)
- const personas = await this.personalRepo
-  .createQueryBuilder('p')
-  .where('LOWER(p.Cargo) LIKE LOWER(:cargo)', { cargo: `%${cargo}%` })
-  .getMany();
-
-  const ciList = personas.map((p) => p.CI);
-  if (ciList.length === 0) {
-    console.log('⚠️ No se encontró personal con ese cargo');
-    return [];
+  // Filtrado por membresía (tipo nombre)
+  if (params.membresia) {
+    query.andWhere('LOWER(t.NombreTipo) LIKE LOWER(:membresia)', {
+      membresia: `%${params.membresia}%`,
+    });
   }
 
-  console.log('✅ CI encontrados:', ciList);
+  // Filtrado por promoción: "si" o "no"
+  if (params.promocion === 'si') {
+    query.andWhere('t.IDPromocion IS NOT NULL');
+  } else if (params.promocion === 'no') {
+    query.andWhere('t.IDPromocion IS NULL');
+  }
 
-  const asistencias = await this.asistenciaRepo
+  // Orden
+  query.orderBy('p.Fecha', 'DESC');
+
+  return await query.getRawMany();
+}
+
+
+
+async obtenerAsistenciasPorCargo(cargo?: string, inicio?: string, fin?: string) {
+  let query = this.asistenciaRepo
     .createQueryBuilder('a')
     .leftJoinAndSelect('a.persona', 'persona')
-    .leftJoinAndSelect('a.responsable', 'responsable')
-    .where('a.ci IN (:...ciList)', { ciList })
-    .andWhere('a.fecha BETWEEN :inicio AND :fin', { inicio, fin })
-    .orderBy('a.fecha', 'DESC')
-    .getMany();
+    .leftJoinAndSelect('a.responsable', 'responsable');
 
-  console.log(`🎯 Resultados: ${asistencias.length}`);
+  if (cargo) {
+    const personas = await this.personalRepo
+      .createQueryBuilder('p')
+      .where('LOWER(p.Cargo) LIKE LOWER(:cargo)', { cargo: `%${cargo}%` })
+      .getMany();
 
-  return asistencias;
+    const ciList = personas.map((p) => p.CI);
+    if (ciList.length === 0) {
+      console.log('⚠️ No se encontró personal con ese cargo');
+      return [];
+    }
+
+    query = query.andWhere('a.ci IN (:...ciList)', { ciList });
+  }
+
+  if (inicio && fin) {
+    query = query.andWhere('a.fecha BETWEEN :inicio AND :fin', { inicio, fin });
+  }
+
+  return query.orderBy('a.fecha', 'DESC').getMany();
 }
 
 
