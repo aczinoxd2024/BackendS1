@@ -31,4 +31,8 @@ export class ClienteCrearDto {
 
   @IsNumber()
   metodoPagoId: number;
+
+   @IsOptional()
+  @IsNumber()
+  idClase?: number;
 }
