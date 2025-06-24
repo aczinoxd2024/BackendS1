@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TipoMembresia } from './tipo_membresia.entity';
@@ -7,7 +11,7 @@ import { UpdateTipoMembresiaDto } from '../../dto/update-tipo_membresia.dto';
 import { Request } from 'express';
 import { BitacoraService } from 'paquete-1-usuarios-accesos/bitacora/bitacora.service';
 import { AccionBitacora } from 'paquete-1-usuarios-accesos/bitacora/bitacora-actions.enum';
-import { Promocion } from '../../promociones/promocion.entity';
+import { Promocion } from '../../promociones-Crud/promocion.entity';
 
 @Injectable()
 export class TipoMembresiaService {
@@ -31,14 +35,22 @@ export class TipoMembresiaService {
     return tipo;
   }
 
-  async crear(data: CreateTipoMembresiaDto, req: Request): Promise<TipoMembresia> {
+  async crear(
+    data: CreateTipoMembresiaDto,
+    req: Request,
+  ): Promise<TipoMembresia> {
     if (data.IDPromocion) {
-      const promo = await this.promoRepo.findOne({ where: { IDPromo: data.IDPromocion } });
-      if (!promo) throw new NotFoundException('La promoción especificada no existe.');
+      const promo = await this.promoRepo.findOne({
+        where: { IDPromo: data.IDPromocion },
+      });
+      if (!promo)
+        throw new NotFoundException('La promoción especificada no existe.');
       const hoy = new Date();
       if (promo.FechaFin < hoy) {
-  throw new BadRequestException('La promoción está vencida y no puede ser asignada.');
-}
+        throw new BadRequestException(
+          'La promoción está vencida y no puede ser asignada.',
+        );
+      }
     }
 
     const tipo = this.tipoRepo.create({
@@ -60,15 +72,24 @@ export class TipoMembresiaService {
     return nuevo;
   }
 
-  async actualizar(id: number, data: UpdateTipoMembresiaDto, req: Request): Promise<TipoMembresia> {
+  async actualizar(
+    id: number,
+    data: UpdateTipoMembresiaDto,
+    req: Request,
+  ): Promise<TipoMembresia> {
     const existente = await this.obtenerPorId(id);
 
     if (data.IDPromocion) {
-      const promo = await this.promoRepo.findOne({ where: { IDPromo: data.IDPromocion } });
-      if (!promo) throw new NotFoundException('La promoción especificada no existe.');
+      const promo = await this.promoRepo.findOne({
+        where: { IDPromo: data.IDPromocion },
+      });
+      if (!promo)
+        throw new NotFoundException('La promoción especificada no existe.');
       const hoy = new Date();
       if (promo.FechaFin < hoy) {
-        throw new BadRequestException('La promoción está vencida y no puede ser asignada.');
+        throw new BadRequestException(
+          'La promoción está vencida y no puede ser asignada.',
+        );
       }
     }
 

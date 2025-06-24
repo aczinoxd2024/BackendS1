@@ -98,13 +98,8 @@ export class PromocionesService {
       ) t
       WHERE t.rn = 1;
     `);
-    } catch (error) {
-      console.error('❌ Error al obtener clientes vigentes:', error);
-      throw new BadRequestException(
-        error instanceof Error
-          ? error.message
-          : 'Error en la consulta SQL de clientes vigentes.',
-      );
+    } catch {
+      throw new BadRequestException('Error al obtener clientes vigentes');
     }
   }
 }

@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Promocion } from '../../promociones/promocion.entity';
+import { Promocion } from '../../promociones-Crud/promocion.entity';
 
 @Entity('tipo_membresia')
 export class TipoMembresia {
