@@ -203,5 +203,12 @@ async restaurar(id: number, req: Request): Promise<{ mensaje: string }> {
   return { mensaje: `Membresía "${tipo.NombreTipo}" restaurada correctamente.` };
 }
 
+async obtenerPorEstado(estado: string): Promise<TipoMembresia[]> {
+  return this.tipoRepo.find({
+    where: { Estado: estado },
+    order: { Precio: 'ASC' }
+  });
+}
+
 
 }

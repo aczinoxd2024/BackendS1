@@ -119,4 +119,11 @@ restaurar(
     return this.tipoMembresiaService.obtenerConPromocionActiva();
   }
 
+  @Get('inactivas')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('administrador', 'recepcionista')
+async obtenerInactivas(): Promise<TipoMembresia[]> {
+  return this.tipoMembresiaService.obtenerPorEstado('Inactivo');
+}
+
 }
