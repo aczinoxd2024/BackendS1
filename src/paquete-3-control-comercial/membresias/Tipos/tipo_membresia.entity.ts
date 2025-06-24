@@ -39,5 +39,9 @@ export class TipoMembresia {
 
   @Column({ type: 'int', nullable: true })
   CantidadClasesCliente?: number;
+
+  @Column({ default: 'Activo' })
+Estado: string;
+
 }
 

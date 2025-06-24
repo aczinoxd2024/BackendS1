@@ -35,42 +35,39 @@ export class TipoMembresiaController {
   private readonly claseRepo: Repository<Clase> ) {}
 
   
+ // ✅ GET: Obtener solo membresías activas
   @Get()
-async obtenerTodos(): Promise<TipoMembresia[]> {
-  return this.tipoMembresiaService.obtenerTipos();
-}
-
-  // ✅ Público autenticado: obtener todos
-@Get(':id')
-async obtenerPorId(
-  @Param('id', ParseIntPipe) id: number,
-): Promise<any> {
-  const tipo = await this.tipoMembresiaService.obtenerPorId(id);
-  if (!tipo) {
-    throw new NotFoundException('Tipo de membresía no encontrado');
+  async obtenerTodos(): Promise<TipoMembresia[]> {
+    return this.tipoMembresiaService.obtenerTiposActivos(); // ⬅️ Nombre actualizado
   }
 
- let clasesArray: number[] = [];
-let clasesInfo: Clase[] = [];
+  // ✅ GET: Obtener por ID
+  @Get(':id')
+  async obtenerPorId(@Param('id', ParseIntPipe) id: number): Promise<any> {
+    const tipo = await this.tipoMembresiaService.obtenerPorId(id);
+    if (!tipo) {
+      throw new NotFoundException('Tipo de membresía no encontrado');
+    }
 
-if (tipo.Clases) {
-  try {
-    clasesArray = JSON.parse(tipo.Clases);
-    clasesInfo = await this.claseRepo.findBy({ IDClase: In(clasesArray) });
-  } catch (error) {
-    console.warn('Error al parsear Clases:', error);
+    let clasesArray: number[] = [];
+    let clasesInfo: Clase[] = [];
+
+    if (tipo.Clases) {
+      try {
+        clasesArray = JSON.parse(tipo.Clases);
+        clasesInfo = await this.claseRepo.findBy({ IDClase: In(clasesArray) });
+      } catch (error) {
+        console.warn('Error al parsear Clases:', error);
+      }
+    }
+
+    return {
+      ...tipo,
+      clasesIncluidas: clasesInfo,
+    };
   }
-}
 
-  return {
-    ...tipo,
-    clasesIncluidas: clasesInfo, // ✅ ahora sí definida correctamente
-  };
-}
-
-
-
-  // ✅ Crear (admin o recepcionista)
+  // ✅ POST: Crear membresía
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrador', 'recepcionista')
@@ -81,10 +78,10 @@ if (tipo.Clases) {
     return this.tipoMembresiaService.crear(data, req);
   }
 
-  // ✅ Actualizar (admin o recepcionista)
+  // ✅ PUT: Actualizar membresía
+  @Put(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrador', 'recepcionista')
-  @Put(':id')
   actualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() data: UpdateTipoMembresiaDto,
@@ -93,20 +90,33 @@ if (tipo.Clases) {
     return this.tipoMembresiaService.actualizar(id, data, req);
   }
 
-  // ✅ Eliminar (admin o recepcionista)
+  @Put(':id/restaurar')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('administrador', 'recepcionista')
+restaurar(
+  @Param('id', ParseIntPipe) id: number,
+  @Req() req: Request
+): Promise<{ mensaje: string }> {
+  return this.tipoMembresiaService.restaurar(id, req);
+}
+
+
+  // ✅ DELETE: Eliminación lógica
+  @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrador', 'recepcionista')
-  @Delete(':id')
   eliminar(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request,
   ): Promise<{ mensaje: string }> {
-    return this.tipoMembresiaService.eliminar(id, req);
+    return this.tipoMembresiaService.eliminar(id, req); // ⬅️ ya debe aplicar soft delete
   }
 
+  // ✅ GET: Membresías con promoción activa
   @UseGuards(JwtAuthGuard)
   @Get('con-promocion-activa')
   async obtenerConPromocionActiva(): Promise<TipoMembresia[]> {
     return this.tipoMembresiaService.obtenerConPromocionActiva();
   }
+
 }

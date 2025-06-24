@@ -9,6 +9,8 @@ export enum AccionBitacora {
   CREAR_TIPO_MEMBRESIA = 'Creación de tipo de membresía',
   ACTUALIZAR_TIPO_MEMBRESIA = 'Actualización de tipo de membresía',
   ELIMINAR_TIPO_MEMBRESIA = 'Eliminación de tipo de membresía',
+  RESTAURAR_TIPO_MEMBRESIA = 'restaurar_tipo_membresia',
+
 
   // Rutinas
   SUSPENDER = 'SUSPENDER',

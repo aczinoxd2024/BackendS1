@@ -141,23 +141,26 @@ console.log('💾 Objeto que se guardará:', tipo);
 }
 
   async eliminar(id: number, req: Request): Promise<{ mensaje: string }> {
-    const tipo = await this.obtenerPorId(id);
-    await this.tipoRepo.remove(tipo);
+  const tipo = await this.obtenerPorId(id);
+  
+  // Marcado como inactivo (soft delete)
+  tipo.Estado = 'Inactivo';
+  await this.tipoRepo.save(tipo);
 
-    const usuario = req.user as any;
-    if (usuario?.rol !== 'administrador') {
-      await this.bitacoraService.registrarDesdeRequest(
-        req,
-        AccionBitacora.ELIMINAR_TIPO_MEMBRESIA,
-        'tipo_membresia',
-      );
-    }
-
-    return {
-      mensaje: `Tipo de membresía "${tipo.NombreTipo}" eliminado correctamente.`,
-
-    };
+  const usuario = req.user as any;
+  if (usuario?.rol !== 'administrador') {
+    await this.bitacoraService.registrarDesdeRequest(
+      req,
+      AccionBitacora.ELIMINAR_TIPO_MEMBRESIA,
+      'tipo_membresia',
+    );
   }
+
+  return {
+    mensaje: `Tipo de membresía "${tipo.NombreTipo}" marcado como inactivo.`,
+  };
+}
+
 
   async obtenerConPromocionActiva(): Promise<TipoMembresia[]> {
     const hoy = new Date();
@@ -168,4 +171,37 @@ console.log('💾 Objeto que se guardará:', tipo);
       .andWhere('promo.fechaFin >= :hoy', { hoy })
       .getMany();
   }
+
+
+  async obtenerTiposActivos(): Promise<TipoMembresia[]> {
+  return this.tipoRepo.find({
+    where: { Estado: 'Activo' },
+    order: { Precio: 'ASC' }
+  });
+}
+
+async restaurar(id: number, req: Request): Promise<{ mensaje: string }> {
+  const tipo = await this.obtenerPorId(id);
+  if (!tipo) throw new NotFoundException('Membresía no encontrada');
+
+  if (tipo.Estado === 'Activo') {
+    return { mensaje: 'La membresía ya está activa.' };
+  }
+
+  tipo.Estado = 'Activo';
+  await this.tipoRepo.save(tipo);
+
+  const usuario = req.user as any;
+  if (usuario?.rol !== 'administrador') {
+    await this.bitacoraService.registrarDesdeRequest(
+      req,
+      AccionBitacora.RESTAURAR_TIPO_MEMBRESIA,
+      'tipo_membresia',
+    );
+  }
+
+  return { mensaje: `Membresía "${tipo.NombreTipo}" restaurada correctamente.` };
+}
+
+
 }
