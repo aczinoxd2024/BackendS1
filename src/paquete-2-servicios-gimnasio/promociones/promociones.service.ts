@@ -1,5 +1,5 @@
 // promociones.service.ts
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { DataSource } from 'typeorm';
 import * as fs from 'fs';
@@ -100,7 +100,11 @@ export class PromocionesService {
     `);
     } catch (error) {
       console.error('❌ Error al obtener clientes vigentes:', error);
-      throw new Error('Error en la consulta SQL de clientes vigentes.');
+      throw new BadRequestException(
+        error instanceof Error
+          ? error.message
+          : 'Error en la consulta SQL de clientes vigentes.',
+      );
     }
   }
 }
