@@ -509,13 +509,13 @@ Adjuntamos el comprobante de tu pago en formato PDF.
     await this.pagosRepository.save(nuevoPago);
 
     const detalle = this.detallePagoRepository.create({
-      IDPago: nuevoPago.NroPago,
-      IDMembresia: membresiaARegistrar.IDMembresia,
-      IDClase:
-        tipoNuevo.ID === 2 || tipoNuevo.ID === 3 ? (idClase ?? null) : null,
-      MontoTotal: monto,
-      IDPromo: null,
-    });
+  IDPago: nuevoPago.NroPago,
+  IDMembresia: membresiaARegistrar.IDMembresia,
+  IDClase: idClase ?? null,  // ✅ guardamos siempre si viene
+  MontoTotal: monto,
+  IDPromo: null,
+});
+
     await this.detallePagoRepository.save(detalle);
 
     // 📝 Bitácora
