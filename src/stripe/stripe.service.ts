@@ -468,12 +468,13 @@ export class StripeService {
     console.log('✅ Membresía registrada con ID:', nuevaMembresia.IDMembresia);
 
     const detalle = this.detallePagoRepository.create({
-      IDPago: pagoGuardado.NroPago,
-      IDMembresia: nuevaMembresia.IDMembresia,
-      IDClase: tipo.ID === 2 ? idClase : null,
-      MontoTotal: amount / 100,
-      IDPromo: null,
-    });
+  IDPago: pagoGuardado.NroPago,
+  IDMembresia: nuevaMembresia.IDMembresia,
+  IDClase: idClase ?? null, // ✔ Acepta cualquier membresía con clase
+  MontoTotal: amount / 100,
+  IDPromo: null,
+});
+
 
     await this.detallePagoRepository.save(detalle);
 
