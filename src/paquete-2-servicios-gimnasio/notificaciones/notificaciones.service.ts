@@ -109,10 +109,17 @@ export class NotificacionesService {
         this.esCorreoGmailValido(usuario.correo)
       ) {
         const membershipsSummary = clientMemberships
-          .map(
-            (m) =>
-              `<li>Membresía: <strong>${m.tipo?.NombreTipo || 'Desconocido'}</strong> - Vence el: <strong>${new Date(m.FechaFin).toLocaleDateString('es-BO')}</strong>.</li>`,
-          )
+          .map((m) => {
+            const diasRestantes = Math.ceil(
+              (new Date(m.FechaFin).getTime() - today.getTime()) /
+                (1000 * 60 * 60 * 24),
+            );
+            return `<li>
+      Membresía: <strong>${m.tipo?.NombreTipo || 'Desconocido'}</strong> - 
+      Vence el: <strong>${new Date(m.FechaFin).toLocaleDateString('es-BO')}</strong> 
+      (<strong>${diasRestantes} día(s)</strong> restante${diasRestantes !== 1 ? 's' : ''}).
+    </li>`;
+          })
           .join('');
 
         try {
@@ -124,7 +131,15 @@ export class NotificacionesService {
               <p>Queremos recordarte que la(s) siguiente(s) membresía(s) que tienes con GoFit GYM está(n) próxima(s) a vencer:</p>
               <ul>${membershipsSummary}</ul>
               <p>Para no perder tu progreso ni tus beneficios, te invitamos a renovar tu(s) membresía(s) lo antes posible.</p>
-              <p>Puedes hacerlo fácilmente desde nuestra plataforma web o visitando la recepción del gimnasio.</p>
+             <p>Puedes renovar fácilmente tu membresía haciendo clic en el siguiente botón:</p>
+<p>
+  <a href="https://proyectosis120252.netlify.app/renovar-membresia?ci=${ciCliente}" 
+     style="background-color: #ff4b5c; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+    Renovar Membresía
+  </a>
+</p>
+<p>O si lo prefieres, visítanos en la recepción del gimnasio.</p>
+
               <br><p>¡Gracias por ser parte de la comunidad GoFit GYM! 💪</p>
             `,
           });
