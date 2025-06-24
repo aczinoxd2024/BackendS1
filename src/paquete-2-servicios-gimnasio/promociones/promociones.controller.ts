@@ -71,6 +71,7 @@ export class PromocionesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('recepcionista')
   async listarClientesVigentes(): Promise<any[]> {
+    console.log('📩 Solicitando clientes vigentes...');
     return await this.promocionesService.obtenerClientesVigentes();
   }
 }

@@ -77,25 +77,30 @@ export class PromocionesService {
     return { mensaje: 'Promociones enviadas con imagen' };
   }
   async obtenerClientesVigentes(): Promise<any[]> {
-    return await this.dataSource.query(`
-    SELECT Nombre, Apellido, Correo, TipoMembresia, FechaInicio, FechaFin
-    FROM (
-      SELECT 
-        p.Nombre,
-        p.Apellido,
-        u.Correo,
-        tm.NombreTipo AS TipoMembresia,
-        m.FechaInicio,
-        m.FechaFin,
-        ROW_NUMBER() OVER (PARTITION BY u.Correo ORDER BY m.FechaInicio DESC) as rn
-      FROM membresia m
-      JOIN tipo_membresia tm ON m.TipoMembresiaID = tm.ID
-      JOIN cliente c ON c.CI = m.CICliente
-      JOIN persona p ON p.CI = c.CI
-      JOIN usuario u ON u.IDPersona = p.CI
-      WHERE CURDATE() <= m.FechaFin
-    ) t
-    WHERE t.rn = 1;
-  `);
+    try {
+      return await this.dataSource.query(`
+      SELECT Nombre, Apellido, Correo, TipoMembresia, FechaInicio, FechaFin
+      FROM (
+        SELECT 
+          p.Nombre,
+          p.Apellido,
+          u.Correo,
+          tm.NombreTipo AS TipoMembresia,
+          m.FechaInicio,
+          m.FechaFin,
+          ROW_NUMBER() OVER (PARTITION BY u.Correo ORDER BY m.FechaInicio DESC) as rn
+        FROM membresia m
+        JOIN tipo_membresia tm ON m.TipoMembresiaID = tm.ID
+        JOIN cliente c ON c.CI = m.CICliente
+        JOIN persona p ON p.CI = c.CI
+        JOIN usuario u ON u.IDPersona = p.CI
+        WHERE CURDATE() <= m.FechaFin
+      ) t
+      WHERE t.rn = 1;
+    `);
+    } catch (error) {
+      console.error('❌ Error al obtener clientes vigentes:', error);
+      throw new Error('Error en la consulta SQL de clientes vigentes.');
+    }
   }
 }
