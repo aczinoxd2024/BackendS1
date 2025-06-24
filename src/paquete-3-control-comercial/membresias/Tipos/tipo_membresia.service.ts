@@ -68,7 +68,6 @@ export class TipoMembresiaService {
         'tipo_membresia',
       );
     }
-
     return nuevo;
   }
 
