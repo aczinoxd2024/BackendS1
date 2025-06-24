@@ -146,10 +146,10 @@ export class NotificacionesService {
           `,
             attachments: [
               {
-                filename: 'gofit-banner.jpg',
+                filename: 'gofit-banner.png',
                 path: path.resolve(
                   __dirname,
-                  '../../assets/images/gofit-banner.jpg',
+                  '../../assets/images/gofit-banner.png',
                 ),
                 cid: 'gofit-banner',
               },
