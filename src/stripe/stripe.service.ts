@@ -544,7 +544,7 @@ async checkoutRenovacion(data: {
   correo: string;
 }): Promise<{ url: string }> {
   const tipo = await this.tipoMembresiaRepository.findOne({
-    where: { ID: data.tipoMembresiaId }
+    where: { ID: data.tipoMembresiaId },
   });
 
   if (!tipo) {
@@ -554,14 +554,24 @@ async checkoutRenovacion(data: {
   const precio = tipo.Precio;
   const nombreTipo = tipo.NombreTipo;
 
+  console.log('📤 Renovación recibida:', data);
+  console.log('💰 Precio leído desde DB:', precio);
+
+  console.log('🧾 Datos sesión Stripe', {
+  nombre: nombreTipo,
+  precio,
+  tipoId: data.tipoMembresiaId,
+});
+
   const session = await this.stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     mode: 'payment',
     customer_email: data.correo,
+    client_reference_id: `${data.ci}-${Date.now()}`, 
     metadata: {
       ci: data.ci,
       tipoMembresiaId: data.tipoMembresiaId.toString(),
-      descripcion: nombreTipo, // ✅ esto es lo que faltaba
+      descripcion: nombreTipo,
     },
     line_items: [
       {
@@ -570,7 +580,7 @@ async checkoutRenovacion(data: {
           product_data: {
             name: nombreTipo,
           },
-          unit_amount: precio * 100,
+          unit_amount: Math.round(precio * 100), // ✅ Garantiza precisión (sin decimales flotantes)
         },
         quantity: 1,
       },
@@ -578,6 +588,9 @@ async checkoutRenovacion(data: {
     success_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${this.configService.getOrThrow<string>('FRONTEND_URL')}/pagos/cancel`,
   });
+
+  console.log('💬 tipo:', tipo);
+console.log('💰 Precio leído:', tipo.Precio);
 
   if (!session.url) {
     throw new Error('No se pudo generar la sesión de Stripe');
